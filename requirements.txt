@@ -25,6 +25,7 @@ numpy==2.3.4
 openpyxl==3.1.2
 phonenumbers==9.0.17
 Pillow
+pandas==2.1.4
 protobuf==6.33.0
 psycopg2==2.9.11
 psycopg2-binary==2.9.7
