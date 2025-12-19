@@ -77,7 +77,7 @@ def tenant_context(request):
         secondary_rgb = hex_to_rgb(secondary_color)
         accent_rgb = hex_to_rgb(accent_color)
         
-        context['tenant_css'] = f"""
+        context['tenant_css'] = fr"""
         :root {{
             /* Primary Color Palette */
             --tenant-primary: {primary_color};
@@ -264,7 +264,7 @@ def tenant_context(request):
         .text-blue-600 {{ color: var(--tenant-primary) !important; }}
         .bg-blue-600 {{ background-color: var(--tenant-primary) !important; }}
         .border-blue-600 {{ border-color: var(--tenant-primary) !important; }}
-        .hover\:bg-blue-700:hover {{ background-color: var(--tenant-primary-dark) !important; }}
+        .hover\\:bg-blue-700:hover {{ background-color: var(--tenant-primary-dark) !important; }}
         
         .text-purple-600 {{ color: var(--tenant-secondary) !important; }}
         .bg-purple-600 {{ background-color: var(--tenant-secondary) !important; }}
@@ -299,7 +299,7 @@ def tenant_context(request):
         """
         
         # Add JavaScript configuration for tenant
-        context['tenant_js_config'] = f"""
+        context['tenant_js_config'] = fr"""
         window.tenantConfig = {{
             id: '{tenant.id}',
             name: '{tenant.name}',
