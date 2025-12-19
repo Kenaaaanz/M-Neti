@@ -29,8 +29,8 @@ DEBUG = 'True'
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    'mneti.onrender.com',
-    '.mneti.com',
+    'm-neti.onrender.com',
+    '.m-neti.com',
     ]
 
 
