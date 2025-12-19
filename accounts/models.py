@@ -8,7 +8,7 @@ import uuid
 import re
 from decimal import Decimal
 from django.conf import settings
-from pytz import timezone
+from datetime import timezone
 
 class Tenant(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
