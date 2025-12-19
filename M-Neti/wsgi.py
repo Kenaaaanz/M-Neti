@@ -15,5 +15,4 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'M-Neti.settings')
 
 application = get_wsgi_application()
 
-# For Vercel
-#app = application
+app = application
