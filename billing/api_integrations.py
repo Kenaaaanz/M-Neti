@@ -23,7 +23,7 @@ class BaseAPIProvider:
         """Get headers for API request"""
         headers = {
             'Content-Type': 'application/json',
-            'User-Agent': 'M-NetiISP/1.0'
+            'User-Agent': 'm_netiISP/1.0'
         }
         if self.api_key:
             headers['Authorization'] = f'Bearer {self.api_key}'

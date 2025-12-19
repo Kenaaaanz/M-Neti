@@ -2478,7 +2478,7 @@ def send_welcome_email_to_admin(admin, password, tenant):
     message = f"""
     Dear {admin.get_full_name()},
     
-    You have been added as an administrator for {tenant.name} on the M-Neti platform.
+    You have been added as an administrator for {tenant.name} on the m_neti platform.
     
     Your login details:
     - Portal URL: {tenant.primary_domain}/isp/dashboard/
@@ -2488,7 +2488,7 @@ def send_welcome_email_to_admin(admin, password, tenant):
     Please change your password after first login.
     
     Best regards,
-    M-Neti Team
+    m_neti Team
     """
     
     # Send email using your email backend
@@ -2510,7 +2510,7 @@ def send_password_reset_email(email, reset_url, name):
     If you didn't request this, please ignore this email.
     
     Best regards,
-    M-Neti Team
+    m_neti Team
     """
     
     # Send email using your email backend

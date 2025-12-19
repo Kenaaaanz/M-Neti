@@ -1,5 +1,5 @@
 """
-WSGI config for M-Neti project.
+WSGI config for m_neti project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,7 +11,7 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'M-Neti.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'm_neti.settings')
 
 application = get_wsgi_application()
 

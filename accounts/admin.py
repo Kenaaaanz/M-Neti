@@ -271,7 +271,7 @@ class CustomUserAdmin(UserAdmin):
     actions = ['activate_customers', 'deactivate_customers', 'approve_registrations']
     
     fieldsets = UserAdmin.fieldsets + (
-        ('M-Neti Information', {
+        ('m_neti Information', {
             'fields': ('tenant', 'company_account_number', 'phone', 'role', 'registration_status')
         }),
         ('Customer Information', {

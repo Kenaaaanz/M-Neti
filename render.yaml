@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: M-Neti
+    name: m_neti
     env: python
     plan: free
     branch: main
