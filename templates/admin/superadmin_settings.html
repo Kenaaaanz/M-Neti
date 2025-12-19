@@ -1,0 +1,409 @@
+superadmin_settings.html<!-- templates/admin/superadmin_settings.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block page_title %}System Settings - SuperAdmin{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">{{ page_title }}</h1>
+        <p class="text-gray-600 mt-2">{{ page_subtitle }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Settings Navigation -->
+        <div class="lg:col-span-1">
+            <nav class="bg-white rounded-xl shadow-sm p-6 sticky top-8">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#general" class="settings-nav-link active flex items-center px-3 py-2 rounded-lg text-gray-700 bg-blue-50 border-l-4 border-blue-500">
+                            <i class="fas fa-cog mr-3 text-blue-600"></i>
+                            General Settings
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#security" class="settings-nav-link flex items-center px-3 py-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            <i class="fas fa-shield-alt mr-3 text-gray-400"></i>
+                            Security
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#billing" class="settings-nav-link flex items-center px-3 py-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            <i class="fas fa-credit-card mr-3 text-gray-400"></i>
+                            Billing & Payments
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#notifications" class="settings-nav-link flex items-center px-3 py-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            <i class="fas fa-bell mr-3 text-gray-400"></i>
+                            Notifications
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#integrations" class="settings-nav-link flex items-center px-3 py-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            <i class="fas fa-plug mr-3 text-gray-400"></i>
+                            Integrations
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#backup" class="settings-nav-link flex items-center px-3 py-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            <i class="fas fa-database mr-3 text-gray-400"></i>
+                            Backup & Restore
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#maintenance" class="settings-nav-link flex items-center px-3 py-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                            <i class="fas fa-tools mr-3 text-gray-400"></i>
+                            Maintenance
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Settings Content -->
+        <div class="lg:col-span-3 space-y-8">
+            <!-- General Settings -->
+            <section id="general" class="settings-section">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-semibold mb-6 flex items-center">
+                        <i class="fas fa-cog text-blue-600 mr-3"></i>
+                        General Platform Settings
+                    </h2>
+                    
+                    <form class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Platform Name</label>
+                                <input type="text" value="M-Neti Platform" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Support Email</label>
+                                <input type="email" value="support@M-Neti.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Platform Description</label>
+                            <textarea rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">Multi-tenant ISP management platform for efficient network administration</textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Default Timezone</label>
+                                <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option>UTC</option>
+                                    <option selected>Africa/Nairobi</option>
+                                    <option>America/New_York</option>
+                                    <option>Europe/London</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Default Language</label>
+                                <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option selected>English</option>
+                                    <option>Spanish</option>
+                                    <option>French</option>
+                                    <option>Swahili</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between pt-6 border-t">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900">Platform Maintenance Mode</h3>
+                                <p class="text-sm text-gray-600">Temporarily disable the platform for maintenance</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex justify-end pt-6 border-t">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                                Save General Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Security Settings -->
+            <section id="security" class="settings-section hidden">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-semibold mb-6 flex items-center">
+                        <i class="fas fa-shield-alt text-green-600 mr-3"></i>
+                        Security Settings
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Session Timeout (minutes)</label>
+                                <input type="number" value="120" min="15" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Max Login Attempts</label>
+                                <input type="number" value="5" min="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-medium text-gray-900">Password Policy</h3>
+                            
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Minimum Password Length</h4>
+                                    <p class="text-sm text-gray-600">Require passwords to be at least 8 characters</p>
+                                </div>
+                                <input type="number" value="8" min="6" class="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Require Special Characters</h4>
+                                    <p class="text-sm text-gray-600">Passwords must include special characters</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Password Expiration</h4>
+                                    <p class="text-sm text-gray-600">Require password change every 90 days</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-6 border-t">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Two-Factor Authentication</h3>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Require 2FA for Admin Users</h4>
+                                    <p class="text-sm text-gray-600">Enforce two-factor authentication for all admin accounts</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end pt-6 border-t">
+                            <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                                Save Security Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Billing & Payments -->
+            <section id="billing" class="settings-section hidden">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-xl font-semibold mb-6 flex items-center">
+                        <i class="fas fa-credit-card text-purple-600 mr-3"></i>
+                        Billing & Payment Settings
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Default Currency</label>
+                                <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option selected>KES - Kenyan Shilling</option>
+                                    <option>USD - US Dollar</option>
+                                    <option>EUR - Euro</option>
+                                    <option>GBP - British Pound</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
+                                <input type="number" value="16.0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Payment Gateway Configuration</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-credit-card text-blue-600 text-xl mr-3"></i>
+                                        <div>
+                                            <h4 class="font-medium text-gray-900">Paystack</h4>
+                                            <p class="text-sm text-gray-600">Primary payment gateway</p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center">
+                                        <i class="fab fa-paypal text-blue-600 text-xl mr-3"></i>
+                                        <div>
+                                            <h4 class="font-medium text-gray-900">PayPal</h4>
+                                            <p class="text-sm text-gray-600">Secondary payment option</p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-6 border-t">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Revenue Sharing</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">Platform Commission (%)</h4>
+                                        <p class="text-sm text-gray-600">Percentage retained by platform from each transaction</p>
+                                    </div>
+                                    <input type="number" value="15.0" step="0.1" class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end pt-6 border-t">
+                            <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                                Save Billing Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Additional sections would follow the same pattern -->
+            <!-- Notifications, Integrations, Backup, Maintenance sections -->
+
+            <!-- Quick Actions Card -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <button class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        <i class="fas fa-sync-alt text-blue-600 text-xl mb-2"></i>
+                        <h4 class="font-medium text-gray-900">Clear Cache</h4>
+                        <p class="text-sm text-gray-600">Refresh system cache</p>
+                    </button>
+                    
+                    <button class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        <i class="fas fa-search text-green-600 text-xl mb-2"></i>
+                        <h4 class="font-medium text-gray-900">System Diagnostics</h4>
+                        <p class="text-sm text-gray-600">Run system health check</p>
+                    </button>
+                    
+                    <button class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                        <i class="fas fa-file-export text-purple-600 text-xl mb-2"></i>
+                        <h4 class="font-medium text-gray-900">Export Settings</h4>
+                        <p class="text-sm text-gray-600">Backup configuration</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Settings navigation
+document.querySelectorAll('.settings-nav-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Update active state
+        document.querySelectorAll('.settings-nav-link').forEach(l => {
+            l.classList.remove('active', 'bg-blue-50', 'border-l-4', 'border-blue-500', 'text-gray-700');
+            l.classList.add('text-gray-600', 'hover:text-gray-900', 'hover:bg-gray-50');
+        });
+        
+        this.classList.add('active', 'bg-blue-50', 'border-l-4', 'border-blue-500', 'text-gray-700');
+        this.classList.remove('text-gray-600', 'hover:text-gray-900', 'hover:bg-gray-50');
+        
+        // Update icons
+        document.querySelectorAll('.settings-nav-link i').forEach(icon => {
+            icon.classList.remove('text-blue-600');
+            icon.classList.add('text-gray-400');
+        });
+        this.querySelector('i').classList.add('text-blue-600');
+        this.querySelector('i').classList.remove('text-gray-400');
+        
+        // Show/hide sections
+        const targetId = this.getAttribute('href').substring(1);
+        document.querySelectorAll('.settings-section').forEach(section => {
+            section.classList.add('hidden');
+        });
+        document.getElementById(targetId).classList.remove('hidden');
+    });
+});
+
+// Toggle switches
+document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const parent = this.closest('.flex.items-center.justify-between');
+        if (parent) {
+            if (this.checked) {
+                parent.classList.add('bg-green-50', 'border', 'border-green-200');
+            } else {
+                parent.classList.remove('bg-green-50', 'border', 'border-green-200');
+            }
+        }
+    });
+});
+
+// Save settings
+document.querySelectorAll('button[type="submit"], button[type="button"]').forEach(button => {
+    if (button.textContent.includes('Save')) {
+        button.addEventListener('click', function() {
+            const buttonText = this.textContent;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+            this.disabled = true;
+            
+            setTimeout(() => {
+                this.innerHTML = buttonText;
+                this.disabled = false;
+                
+                // Show success message
+                const successMsg = document.createElement('div');
+                successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                successMsg.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Settings saved successfully!';
+                document.body.appendChild(successMsg);
+                
+                setTimeout(() => {
+                    successMsg.remove();
+                }, 3000);
+            }, 1000);
+        });
+    }
+});
+</script>
+
+<style>
+.settings-nav-link.active i {
+    color: #2563eb !important;
+}
+
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-purple-50 { background-color: #faf5ff; }
+
+.text-blue-600 { color: #2563eb; }
+.text-green-600 { color: #16a34a; }
+.text-purple-600 { color: #9333ea; }
+
+.border-blue-500 { border-color: #3b82f6; }
+</style>
+{% endblock %}

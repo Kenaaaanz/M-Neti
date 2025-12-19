@@ -1,0 +1,263 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}SMS Management - {{ tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">SMS Management</h1>
+            <p class="text-gray-600 mt-1">Send and manage bulk SMS to customers</p>
+        </div>
+        <div class="flex space-x-3 mt-4 md:mt-0">
+            <a href="{% url 'isp_sms_compose' %}" 
+               class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                <i class="fas fa-paper-plane mr-2"></i>Compose SMS
+            </a>
+            <a href="{% url 'isp_configure_sms_provider' %}" 
+               class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                <i class="fas fa-cog mr-2"></i>Configure Provider
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Today's SMS Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Today's SMS</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">{{ sms_stats.today_count }}</p>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Ksh {{ sms_stats.today_cost|floatformat:2 }} cost
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-sms text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total SMS Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Total SMS</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">{{ sms_stats.total_count }}</p>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Ksh {{ sms_stats.total_cost|floatformat:2 }} total
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-chart-bar text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Campaigns Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Campaigns</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">{{ sms_stats.total_campaigns }}</p>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ sms_stats.active_campaigns }} active
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-bullhorn text-yellow-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivery Rate Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Delivery Rate</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">
+                        {% if sms_stats.total_count > 0 %}
+                            {{ sms_stats.total_successful|floatformat:1 }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </p>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ sms_stats.total_failed }} failed
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-check-circle text-purple-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recent Campaigns -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-semibold text-gray-900">Recent Campaigns</h2>
+                    <a href="{% url 'isp_sms_logs' %}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        View All
+                    </a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for campaign in recent_campaigns %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-900">#{{ campaign.id }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">{{ campaign.total_recipients }}</td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                        {% if campaign.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif campaign.status == 'failed' %}bg-red-100 text-red-800
+                                        {% elif campaign.status == 'sending' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ campaign.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600">{{ campaign.created_at|date:"M d, Y H:i" }}</td>
+                                <td class="px-4 py-3">
+                                    <a href="{% url 'isp_sms_campaign_detail' campaign.id %}" 
+                                       class="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+                                        <i class="fas fa-eye mr-1 text-xs"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                    <i class="fas fa-inbox text-2xl mb-2"></i>
+                                    <p>No campaigns yet</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Provider Status -->
+        <div>
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+                <div class="space-y-3">
+                    <a href="{% url 'isp_sms_compose' %}" 
+                       class="flex items-center justify-center w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-paper-plane mr-2"></i>Send New SMS
+                    </a>
+                    <a href="{% url 'isp_sms_templates' %}" 
+                       class="flex items-center justify-center w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                        <i class="fas fa-file-alt mr-2"></i>Manage Templates
+                    </a>
+                    <a href="{% url 'isp_configure_sms_provider' %}" 
+                       class="flex items-center justify-center w-full px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition">
+                        <i class="fas fa-cog mr-2"></i>Configure Provider
+                    </a>
+                    <a href="{% url 'isp_sms_logs' %}" 
+                       class="flex items-center justify-center w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                        <i class="fas fa-history mr-2"></i>View SMS Logs
+                    </a>
+                </div>
+            </div>
+
+            <!-- SMS Provider Status -->
+            {% if sms_provider %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">SMS Provider</h2>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium">{{ sms_provider.get_provider_name_display }}</span>
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                            {% if sms_provider.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if sms_provider.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <div class="flex justify-between mb-1">
+                            <span>Daily Limit:</span>
+                            <span class="font-medium">{{ sms_provider.sms_sent_today }}/{{ sms_provider.max_sms_per_day }}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" 
+                                 style="width: {% widthratio sms_provider.sms_sent_today sms_provider.max_sms_per_day 100 %}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent SMS Logs -->
+    <div class="mt-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-gray-900">Recent SMS Logs</h2>
+                <a href="{% url 'isp_sms_logs' %}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                    View All
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for log in recent_logs %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ log.sent_at|date:"H:i"|default:"-" }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ log.customer.username }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ log.customer.phone|slice:":8" }}...</td>
+                            <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title="{{ log.message }}">
+                                {{ log.message|truncatechars:30 }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                    {% if log.status == 'sent' %}bg-green-100 text-green-800
+                                    {% elif log.status == 'failed' %}bg-red-100 text-red-800
+                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {{ log.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">Ksh {{ log.cost|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                <i class="fas fa-comment-slash text-2xl mb-2"></i>
+                                <p>No SMS logs yet</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

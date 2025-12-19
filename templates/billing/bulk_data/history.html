@@ -1,0 +1,367 @@
+<!-- templates/billing/bulk_data/history.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Purchase History - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Bulk Data Purchase History{% endblock %}
+{% block page_subtitle %}View all your bulk data purchases{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-shopping-cart text-blue-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Purchases</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ purchases.count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-database text-green-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Data</p>
+                    <p class="text-2xl font-bold text-gray-900">
+                        {% with total_data=purchases.aggregate total=Sum total_data.total|default:0 %}
+                        {{ total_data|floatformat:2 }} GB
+                        {% endwith %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-percentage text-red-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Commission</p>
+                    <p class="text-2xl font-bold text-red-600">
+                        {% with total_commission=purchases.aggregate total=Sum platform_commission.total_commission|default:0 %}
+                        KSh {{ total_commission|floatformat:0 }}
+                        {% endwith %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-money-bill-wave text-purple-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Spent</p>
+                    <p class="text-2xl font-bold text-purple-600">
+                        {% with total_spent=purchases.aggregate total=Sum total_price.total_spent|default:0 %}
+                        KSh {{ total_spent|floatformat:0 }}
+                        {% endwith %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Search Purchases</label>
+                <input type="text" 
+                       id="searchInput" 
+                       placeholder="Search by package name..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select id="statusFilter" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all">All Status</option>
+                    <option value="completed">Completed</option>
+                    <option value="paid">Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                <select id="sortFilter" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="amount_high">Amount (High to Low)</option>
+                    <option value="amount_low">Amount (Low to High)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchases Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Commission</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200" id="purchasesTable">
+                    {% for purchase in purchases %}
+                    <tr class="purchase-row hover:bg-gray-50" 
+                        data-status="{{ purchase.payment_status }}"
+                        data-amount="{{ purchase.total_price }}"
+                        data-date="{{ purchase.purchased_at|date:'U' }}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ purchase.purchased_at|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-database text-white"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ purchase.package.name }}</div>
+                                    <div class="text-xs text-gray-500">{{ purchase.total_data|floatformat:2 }} GB</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ purchase.quantity }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div class="font-medium">KSh {{ purchase.total_price|floatformat:0 }}</div>
+                            <div class="text-xs text-gray-500">Net: KSh {{ purchase.isp_net_amount|floatformat:0 }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
+                            - KSh {{ purchase.platform_commission|floatformat:0 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                {% if purchase.payment_status == 'completed' %}bg-green-100 text-green-800
+                                {% elif purchase.payment_status == 'paid' %}bg-blue-100 text-blue-800
+                                {% elif purchase.payment_status == 'processing' %}bg-yellow-100 text-yellow-800
+                                {% elif purchase.payment_status == 'failed' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ purchase.get_payment_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'bulk_purchase_detail' purchase.id %}" 
+                                   class="text-blue-600 hover:text-blue-900"
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                {% if purchase.payment_status == 'pending' %}
+                                <a href="{% url 'process_bulk_data_payment' purchase.id %}" 
+                                   class="text-green-600 hover:text-green-900"
+                                   title="Complete Payment">
+                                    <i class="fas fa-credit-card"></i>
+                                </a>
+                                {% endif %}
+                                
+                                {% if purchase.payment %}
+                                <a href="#" 
+                                   class="text-purple-600 hover:text-purple-900"
+                                   title="Download Receipt"
+                                   onclick="downloadReceipt('{{ purchase.id }}')">
+                                    <i class="fas fa-receipt"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center">
+                            <div class="text-gray-400">
+                                <i class="fas fa-shopping-cart text-4xl mb-3"></i>
+                                <p class="text-lg font-medium">No purchases yet</p>
+                                <p class="text-sm mt-1">Make your first bulk data purchase</p>
+                                <a href="{% url 'bulk_data_marketplace' %}" class="mt-4 inline-block text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-store mr-1"></i> Browse Packages
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Export Section -->
+    {% if purchases %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mt-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Export Purchase History</h3>
+                <p class="text-sm text-gray-500">Export your purchase data for reporting</p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="exportToCSV()" 
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <i class="fas fa-file-csv mr-2"></i>
+                    Export CSV
+                </button>
+                <button onclick="printReport()" 
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <i class="fas fa-print mr-2"></i>
+                    Print Report
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Filter and sort functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const sortFilter = document.getElementById('sortFilter');
+    const purchaseRows = document.querySelectorAll('.purchase-row');
+    
+    function filterAndSortPurchases() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const statusValue = statusFilter.value;
+        const sortValue = sortFilter.value;
+        
+        let visibleRows = [];
+        
+        purchaseRows.forEach(row => {
+            const packageName = row.querySelector('.text-sm.font-medium').textContent.toLowerCase();
+            const purchaseStatus = row.getAttribute('data-status');
+            const purchaseAmount = parseFloat(row.getAttribute('data-amount'));
+            const purchaseDate = parseInt(row.getAttribute('data-date'));
+            
+            // Apply search filter
+            const matchesSearch = packageName.includes(searchTerm) || searchTerm === '';
+            
+            // Apply status filter
+            const matchesStatus = statusValue === 'all' || purchaseStatus === statusValue;
+            
+            // Show/hide row
+            if (matchesSearch && matchesStatus) {
+                row.style.display = '';
+                visibleRows.push({
+                    row: row,
+                    amount: purchaseAmount,
+                    date: purchaseDate
+                });
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Apply sorting
+        visibleRows.sort((a, b) => {
+            switch(sortValue) {
+                case 'oldest':
+                    return a.date - b.date;
+                case 'amount_high':
+                    return b.amount - a.amount;
+                case 'amount_low':
+                    return a.amount - b.amount;
+                case 'newest':
+                default:
+                    return b.date - a.date;
+            }
+        });
+        
+        // Reorder rows in DOM
+        const tbody = document.getElementById('purchasesTable');
+        visibleRows.forEach(item => {
+            tbody.appendChild(item.row);
+        });
+    }
+    
+    searchInput.addEventListener('input', filterAndSortPurchases);
+    statusFilter.addEventListener('change', filterAndSortPurchases);
+    sortFilter.addEventListener('change', filterAndSortPurchases);
+});
+
+function downloadReceipt(purchaseId) {
+    alert('Receipt download functionality would be implemented here.');
+}
+
+function exportToCSV() {
+    alert('CSV export functionality would be implemented here.');
+}
+
+function printReport() {
+    const printContent = `
+        <html>
+        <head>
+            <title>Bulk Data Purchase Report - {{ tenant.name }}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                h1 { color: #1f2937; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f3f4f6; }
+                @media print { .no-print { display: none; } }
+            </style>
+        </head>
+        <body>
+            <h1>Bulk Data Purchase Report</h1>
+            <p>Generated: ${new Date().toLocaleDateString()}</p>
+            <p>Tenant: {{ tenant.name }}</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Package</th>
+                        <th>Quantity</th>
+                        <th>Amount</th>
+                        <th>Commission</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for purchase in purchases %}
+                    <tr>
+                        <td>{{ purchase.purchased_at|date:"M d, Y" }}</td>
+                        <td>{{ purchase.package.name }}</td>
+                        <td>{{ purchase.quantity }}</td>
+                        <td>KSh {{ purchase.total_price|floatformat:0 }}</td>
+                        <td>KSh {{ purchase.platform_commission|floatformat:0 }}</td>
+                        <td>{{ purchase.get_payment_status_display }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </body>
+        </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 250);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Upload External Data - M-Neti{% endblock %}
+
+{% block page_title %}Upload External Data{% endblock %}
+{% block page_subtitle %}Add data from external sources to your wallet{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold">Current Wallet Balance</h3>
+            <div class="mt-2">
+                <div class="text-3xl font-bold">{{ wallet.balance_gb }} GB</div>
+                <div class="text-sm text-gray-500 mt-2">Last updated: {{ wallet.updated_at|date:'M d, Y H:i' }}</div>
+            </div>
+        </div>
+        
+        <div class="border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-semibold mb-4">Upload Data from External Source</h3>
+            
+            <form method="POST" action="{% url 'external_data_upload' %}" class="space-y-4">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Source Type</label>
+                        <select name="source_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="manual_entry">Manual Entry</option>
+                            <option value="invoice">Invoice/Bill</option>
+                            <option value="api">API Integration</option>
+                            <option value="server">ISP Server</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Amount (GB)</label>
+                        <input type="number" name="amount_gb" step="0.01" min="0.01" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                               placeholder="Enter GB amount">
+                        <p class="text-xs text-gray-500 mt-1">Amount of data to add to wallet</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">External Source Name</label>
+                    <input type="text" name="external_source"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                           placeholder="e.g., Safaricom Bulk Data, ISP Server, etc.">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Reference Number</label>
+                    <input type="text" name="external_reference"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                           placeholder="e.g., Invoice #, Transaction ID, etc.">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" rows="3"
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                              placeholder="Describe the source of this data..."></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Invoice Number (Optional)</label>
+                    <input type="text" name="invoice_number"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                           placeholder="Invoice number if applicable">
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <a href="{% url 'isp_data_wallet' %}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-cloud-upload-alt mr-2"></i>
+                        Upload Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Quick CSV Upload -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold mb-4">Bulk CSV Upload</h3>
+            <p class="text-sm text-gray-500 mb-4">Upload multiple data entries via CSV file</p>
+            <a href="{% url 'upload_data_csv' %}" class="block w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-center">
+                <i class="fas fa-file-csv mr-2"></i>
+                Upload CSV File
+            </a>
+            <p class="text-xs text-gray-500 mt-2">
+                CSV format: amount_gb,reference,description
+            </p>
+        </div>
+        
+        <!-- External Sources -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold mb-4">External Data Sources</h3>
+            <p class="text-sm text-gray-500 mb-4">Configure automated data sources</p>
+            <a href="{% url 'manage_external_sources' %}" class="block w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-center">
+                <i class="fas fa-cog mr-2"></i>
+                Manage Sources
+            </a>
+            <div class="mt-4 space-y-2">
+                {% for source in external_sources %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <div class="font-medium">{{ source.name }}</div>
+                        <div class="text-xs text-gray-500">{{ source.get_source_type_display }}</div>
+                    </div>
+                    <button onclick="syncSource('{{ source.id }}')" class="px-3 py-1 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 text-sm">
+                        Sync Now
+                    </button>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-gray-500">
+                    No external sources configured
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function syncSource(sourceId) {
+    fetch(`/billing/sync-external-source/${sourceId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Network error');
+    });
+}
+</script>
+{% endblock %}

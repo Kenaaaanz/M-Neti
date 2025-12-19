@@ -1,0 +1,1781 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Payments - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Payment Management{% endblock %}
+{% block page_subtitle %}Monitor and manage customer payments{% endblock %}
+
+{% block extra_css %}
+<style>
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+.status-completed {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+.status-pending {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+.status-failed {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.action-btn:hover {
+    transform: translateY(-2px);
+}
+.btn-view {
+    background-color: #eff6ff;
+    color: #2563eb;
+}
+.btn-confirm {
+    background-color: #d1fae5;
+    color: #10b981;
+}
+.btn-retry {
+    background-color: #fef3c7;
+    color: #f59e0b;
+}
+.btn-receipt {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+.btn-cancel {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+.amount-cell {
+    font-weight: 700;
+    font-size: 16px;
+}
+.date-cell {
+    font-size: 14px;
+}
+.date-time {
+    font-size: 12px;
+    color: #6b7280;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'isp_dashboard' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-home mr-2"></i>
+                    Dashboard
+                </a>
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+            </li>
+            <li aria-current="page">
+                <div class="flex items-center">
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Payments</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium mb-1">Total Revenue</p>
+                    <p class="text-2xl font-bold">Ksh {{ total_revenue|floatformat:2|intcomma }}</p>
+                    <p class="text-blue-100 text-xs">{{ payments.paginator.count }} transactions</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-money-bill-wave text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium mb-1">Completed</p>
+                    <p class="text-2xl font-bold">{{ completed_payments }}</p>
+                    <p class="text-green-100 text-xs">Successful payments</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-check-circle text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-yellow-100 text-sm font-medium mb-1">Pending</p>
+                    <p class="text-2xl font-bold">{{ pending_payments }}</p>
+                    <p class="text-yellow-100 text-xs">Awaiting confirmation</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-clock text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-red-100 text-sm font-medium mb-1">Failed</p>
+                    <p class="text-2xl font-bold">{{ failed_payments }}</p>
+                    <p class="text-red-100 text-xs">Requires attention</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-times-circle text-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Controls -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+            <div class="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="Search payments..." 
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                <select id="statusFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all">All Status</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                    <option value="refunded">Refunded</option>
+                </select>
+                <select id="dateFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                </select>
+            </div>
+            <div class="flex space-x-3">
+                <button id="exportBtn" class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 flex items-center">
+                    <i class="fas fa-download mr-2"></i> Export CSV
+                </button>
+                <button id="refreshBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg flex items-center">
+                    <i class="fas fa-sync-alt mr-2"></i> Refresh
+                </button>
+                <a href="{% url 'isp_generate_invoice' %}" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center">
+                    <i class="fas fa-file-invoice mr-2"></i> Generate Invoice
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payments Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">
+                            <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        </th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Customer</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Plan</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Amount</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Status</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Transaction ID</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Date</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr class="border-b border-gray-200 hover:bg-gray-50 payment-row" data-status="{{ payment.status }}" data-id="{{ payment.id }}">
+                        <td class="py-4 px-6">
+                            <input type="checkbox" class="payment-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" data-payment-id="{{ payment.id }}">
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-user text-blue-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ payment.user.get_full_name|default:payment.user.username }}</div>
+                                    <div class="text-sm text-gray-500">{{ payment.user.email|truncatechars:20 }}</div>
+                                    <div class="text-xs text-gray-400">#{{ payment.user.company_account_number }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="text-sm text-gray-900">{{ payment.plan.name|default:"N/A" }}</div>
+                            {% if payment.plan %}
+                            <div class="text-xs text-gray-500">{{ payment.plan.bandwidth }} Mbps • {{ payment.plan.duration_days }} days</div>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 amount-cell">
+                            <div class="text-gray-900">Ksh {{ payment.amount|floatformat:2|intcomma }}</div>
+                            {% if payment.payment_method %}
+                            <div class="text-xs text-gray-500">{{ payment.get_payment_method_display }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="status-badge status-{{ payment.status }}">
+                                {{ payment.get_status_display }}
+                            </div>
+                            {% if payment.status == 'completed' %}
+                            <div class="text-xs text-green-600 mt-1">
+                                <i class="fas fa-check-circle"></i> Verified
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="font-mono text-sm text-gray-900">{{ payment.reference|truncatechars:15 }}</div>
+                            <button class="text-xs text-blue-600 hover:text-blue-800 mt-1 copy-btn" data-text="{{ payment.reference }}">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </td>
+                        <td class="py-4 px-6 date-cell">
+                            <div class="text-gray-900">{{ payment.created_at|date:"M d, Y" }}</div>
+                            <div class="text-gray-500 text-xs">{{ payment.created_at|date:"h:i A" }}</div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="action-buttons">
+                                <button class="action-btn btn-view view-btn" data-payment-id="{{ payment.id }}" title="View details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                
+                                {% if payment.status == 'pending' %}
+                                <button class="action-btn btn-confirm confirm-btn" data-payment-id="{{ payment.id }}" title="Mark as completed">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="action-btn btn-cancel cancel-btn" data-payment-id="{{ payment.id }}" title="Mark as failed">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                {% endif %}
+                                
+                                {% if payment.status == 'failed' %}
+                                <button class="action-btn btn-retry retry-btn" data-payment-id="{{ payment.id }}" title="Retry payment">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                {% endif %}
+                                
+                                <button class="action-btn btn-receipt receipt-btn" data-payment-id="{{ payment.id }}" title="Download receipt">
+                                    <i class="fas fa-receipt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center">
+                            <div class="text-gray-400 mb-3">
+                                <i class="fas fa-credit-card text-4xl"></i>
+                            </div>
+                            <p class="text-gray-500 font-medium">No payments found</p>
+                            <p class="text-sm text-gray-400 mt-1">Payment records will appear here when customers make payments</p>
+                            <a href="{% url 'isp_customers' %}" class="inline-block mt-4 text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-users mr-1"></i> View Customers
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="bg-gray-50 border-t border-gray-200 p-4 hidden" id="bulkActions">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <span class="text-sm text-gray-700 mr-4">
+                        <span id="selectedCount">0</span> payments selected
+                    </span>
+                    <select id="bulkAction" class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mr-2">
+                        <option value="">Bulk Actions</option>
+                        <option value="mark_completed">Mark as Completed</option>
+                        <option value="mark_failed">Mark as Failed</option>
+                        <option value="export_selected">Export Selected</option>
+                        <option value="send_receipts">Send Receipts</option>
+                    </select>
+                    <button id="applyBulkAction" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-medium">
+                        Apply Action
+                    </button>
+                </div>
+                <button id="clearSelection" class="text-sm text-gray-600 hover:text-gray-800">
+                    <i class="fas fa-times mr-1"></i> Clear Selection
+                </button>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if payments.paginator.num_pages > 1 %}
+        <div class="bg-white border-t border-gray-200 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Showing <span class="font-medium">{{ payments.start_index }}</span> to 
+                    <span class="font-medium">{{ payments.end_index }}</span> of 
+                    <span class="font-medium">{{ payments.paginator.count }}</span> payments
+                </div>
+                <div class="flex space-x-2">
+                    {% if payments.has_previous %}
+                    <a href="?page=1" class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                    <a href="?page={{ payments.previous_page_number }}" class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    {% for num in payments.paginator.page_range %}
+                        {% if payments.number == num %}
+                        <span class="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-700 rounded text-sm">
+                            {{ num }}
+                        </span>
+                        {% elif num > payments.number|add:'-3' and num < payments.number|add:'3' %}
+                        <a href="?page={{ num }}" class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">
+                            {{ num }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if payments.has_next %}
+                    <a href="?page={{ payments.next_page_number }}" class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                    <a href="?page={{ payments.paginator.num_pages }}" class="px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-chart-line text-blue-600"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-900">Monthly Revenue</h4>
+                    <p class="text-sm text-gray-600">Completed payments</p>
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-gray-900">Ksh {{ total_revenue|floatformat:2|intcomma }}</p>
+                <p class="text-sm text-green-600">{{ completed_payments }} successful</p>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-percentage text-green-600"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-900">Success Rate</h4>
+                    <p class="text-sm text-gray-600">Payment completion</p>
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-gray-900">
+                    {% with total=completed_payments|add:pending_payments|add:failed_payments %}
+                        {% if total > 0 %}
+                            {% widthratio completed_payments total 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    {% endwith %}
+                </p>
+                <p class="text-sm text-gray-600">Of all payments</p>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-calendar-alt text-purple-600"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-900">Avg. Transaction</h4>
+                    <p class="text-sm text-gray-600">Per completed payment</p>
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-gray-900">
+                    Ksh {% if completed_payments > 0 %}{% with avg=total_revenue|floatformat:"0" %}{{ avg|intcomma }}{% endwith %}{% else %}0.00{% endif %}
+                </p>
+                <p class="text-sm text-gray-600">Average amount</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Statistics Chart Placeholder -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Statistics</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <canvas id="paymentStatusChart" height="200"></canvas>
+            </div>
+            <div>
+                <canvas id="revenueTrendChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Detail Modal -->
+<div id="paymentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:max-w-2xl shadow-lg rounded-2xl bg-white">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-900">Payment Details</h3>
+            <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div id="paymentDetails" class="space-y-4">
+            <!-- Dynamic content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:max-w-md shadow-lg rounded-2xl bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-900" id="confirmTitle">Confirm Action</h3>
+            <button onclick="closeConfirmModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="confirmMessage" class="mb-6 text-gray-600"></div>
+        <div class="flex justify-end space-x-3">
+            <button onclick="closeConfirmModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                Cancel
+            </button>
+            <button id="confirmActionBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                Confirm
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ============================================
+// GLOBAL VARIABLES AND HELPER FUNCTIONS
+// ============================================
+
+// Global CSRF token
+const csrftoken = getCookie('csrftoken');
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Get base URL - CORRECTED: Use relative paths since URLs are configured in Django
+function getApiBaseUrl() {
+    return ''; // Use relative paths since Django handles URL routing
+}
+
+// Build payment details HTML - FIXED: Properly escape data
+function buildPaymentDetailsHTML(data) {
+    // Safely escape HTML to prevent XSS
+    const escapeHtml = (text) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
+    
+    const statusClass = data.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                       data.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                       'bg-red-100 text-red-800';
+    
+    return `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-600">Customer</p>
+                <p class="font-medium text-gray-900">${escapeHtml(data.customer_name)}</p>
+                <p class="text-sm text-gray-500">${escapeHtml(data.customer_email)}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Amount</p>
+                <p class="text-xl font-bold text-gray-900">Ksh ${parseFloat(data.amount).toFixed(2)}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Status</p>
+                <span class="px-2 py-1 text-xs rounded-full ${statusClass}">
+                    ${escapeHtml(data.status_display)}
+                </span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Date</p>
+                <p class="font-medium text-gray-900">${escapeHtml(data.created_date)}</p>
+                <p class="text-sm text-gray-500">${escapeHtml(data.created_time)}</p>
+            </div>
+        </div>
+        <div>
+            <p class="text-sm text-gray-600">Transaction ID</p>
+            <p class="font-mono text-gray-900">${escapeHtml(data.transaction_id)}</p>
+        </div>
+        <div>
+            <p class="text-sm text-gray-600">Payment Method</p>
+            <p class="font-medium text-gray-900">${escapeHtml(data.payment_method)}</p>
+        </div>
+        <div>
+            <p class="text-sm text-gray-600">Plan</p>
+            <p class="font-medium text-gray-900">${escapeHtml(data.plan_name)} (${escapeHtml(data.plan_bandwidth)})</p>
+        </div>
+        ${data.notes ? `
+        <div>
+            <p class="text-sm text-gray-600">Notes</p>
+            <p class="font-medium text-gray-900">${escapeHtml(data.notes)}</p>
+        </div>
+        ` : ''}
+        <div class="pt-4 border-t border-gray-200">
+            <div class="flex space-x-3">
+                <button type="button" class="download-receipt-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm" data-payment-id="${data.payment_id || ''}">
+                    <i class="fas fa-download mr-1"></i> Download Receipt
+                </button>
+                ${data.status === 'pending' ? `
+                <button type="button" class="confirm-payment-btn px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm" data-payment-id="${data.payment_id || ''}">
+                    <i class="fas fa-check mr-1"></i> Mark as Completed
+                </button>
+                <button type="button" class="cancel-payment-btn px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm" data-payment-id="${data.payment_id || ''}">
+                    <i class="fas fa-times mr-1"></i> Mark as Failed
+                </button>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Notification system
+function showNotification(message, type) {
+    // Remove existing notifications
+    const existingNotif = document.querySelector('.custom-notification');
+    if (existingNotif) {
+        existingNotif.remove();
+    }
+    
+    const colors = {
+        success: 'bg-green-50 border-green-200 text-green-800',
+        error: 'bg-red-50 border-red-200 text-red-800',
+        info: 'bg-blue-50 border-blue-200 text-blue-800',
+        warning: 'bg-yellow-50 border-yellow-200 text-yellow-800'
+    };
+    
+    const icons = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-circle',
+        info: 'fas fa-info-circle',
+        warning: 'fas fa-exclamation-triangle'
+    };
+    
+    const notification = document.createElement('div');
+    notification.className = `custom-notification fixed top-4 right-4 ${colors[type]} border rounded-lg p-4 shadow-lg z-50 max-w-md`;
+    notification.innerHTML = `
+        <div class="flex items-start">
+            <i class="${icons[type]} mt-1 mr-3"></i>
+            <div class="flex-1">
+                <p class="font-medium">${message}</p>
+            </div>
+            <button type="button" class="ml-4 text-gray-400 hover:text-gray-600 close-notification">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Add close event
+    notification.querySelector('.close-notification').addEventListener('click', () => {
+        notification.remove();
+    });
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// ============================================
+// PAYMENT DETAILS MODAL FUNCTIONS
+// ============================================
+
+// Show payment details in modal - FIXED: Use correct URL
+function showPaymentDetails(paymentId) {
+    const modal = document.getElementById('paymentModal');
+    const detailsDiv = document.getElementById('paymentDetails');
+    
+    if (!modal || !detailsDiv) {
+        console.error('Modal elements not found');
+        return;
+    }
+    
+    // Show loading state
+    detailsDiv.innerHTML = `
+        <div class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+            <p class="mt-2 text-gray-600">Loading payment details...</p>
+        </div>
+    `;
+    modal.classList.remove('hidden');
+    
+    // DEBUG: Log the URL being called
+    console.log('Fetching payment details for ID:', paymentId);
+    
+    // Fetch payment details - FIXED URL
+    fetch(`/accounts/api/payments/${paymentId}/details/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Payment details received:', data);
+        if (data.success) {
+            // Add payment_id to data for buttons
+            data.payment_id = paymentId;
+            detailsDiv.innerHTML = buildPaymentDetailsHTML(data);
+            
+            // Attach event listeners to modal buttons
+            attachModalButtonListeners(paymentId);
+        } else {
+            detailsDiv.innerHTML = `
+                <div class="text-center py-8 text-red-600">
+                    <i class="fas fa-exclamation-triangle text-2xl"></i>
+                    <p class="mt-2">${data.error || 'Failed to load payment details'}</p>
+                    <p class="text-sm text-gray-500 mt-2">Payment ID: ${paymentId}</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading payment details:', error);
+        detailsDiv.innerHTML = `
+            <div class="text-center py-8 text-red-600">
+                <i class="fas fa-exclamation-triangle text-2xl"></i>
+                <p class="mt-2">Error loading payment details</p>
+                <p class="text-sm text-gray-500">${error.message}</p>
+                <p class="text-sm text-gray-500 mt-2">Tried to fetch: /accounts/api/payments/${paymentId}/details/</p>
+                <p class="text-xs text-gray-400 mt-1">Check Django URL configuration</p>
+            </div>
+        `;
+    });
+}
+
+function attachModalButtonListeners(paymentId) {
+    const modal = document.getElementById('paymentModal');
+    
+    // Receipt button
+    const receiptBtn = modal.querySelector('.download-receipt-btn');
+    if (receiptBtn) {
+        receiptBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            downloadReceipt(paymentId);
+        });
+    }
+    
+    // Confirm button
+    const confirmBtn = modal.querySelector('.confirm-payment-btn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            confirmPayment(paymentId);
+            modal.classList.add('hidden');
+        });
+    }
+    
+    // Cancel button
+    const cancelBtn = modal.querySelector('.cancel-payment-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            cancelPayment(paymentId);
+            modal.classList.add('hidden');
+        });
+    }
+}
+
+// Close modal
+function closePaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// ============================================
+// PAYMENT STATUS FUNCTIONS
+// ============================================
+
+// Confirm payment (mark as completed)
+function confirmPayment(paymentId) {
+    showConfirmDialog(
+        'Confirm Payment Completion',
+        `Are you sure you want to mark payment #${paymentId} as completed?`,
+        'This will activate subscriptions for this payment.'
+    ).then(confirmed => {
+        if (confirmed) {
+            updatePaymentStatus(paymentId, 'completed');
+        }
+    });
+}
+
+// Cancel payment (mark as failed)
+function cancelPayment(paymentId) {
+    showConfirmDialog(
+        'Confirm Payment Cancellation',
+        `Are you sure you want to mark payment #${paymentId} as failed?`,
+        'This will not activate subscriptions.'
+    ).then(confirmed => {
+        if (confirmed) {
+            updatePaymentStatus(paymentId, 'failed');
+        }
+    });
+}
+
+// Retry failed payment
+function retryPayment(paymentId) {
+    showConfirmDialog(
+        'Retry Payment',
+        `Are you sure you want to retry payment #${paymentId}?`,
+        'This will change the status back to pending.'
+    ).then(confirmed => {
+        if (confirmed) {
+            updatePaymentStatus(paymentId, 'pending');
+        }
+    });
+}
+
+// Update payment status - FIXED: Use correct URL
+function updatePaymentStatus(paymentId, newStatus) {
+    console.log(`Updating payment ${paymentId} to status: ${newStatus}`);
+    
+    fetch(`/accounts/api/payments/${paymentId}/update-status/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({
+            status: newStatus
+        }),
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('Update response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Update response:', data);
+        if (data.success) {
+            showNotification(`Payment status updated to ${newStatus}`, 'success');
+            updatePaymentRow(paymentId, newStatus);
+        } else {
+            showNotification(data.error || 'Failed to update payment status', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating payment status:', error);
+        showNotification(`Error: ${error.message}`, 'error');
+    });
+}
+
+// Update payment row in the table
+function updatePaymentRow(paymentId, newStatus) {
+    const row = document.querySelector(`.payment-row[data-id="${paymentId}"]`);
+    if (!row) {
+        console.warn(`Row not found for payment ID: ${paymentId}`);
+        return;
+    }
+    
+    console.log(`Updating row for payment ${paymentId} to ${newStatus}`);
+    
+    // Update status badge
+    const statusCell = row.querySelector('.status-badge');
+    if (statusCell) {
+        const statusText = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+        statusCell.textContent = statusText;
+        
+        // Update classes
+        statusCell.classList.remove('status-completed', 'status-pending', 'status-failed');
+        statusCell.classList.add(`status-${newStatus}`);
+    }
+    
+    // Update data attribute
+    row.setAttribute('data-status', newStatus);
+    
+    // Update action buttons
+    const actionButtons = row.querySelector('.action-buttons');
+    if (actionButtons) {
+        let newButtons = '';
+        if (newStatus === 'completed') {
+            newButtons = `
+                <button class="action-btn btn-view view-btn" data-payment-id="${paymentId}" title="View details">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn btn-receipt receipt-btn" data-payment-id="${paymentId}" title="Download receipt">
+                    <i class="fas fa-receipt"></i>
+                </button>
+            `;
+        } else if (newStatus === 'failed') {
+            newButtons = `
+                <button class="action-btn btn-view view-btn" data-payment-id="${paymentId}" title="View details">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn btn-retry retry-btn" data-payment-id="${paymentId}" title="Retry payment">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button class="action-btn btn-receipt receipt-btn" data-payment-id="${paymentId}" title="Download receipt">
+                    <i class="fas fa-receipt"></i>
+                </button>
+            `;
+        } else if (newStatus === 'pending') {
+            newButtons = `
+                <button class="action-btn btn-view view-btn" data-payment-id="${paymentId}" title="View details">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn btn-confirm confirm-btn" data-payment-id="${paymentId}" title="Mark as completed">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="action-btn btn-cancel cancel-btn" data-payment-id="${paymentId}" title="Mark as failed">
+                    <i class="fas fa-times"></i>
+                </button>
+                <button class="action-btn btn-receipt receipt-btn" data-payment-id="${paymentId}" title="Download receipt">
+                    <i class="fas fa-receipt"></i>
+                </button>
+            `;
+        }
+        
+        actionButtons.innerHTML = newButtons;
+        
+        // Reattach event listeners
+        attachRowButtonListeners(row);
+    }
+}
+
+// ============================================
+// RECEIPT FUNCTIONS
+// ============================================
+
+// Download receipt - FIXED: Use correct URL
+function downloadReceipt(paymentId) {
+    showNotification('Generating receipt...', 'info');
+    
+    // Open in new tab/window
+    const receiptUrl = `/accounts/payments/${paymentId}/download-receipt/`;
+    console.log('Downloading receipt from:', receiptUrl);
+    window.open(receiptUrl, '_blank');
+}
+
+// ============================================
+// BULK ACTIONS FUNCTIONS
+// ============================================
+
+let checkboxes = [];
+let selectAll = null;
+let bulkActions = null;
+let selectedCount = null;
+let clearSelection = null;
+let bulkActionSelect = null;
+let applyBulkActionBtn = null;
+
+function analyzeSelectedPayments(selectedIds) {
+    if (!bulkActionSelect) return;
+    
+    // Reset options
+    bulkActionSelect.innerHTML = `
+        <option value="">Bulk Actions</option>
+        <option value="mark_completed">Mark as Completed</option>
+        <option value="mark_failed">Mark as Failed</option>
+        <option value="export_selected">Export Selected</option>
+        <option value="send_receipts">Send Receipts</option>
+        <option value="delete_selected">Delete Selected</option>
+    `;
+    
+    // Check if any selected payments are already completed
+    const selectedRows = document.querySelectorAll('.payment-checkbox:checked');
+    let hasCompleted = false;
+    let hasPending = false;
+    let hasFailed = false;
+    
+    selectedRows.forEach(checkbox => {
+        const row = checkbox.closest('tr');
+        if (row) {
+            const statusBadge = row.querySelector('.status-badge');
+            if (statusBadge) {
+                if (statusBadge.classList.contains('status-completed')) {
+                    hasCompleted = true;
+                } else if (statusBadge.classList.contains('status-pending')) {
+                    hasPending = true;
+                } else if (statusBadge.classList.contains('status-failed')) {
+                    hasFailed = true;
+                }
+            }
+        }
+    });
+    
+    // Show warnings based on selection
+    let warningText = '';
+    if (hasCompleted && hasPending) {
+        warningText = '⚠️ Mixed status payments selected';
+    } else if (hasCompleted) {
+        warningText = '✓ Only completed payments selected';
+    } else if (hasPending) {
+        warningText = '⏳ Pending payments selected';
+    } else if (hasFailed) {
+        warningText = '❌ Failed payments selected';
+    }
+    
+    // Add warning to UI
+    let warningElement = bulkActions.querySelector('.selection-warning');
+    if (warningText) {
+        if (!warningElement) {
+            warningElement = document.createElement('div');
+            warningElement.className = 'selection-warning text-sm text-amber-600 ml-4 flex items-center';
+            const flexContainer = bulkActions.querySelector('.flex');
+            if (flexContainer) {
+                flexContainer.appendChild(warningElement);
+            }
+        }
+        warningElement.innerHTML = `<i class="fas fa-info-circle mr-1"></i> ${warningText}`;
+    } else if (warningElement) {
+        warningElement.remove();
+    }
+}
+
+function updateBulkActions() {
+    const selected = document.querySelectorAll('.payment-checkbox:checked');
+    const selectedIds = Array.from(selected).map(cb => cb.getAttribute('data-payment-id'));
+    
+    // Update count
+    if (selectedCount) {
+        selectedCount.textContent = selected.length;
+    }
+    
+    // Show/hide bulk actions panel
+    if (selected.length > 0 && bulkActions) {
+        bulkActions.classList.remove('hidden');
+        bulkActions.classList.add('flex');
+        
+        // Enable/disable bulk action select based on selection
+        if (bulkActionSelect) {
+            bulkActionSelect.disabled = false;
+        }
+        
+        // Update selectAll checkbox state
+        if (selectAll) {
+            selectAll.checked = selected.length === checkboxes.length;
+            selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
+        }
+        
+        // Analyze selected payments for appropriate actions
+        analyzeSelectedPayments(selectedIds);
+    } else if (bulkActions) {
+        bulkActions.classList.add('hidden');
+        bulkActions.classList.remove('flex');
+        
+        // Reset selectAll
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+        
+        // Disable bulk action select
+        if (bulkActionSelect) {
+            bulkActionSelect.disabled = true;
+            bulkActionSelect.value = '';
+        }
+    }
+}
+
+// Bulk action handlers
+async function handleMarkCompleted(paymentIds) {
+    const confirmed = await showConfirmDialog(
+        'Mark as Completed',
+        `Are you sure you want to mark ${paymentIds.length} payment(s) as completed?`,
+        'This will activate subscriptions for these payments.'
+    );
+    
+    if (!confirmed) return;
+    
+    showNotification(`Processing ${paymentIds.length} payment(s)...`, 'info');
+    
+    try {
+        const results = await bulkUpdatePaymentStatus(paymentIds, 'completed');
+        
+        if (results.success) {
+            showNotification(`✅ Successfully completed ${results.completed} payment(s)`, 'success');
+            if (results.failed > 0) {
+                showNotification(`${results.failed} payment(s) failed to update`, 'warning');
+            }
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            showNotification(results.error || 'Failed to update payments', 'error');
+        }
+    } catch (error) {
+        console.error('Bulk mark completed error:', error);
+        showNotification(`Error: ${error.message}`, 'error');
+    }
+}
+
+async function handleMarkFailed(paymentIds) {
+    const confirmed = await showConfirmDialog(
+        'Mark as Failed',
+        `Are you sure you want to mark ${paymentIds.length} payment(s) as failed?`,
+        'This will not activate subscriptions.'
+    );
+    
+    if (!confirmed) return;
+    
+    showNotification(`Processing ${paymentIds.length} payment(s)...`, 'info');
+    
+    try {
+        const results = await bulkUpdatePaymentStatus(paymentIds, 'failed');
+        
+        if (results.success) {
+            showNotification(`✅ Marked ${results.completed} payment(s) as failed`, 'success');
+            if (results.failed > 0) {
+                showNotification(`${results.failed} payment(s) failed to update`, 'warning');
+            }
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            showNotification(results.error || 'Failed to update payments', 'error');
+        }
+    } catch (error) {
+        console.error('Bulk mark failed error:', error);
+        showNotification(`Error: ${error.message}`, 'error');
+    }
+}
+
+async function handleExportSelected(paymentIds) {
+    showNotification(`Preparing export for ${paymentIds.length} payment(s)...`, 'info');
+    
+    try {
+        const response = await fetch('/accounts/api/payments/export-selected/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ payment_ids: paymentIds })
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payments_export_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showNotification(`✅ Export completed successfully`, 'success');
+        } else {
+            const error = await response.text();
+            console.error('Export error:', error);
+            showNotification('Export failed. Check console for details.', 'error');
+        }
+    } catch (error) {
+        console.error('Export error:', error);
+        showNotification(`Export error: ${error.message}`, 'error');
+    }
+}
+
+async function handleSendReceipts(paymentIds) {
+    const confirmed = await showConfirmDialog(
+        'Send Receipts',
+        `Send receipts for ${paymentIds.length} payment(s)?`,
+        'Receipts will be sent to customer emails.'
+    );
+    
+    if (!confirmed) return;
+    
+    showNotification(`Sending ${paymentIds.length} receipt(s)...`, 'info');
+    
+    try {
+        const response = await fetch('/accounts/api/payments/send-receipts/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ payment_ids: paymentIds })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(`✅ ${data.sent} receipt(s) sent successfully`, 'success');
+            if (data.failed > 0) {
+                showNotification(`${data.failed} receipt(s) failed to send`, 'warning');
+            }
+        } else {
+            showNotification(data.error || 'Failed to send receipts', 'error');
+        }
+    } catch (error) {
+        console.error('Send receipts error:', error);
+        showNotification(`Error sending receipts: ${error.message}`, 'error');
+    }
+}
+
+async function handleDeleteSelected(paymentIds) {
+    const confirmed = await showConfirmDialog(
+        'Delete Payments',
+        `Delete ${paymentIds.length} payment(s) permanently?`,
+        '⚠️ This action cannot be undone. Only pending payments can be deleted.'
+    );
+    
+    if (!confirmed) return;
+    
+    showNotification(`Deleting ${paymentIds.length} payment(s)...`, 'info');
+    
+    try {
+        const response = await fetch('/accounts/api/payments/delete-selected/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ payment_ids: paymentIds })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(`✅ Deleted ${data.deleted} payment(s)`, 'success');
+            if (data.failed > 0) {
+                showNotification(`${data.failed} payment(s) could not be deleted`, 'warning');
+            }
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            showNotification(data.error || 'Failed to delete payments', 'error');
+        }
+    } catch (error) {
+        console.error('Delete payments error:', error);
+        showNotification(`Error deleting payments: ${error.message}`, 'error');
+    }
+}
+
+// Helper functions for bulk actions
+async function bulkUpdatePaymentStatus(paymentIds, status) {
+    try {
+        const response = await fetch('/accounts/api/payments/bulk-update-status/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({
+                payment_ids: paymentIds,
+                status: status
+            })
+        });
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Bulk update error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================
+// CONFIRMATION DIALOG FUNCTIONS
+// ============================================
+
+function showConfirmDialog(title, message, details = '') {
+    return new Promise((resolve) => {
+        const dialog = document.createElement('div');
+        dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        dialog.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-exclamation-triangle text-blue-600"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">${title}</h3>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <p class="text-gray-700 mb-2">${message}</p>
+                        ${details ? `<p class="text-sm text-gray-500">${details}</p>` : ''}
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" class="confirm-cancel-btn px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Cancel
+                        </button>
+                        <button type="button" class="confirm-ok-btn px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Confirm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(dialog);
+        
+        const confirmOk = dialog.querySelector('.confirm-ok-btn');
+        const confirmCancel = dialog.querySelector('.confirm-cancel-btn');
+        
+        const handleConfirm = () => {
+            document.body.removeChild(dialog);
+            resolve(true);
+        };
+        
+        const handleCancel = () => {
+            document.body.removeChild(dialog);
+            resolve(false);
+        };
+        
+        confirmOk.addEventListener('click', handleConfirm);
+        confirmCancel.addEventListener('click', handleCancel);
+        
+        // Close on ESC key
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        };
+        
+        document.addEventListener('keydown', handleKeyDown);
+        
+        // Clean up event listeners when dialog closes
+        const cleanup = () => {
+            confirmOk.removeEventListener('click', handleConfirm);
+            confirmCancel.removeEventListener('click', handleCancel);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+        
+        // Add cleanup on dialog removal
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.removedNodes) {
+                    mutation.removedNodes.forEach((node) => {
+                        if (node === dialog) {
+                            cleanup();
+                            observer.disconnect();
+                        }
+                    });
+                }
+            });
+        });
+        
+        observer.observe(document.body, { childList: true });
+        
+        // Focus confirm button
+        confirmOk.focus();
+    });
+}
+
+// ============================================
+// EVENT LISTENER ATTACHMENT FUNCTIONS
+// ============================================
+
+function attachRowButtonListeners(row) {
+    const paymentId = row.getAttribute('data-id');
+    
+    // View button
+    const viewBtn = row.querySelector('.view-btn');
+    if (viewBtn) {
+        viewBtn.addEventListener('click', function() {
+            const pid = this.getAttribute('data-payment-id');
+            showPaymentDetails(pid);
+        });
+    }
+    
+    // Confirm button
+    const confirmBtn = row.querySelector('.confirm-btn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            const pid = this.getAttribute('data-payment-id');
+            confirmPayment(pid);
+        });
+    }
+    
+    // Cancel button
+    const cancelBtn = row.querySelector('.cancel-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            const pid = this.getAttribute('data-payment-id');
+            cancelPayment(pid);
+        });
+    }
+    
+    // Retry button
+    const retryBtn = row.querySelector('.retry-btn');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', function() {
+            const pid = this.getAttribute('data-payment-id');
+            retryPayment(pid);
+        });
+    }
+    
+    // Receipt button
+    const receiptBtn = row.querySelector('.receipt-btn');
+    if (receiptBtn) {
+        receiptBtn.addEventListener('click', function() {
+            const pid = this.getAttribute('data-payment-id');
+            downloadReceipt(pid);
+        });
+    }
+}
+
+// ============================================
+// INITIALIZATION FUNCTIONS
+// ============================================
+
+function initializeEventListeners() {
+    console.log('Initializing event listeners...');
+    
+    // Copy transaction ID
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const text = this.getAttribute('data-text');
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHTML = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    this.innerHTML = originalHTML;
+                }, 2000);
+            });
+        });
+    });
+    
+    // Initialize bulk action elements
+    selectAll = document.getElementById('selectAll');
+    checkboxes = document.querySelectorAll('.payment-checkbox');
+    bulkActions = document.getElementById('bulkActions');
+    selectedCount = document.getElementById('selectedCount');
+    clearSelection = document.getElementById('clearSelection');
+    bulkActionSelect = document.getElementById('bulkAction');
+    applyBulkActionBtn = document.getElementById('applyBulkAction');
+    
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const paymentRows = document.querySelectorAll('.payment-row');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            paymentRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update bulk actions after filtering
+            updateBulkActions();
+        });
+    }
+    
+    // Status filter
+    const statusFilter = document.getElementById('statusFilter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            const filterValue = this.value;
+            
+            paymentRows.forEach(row => {
+                if (filterValue === 'all' || row.getAttribute('data-status') === filterValue) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update bulk actions after filtering
+            updateBulkActions();
+        });
+    }
+    
+    // Select All functionality
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            const isChecked = this.checked;
+            checkboxes.forEach(checkbox => {
+                if (checkbox.closest('tr').style.display !== 'none') {
+                    checkbox.checked = isChecked;
+                    checkbox.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+    }
+
+    // Individual checkbox functionality
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateBulkActions();
+            
+            // Add visual feedback
+            const row = this.closest('tr');
+            if (row) {
+                if (this.checked) {
+                    row.classList.add('bg-blue-50');
+                    row.classList.remove('hover:bg-gray-50');
+                } else {
+                    row.classList.remove('bg-blue-50');
+                    row.classList.add('hover:bg-gray-50');
+                }
+            }
+        });
+    });
+
+    // Clear selection
+    if (clearSelection) {
+        clearSelection.addEventListener('click', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const row = checkbox.closest('tr');
+                if (row) {
+                    row.classList.remove('bg-blue-50');
+                    row.classList.add('hover:bg-gray-50');
+                }
+                checkbox.dispatchEvent(new Event('change'));
+            });
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+            updateBulkActions();
+        });
+    }
+
+    // Apply bulk action
+    if (applyBulkActionBtn) {
+        applyBulkActionBtn.addEventListener('click', async function() {
+            const action = bulkActionSelect ? bulkActionSelect.value : '';
+            const selectedPayments = Array.from(document.querySelectorAll('.payment-checkbox:checked'))
+                .map(cb => cb.getAttribute('data-payment-id'));
+            
+            if (!action) {
+                showNotification('Please select an action first', 'error');
+                return;
+            }
+            
+            if (selectedPayments.length === 0) {
+                showNotification('Please select at least one payment', 'error');
+                return;
+            }
+            
+            // Disable button during processing
+            const originalText = applyBulkActionBtn.innerHTML;
+            applyBulkActionBtn.disabled = true;
+            applyBulkActionBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+            
+            try {
+                switch(action) {
+                    case 'mark_completed':
+                        await handleMarkCompleted(selectedPayments);
+                        break;
+                    case 'mark_failed':
+                        await handleMarkFailed(selectedPayments);
+                        break;
+                    case 'export_selected':
+                        await handleExportSelected(selectedPayments);
+                        break;
+                    case 'send_receipts':
+                        await handleSendReceipts(selectedPayments);
+                        break;
+                    case 'delete_selected':
+                        await handleDeleteSelected(selectedPayments);
+                        break;
+                    default:
+                        showNotification('Unknown action selected', 'error');
+                }
+            } catch (error) {
+                console.error('Bulk action error:', error);
+                showNotification(`Error: ${error.message}`, 'error');
+            } finally {
+                // Re-enable button
+                applyBulkActionBtn.disabled = false;
+                applyBulkActionBtn.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // Attach row button listeners to existing rows
+    document.querySelectorAll('.payment-row').forEach(row => {
+        attachRowButtonListeners(row);
+    });
+    
+    // Add click handler to rows for easier selection
+    document.querySelectorAll('.payment-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't trigger if clicking on links or buttons
+            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || 
+                e.target.closest('a') || e.target.closest('button') ||
+                e.target.type === 'checkbox') {
+                return;
+            }
+            
+            const checkbox = this.querySelector('.payment-checkbox');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+    
+    // Export all button
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            exportAllPayments();
+        });
+    }
+    
+    // Refresh button
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            window.location.reload();
+        });
+    }
+    
+    // Modal close buttons
+    const closeModalBtn = document.getElementById('closeModal');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function() {
+            closePaymentModal();
+        });
+    }
+    
+    const confirmModalClose = document.querySelector('#confirmModal button');
+    if (confirmModalClose) {
+        confirmModalClose.addEventListener('click', function() {
+            const confirmModal = document.getElementById('confirmModal');
+            if (confirmModal) {
+                confirmModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('paymentModal');
+        if (event.target === modal) {
+            closePaymentModal();
+        }
+        
+        const confirmModal = document.getElementById('confirmModal');
+        if (event.target === confirmModal) {
+            confirmModal.classList.add('hidden');
+        }
+    });
+    
+    console.log('Event listeners initialized');
+}
+
+function exportAllPayments() {
+    showNotification('Preparing export...', 'info');
+    
+    // Redirect to export endpoint
+    window.location.href = '/accounts/api/payments/export/';
+}
+
+function initializeCharts() {
+    // Payment Status Chart
+    const statusCtx = document.getElementById('paymentStatusChart');
+    if (statusCtx) {
+        try {
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending', 'Failed'],
+                    datasets: [{
+                        data: [{{ completed_payments }}, {{ pending_payments }}, {{ failed_payments }}],
+                        backgroundColor: [
+                            '#10b981',
+                            '#f59e0b',
+                            '#ef4444'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error initializing status chart:', error);
+        }
+    }
+    
+    // Revenue Trend Chart (simplified)
+    const trendCtx = document.getElementById('revenueTrendChart');
+    if (trendCtx) {
+        try {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Monthly Revenue (Ksh)',
+                        data: [120000, 150000, 180000, 140000, 200000, 220000],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Ksh ' + (value / 1000).toFixed(0) + 'K';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error initializing trend chart:', error);
+        }
+    }
+}
+
+// ============================================
+// KEYBOARD SHORTCUTS
+// ============================================
+
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + A to select all visible payments
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        
+        // Only select visible payments
+        const visibleCheckboxes = Array.from(document.querySelectorAll('.payment-checkbox')).filter(cb => {
+            const row = cb.closest('tr');
+            return row && row.style.display !== 'none';
+        });
+        
+        const allVisibleChecked = visibleCheckboxes.every(cb => cb.checked);
+        
+        visibleCheckboxes.forEach(cb => {
+            cb.checked = !allVisibleChecked;
+            cb.dispatchEvent(new Event('change'));
+        });
+    }
+    
+    // ESC to clear selection and close modals
+    if (e.key === 'Escape') {
+        // Close modals first
+        closePaymentModal();
+        const confirmModal = document.getElementById('confirmModal');
+        if (confirmModal) {
+            confirmModal.classList.add('hidden');
+        }
+        
+        // Clear selection
+        document.querySelectorAll('.payment-checkbox').forEach(cb => {
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change'));
+        });
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+    }
+});
+
+// ============================================
+// INITIALIZE ON PAGE LOAD
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing...');
+    initializeEventListeners();
+    initializeCharts();
+    updateBulkActions(); // Initialize bulk actions state
+    console.log('Initialization complete');
+});
+
+// Add debug helper
+window.debugPayments = function() {
+    console.log('=== PAYMENTS DEBUG INFO ===');
+    console.log('CSRF Token:', csrftoken ? 'Present' : 'Missing');
+    console.log('Base URL:', window.location.origin);
+    console.log('Current path:', window.location.pathname);
+    console.log('Payment rows:', document.querySelectorAll('.payment-row').length);
+    console.log('Checkboxes:', document.querySelectorAll('.payment-checkbox').length);
+    console.log('==========================');
+};
+</script>
+{% endblock %}

@@ -1,0 +1,275 @@
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left Column - Customer Info -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Customer Information -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Customer Information</h4>
+            
+            <form id="customerInfoForm" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_customer">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                        <input type="text" name="first_name" value="{{ customer.first_name }}" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                        <input type="text" name="last_name" value="{{ customer.last_name }}" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" name="email" value="{{ customer.email }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <input type="text" name="phone_number" value="{{ customer.phone_number|default:'' }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <input type="text" value="{{ customer.username }}" disabled 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Account Created</label>
+                        <input type="text" value="{{ customer.date_joined|date:'M d, Y' }}" disabled 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Update Information
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Plan Assignment -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Plan Assignment</h4>
+            
+            <form id="planAssignmentForm" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_plan">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Plan</label>
+                    <select name="plan_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Select a plan --</option>
+                        {% for plan in available_plans %}
+                        <option value="{{ plan.id }}" 
+                                {% if current_subscription and current_subscription.plan.id == plan.id %}selected{% endif %}>
+                            {{ plan.name }} - Ksh{{ plan.price }} ({{ plan.bandwidth }} Mbps)
+                            {% if plan.data_cap %} - {{ plan.data_cap }} GB Cap{% else %} - Unlimited{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                {% if current_subscription %}
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <h5 class="font-medium text-blue-900 mb-2">Current Subscription</h5>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-blue-600">Plan:</span>
+                            <span class="font-medium">{{ current_subscription.plan.name }}</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-600">Price:</span>
+                            <span class="font-medium">Ksh{{ current_subscription.plan.price }}</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-600">Started:</span>
+                            <span class="font-medium">{{ current_subscription.start_date|date:'M d, Y' }}</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-600">Expires:</span>
+                            <span class="font-medium">{{ current_subscription.end_date|date:'M d, Y' }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="flex justify-end">
+                    <button type="submit" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        Assign/Update Plan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column - Recent Payments -->
+    <div class="space-y-6">
+        <!-- Recent Payments -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Recent Payments</h4>
+            
+            {% if recent_payments %}
+            <div class="space-y-3 max-h-96 overflow-y-auto">
+                {% for payment in recent_payments %}
+                <div class="border border-gray-100 rounded-lg p-3 hover:bg-gray-50">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="font-medium text-gray-900">Ksh{{ payment.amount }}</span>
+                            {% if payment.plan %}
+                            <span class="text-sm text-gray-500 ml-2">{{ payment.plan.name }}</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded-full 
+                            {% if payment.status == 'completed' %}bg-green-100 text-green-800
+                            {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ payment.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-gray-500">
+                        <span>{{ payment.created_at|date:'M d, Y' }}</span>
+                        <span>{{ payment.created_at|time:'H:i' }}</span>
+                    </div>
+                    {% if payment.transaction_id %}
+                    <div class="text-xs text-gray-400 mt-1">Ref: {{ payment.transaction_id }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-receipt text-3xl mb-3 opacity-50"></i>
+                <p>No payment history</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Account Status</h4>
+            
+            <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span class="text-gray-600">Status</span>
+                    <span class="px-2 py-1 text-xs font-medium rounded-full 
+                        {% if customer.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ customer.is_active|yesno:"Active,Inactive" }}
+                    </span>
+                </div>
+                
+                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span class="text-gray-600">Last Login</span>
+                    <span class="text-sm font-medium">
+                        {% if customer.last_login %}
+                        {{ customer.last_login|timesince }} ago
+                        {% else %}
+                        Never
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span class="text-gray-600">Total Payments</span>
+                    <span class="text-sm font-medium">{{ recent_payments|length }}</span>
+                </div>
+                
+                {% if current_subscription %}
+                <div class="flex justify-between items-center py-2">
+                    <span class="text-gray-600">Days Remaining</span>
+                    <span class="text-sm font-medium {% if current_subscription.days_remaining <= 5 %}text-red-600 font-bold{% endif %}">
+                        {{ current_subscription.days_remaining }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle customer info form submission
+document.getElementById('customerInfoForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.error || 'Error updating customer', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error updating customer information', 'error');
+    });
+});
+
+// Handle plan assignment form submission
+document.getElementById('planAssignmentForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(data.message, 'success');
+            // Reload the modal content to show updated subscription
+            setTimeout(() => {
+                const modal = document.getElementById('customerDetailModal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    const userId = {{ customer.id }};
+                    openCustomerDetail(userId);
+                }
+            }, 1000);
+        } else {
+            showNotification(data.error || 'Error updating plan', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error updating plan', 'error');
+    });
+});
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>

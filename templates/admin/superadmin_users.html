@@ -1,0 +1,1259 @@
+<!-- templates/admin/superadmin_users.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block page_title %}User Management - SuperAdmin{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">{{ page_title }}</h1>
+                <p class="text-gray-600 mt-2">{{ page_subtitle }}</p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="exportUsers()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-file-export mr-2"></i>
+                    Export CSV
+                </button>
+                <button onclick="showCreateUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Create User
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ total_users }}</h3>
+                    <p class="text-gray-600 text-sm">Total Users</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-users text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ superadmins }}</h3>
+                    <p class="text-gray-600 text-sm">Super Admins</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-crown text-purple-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ isp_admins }}</h3>
+                    <p class="text-gray-600 text-sm">ISP Admins</p>
+                </div>
+                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-user-shield text-orange-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ isp_staff }}</h3>
+                    <p class="text-gray-600 text-sm">ISP Staff</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-user-tie text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-indigo-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ customers }}</h3>
+                    <p class="text-gray-600 text-sm">Customers</p>
+                </div>
+                <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-user text-indigo-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ pending_approvals }}</h3>
+                    <p class="text-gray-600 text-sm">Pending Approval</p>
+                </div>
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Bar -->
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+        <div class="flex flex-wrap gap-3">
+            <button onclick="showPendingApprovals()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-clock mr-2"></i>
+                Pending Approvals ({{ pending_approvals }})
+            </button>
+            <button onclick="bulkApprove()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                Bulk Approve Selected
+            </button>
+            <button onclick="bulkReject()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-times-circle mr-2"></i>
+                Bulk Reject Selected
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Search Users</label>
+                <input type="text" id="searchInput" placeholder="Search by name, email, username..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                <select id="roleFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Roles</option>
+                    <option value="superadmin">Super Admin</option>
+                    <option value="isp_admin">ISP Admin</option>
+                    <option value="isp_staff">ISP Staff</option>
+                    <option value="customer">Customer</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tenant</label>
+                <select id="tenantFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Tenants</option>
+                    {% for tenant in tenants %}
+                    <option value="{{ tenant.id }}">{{ tenant.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Verification</label>
+                <select id="verificationFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role & Tenant</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status & Verification</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for user in users %}
+                    <tr class="hover:bg-gray-50 transition-colors user-row 
+                        {% if user.registration_status == 'pending' %}bg-yellow-50{% endif %}"
+                        data-role="{{ user.role }}"
+                        data-status="{% if user.is_active %}active{% else %}inactive{% endif %}"
+                        data-tenant="{{ user.tenant.id|default:'' }}"
+                        data-verification="{{ user.registration_status }}"
+                        data-search="{{ user.username }} {{ user.email }} {{ user.first_name }} {{ user.last_name }}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="checkbox" class="user-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" value="{{ user.id }}"
+                                {% if user.registration_status != 'pending' %}disabled{% endif %}>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm mr-3">
+                                    {{ user.first_name|first|default:user.username|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ user.first_name }} {{ user.last_name }}
+                                        {% if user.is_superuser %}
+                                        <i class="fas fa-crown text-yellow-500 ml-1" title="Superuser"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-sm text-gray-500">{{ user.email }}</div>
+                                    <div class="text-xs text-gray-400">@{{ user.username }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {% if user.role == 'superadmin' %}bg-purple-100 text-purple-800
+                                    {% elif user.role == 'isp_admin' %}bg-orange-100 text-orange-800
+                                    {% elif user.role == 'isp_staff' %}bg-green-100 text-green-800
+                                    {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                    {{ user.get_role_display }}
+                                </span>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1">
+                                {% if user.tenant %}
+                                <i class="fas fa-building mr-1"></i>{{ user.tenant.name }}
+                                {% else %}
+                                <span class="text-gray-400">No tenant</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex flex-col space-y-2">
+                                <!-- Account Status -->
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {% if user.is_active %}bg-green-100 text-green-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    <i class="fas fa-{% if user.is_active %}check{% else %}times{% endif %} mr-1"></i>
+                                    {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                                
+                                <!-- Registration Status -->
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {% if user.registration_status == 'approved' %}bg-green-100 text-green-800
+                                    {% elif user.registration_status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    <i class="fas fa-{% if user.registration_status == 'approved' %}check-circle{% elif user.registration_status == 'pending' %}clock{% else %}times-circle{% endif %} mr-1"></i>
+                                    {{ user.get_registration_status_display }}
+                                </span>
+                                
+                                <!-- Email Verification -->
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {% if user.email_verified %}bg-green-100 text-green-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    <i class="fas fa-{% if user.email_verified %}envelope-open{% else %}envelope{% endif %} mr-1"></i>
+                                    {% if user.email_verified %}Email Verified{% else %}Email Not Verified{% endif %}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ user.date_joined|date:"M d, Y" }}
+                            <div class="text-xs text-gray-400">{{ user.date_joined|timesince }} ago</div>
+                            {% if user.registration_status == 'pending' %}
+                            <div class="text-xs text-yellow-600 font-medium mt-1">
+                                <i class="fas fa-clock mr-1"></i>Awaiting approval
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if user.last_login %}
+                            {{ user.last_login|date:"M d, Y" }}
+                            <div class="text-xs text-gray-400">{{ user.last_login|timesince }} ago</div>
+                            {% else %}
+                            <span class="text-gray-400">Never</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <button onclick="viewUserDetails('{{ user.id }}')" 
+                                        class="text-blue-600 hover:text-blue-900" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button onclick="editUser('{{ user.id }}')" 
+                                        class="text-green-600 hover:text-green-900" title="Edit User">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                
+                                <!-- Verification Actions -->
+                                {% if user.registration_status == 'pending' %}
+                                <button onclick="approveUser('{{ user.id }}', '{{ user.username }}')" 
+                                        class="text-green-600 hover:text-green-900" title="Approve User">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                <button onclick="rejectUser('{{ user.id }}', '{{ user.username }}')" 
+                                        class="text-red-600 hover:text-red-900" title="Reject User">
+                                    <i class="fas fa-times-circle"></i>
+                                </button>
+                                {% elif user.registration_status == 'approved' %}
+                                <button onclick="revokeApproval('{{ user.id }}', '{{ user.username }}')" 
+                                        class="text-orange-600 hover:text-orange-900" title="Revoke Approval">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                {% endif %}
+                                
+                                {% if not user.is_superuser or user.id != request.user.id %}
+                                <button onclick="toggleUserStatus('{{ user.id }}', '{{ user.is_active }}')" 
+                                        class="{% if user.is_active %}text-orange-600 hover:text-orange-900{% else %}text-green-600 hover:text-green-900{% endif %}"
+                                        title="{% if user.is_active %}Deactivate{% else %}Activate{% endif %} User">
+                                    <i class="fas fa-{% if user.is_active %}pause{% else %}play{% endif %}"></i>
+                                </button>
+                                <button onclick="deleteUser('{{ user.id }}', '{{ user.username }}')" 
+                                        class="text-red-600 hover:text-red-900" title="Delete User">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                            <i class="fas fa-users text-4xl text-gray-300 mb-2"></i>
+                            <p>No users found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div class="flex-1 flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ users.start_index }}</span> to 
+                        <span class="font-medium">{{ users.end_index }}</span> of 
+                        <span class="font-medium">{{ users.paginator.count }}</span> results
+                    </p>
+                </div>
+                <div class="flex space-x-2">
+                    {% if users.has_previous %}
+                    <a href="?page={{ users.previous_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Previous
+                    </a>
+                    {% endif %}
+                    
+                    {% if users.has_next %}
+                    <a href="?page={{ users.next_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Next
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div id="createUserModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex justify-between items-center pb-4 border-b">
+                <h3 class="text-xl font-medium text-gray-900">Create New User</h3>
+                <button onclick="closeCreateUserModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="createUserForm" class="mt-4 space-y-4">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">First Name</label>
+                        <input type="text" name="first_name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Last Name</label>
+                        <input type="text" name="last_name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" name="email" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" name="username" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" name="password" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                        <input type="password" name="password_confirm" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Role</label>
+                        <select name="role" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="customer">Customer</option>
+                            <option value="isp_staff">ISP Staff</option>
+                            <option value="isp_admin">ISP Admin</option>
+                            <option value="superadmin">Super Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Tenant</label>
+                        <select name="tenant" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">No Tenant</option>
+                            {% for tenant in tenants %}
+                            <option value="{{ tenant.id }}">{{ tenant.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <input type="checkbox" name="auto_approve" id="auto_approve" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <label for="auto_approve" class="ml-2 text-sm text-gray-700">Auto-approve this user</label>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeCreateUserModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Create User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Verification Modal -->
+<div id="verificationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex justify-between items-center pb-4 border-b">
+                <h3 class="text-xl font-medium text-gray-900" id="verificationModalTitle">Approve User</h3>
+                <button onclick="closeVerificationModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mt-4">
+                <p id="verificationModalMessage">Are you sure you want to approve this user?</p>
+                
+                <div class="mt-4 space-y-3" id="verificationOptions">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Send Notification Email</label>
+                        <select id="sendEmail" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="yes">Yes, send approval notification</option>
+                            <option value="no">No, don't send email</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                        <textarea id="verificationNotes" rows="3" placeholder="Add any notes about this approval..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4 border-t mt-4">
+                    <button type="button" onclick="closeVerificationModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" id="verificationConfirmBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter functionality
+function filterUsers() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const roleFilter = document.getElementById('roleFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const tenantFilter = document.getElementById('tenantFilter').value;
+    const verificationFilter = document.getElementById('verificationFilter').value;
+    
+    document.querySelectorAll('.user-row').forEach(row => {
+        const matchesSearch = row.getAttribute('data-search').toLowerCase().includes(searchTerm);
+        const matchesRole = !roleFilter || row.getAttribute('data-role') === roleFilter;
+        const matchesStatus = !statusFilter || row.getAttribute('data-status') === statusFilter;
+        const matchesTenant = !tenantFilter || row.getAttribute('data-tenant') === tenantFilter;
+        const matchesVerification = !verificationFilter || row.getAttribute('data-verification') === verificationFilter;
+        
+        if (matchesSearch && matchesRole && matchesStatus && matchesTenant && matchesVerification) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Selection functionality
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.user-checkbox:not(:disabled)');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+// Verification Actions
+let currentUserId = null;
+let currentAction = null;
+let currentUsername = null;
+
+function approveUser(userId, username) {
+    currentUserId = userId;
+    currentAction = 'approve';
+    currentUsername = username;
+    
+    document.getElementById('verificationModalTitle').textContent = 'Approve User';
+    document.getElementById('verificationModalMessage').textContent = `Are you sure you want to approve user "${username}"?`;
+    document.getElementById('verificationConfirmBtn').textContent = 'Approve User';
+    document.getElementById('verificationConfirmBtn').className = 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700';
+    
+    document.getElementById('verificationModal').classList.remove('hidden');
+}
+
+function rejectUser(userId, username) {
+    currentUserId = userId;
+    currentAction = 'reject';
+    currentUsername = username;
+    
+    document.getElementById('verificationModalTitle').textContent = 'Reject User';
+    document.getElementById('verificationModalMessage').textContent = `Are you sure you want to reject user "${username}"? This action cannot be undone.`;
+    document.getElementById('verificationConfirmBtn').textContent = 'Reject User';
+    document.getElementById('verificationConfirmBtn').className = 'px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700';
+    
+    document.getElementById('verificationModal').classList.remove('hidden');
+}
+
+function revokeApproval(userId, username) {
+    if (confirm(`Are you sure you want to revoke approval for user "${username}"? They will need to be re-approved to access the platform.`)) {
+        fetch(`/superadmin/users/${userId}/revoke-approval/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                updateUserRow(userId, data.user_data);
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred while revoking approval', 'error');
+        });
+    }
+}
+
+function closeVerificationModal() {
+    document.getElementById('verificationModal').classList.add('hidden');
+    currentUserId = null;
+    currentAction = null;
+    currentUsername = null;
+    // Reset modal fields
+    document.getElementById('sendEmail').value = 'yes';
+    document.getElementById('verificationNotes').value = '';
+}
+
+// Bulk actions
+function bulkApprove() {
+    const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedUsers.length === 0) {
+        showNotification('Please select at least one user to approve.', 'warning');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to approve ${selectedUsers.length} user(s)?`)) {
+        fetch('/accounts/superadmin/users/bulk-approve/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_ids: selectedUsers })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                // Update all approved users
+                data.approved_users.forEach(userId => {
+                    updateUserRow(userId, {
+                        registration_status: 'approved',
+                        is_active_customer: true,
+                        approval_date: new Date().toISOString()
+                    });
+                });
+                // Uncheck all checkboxes
+                document.querySelectorAll('.user-checkbox:checked').forEach(cb => cb.checked = false);
+                document.getElementById('selectAll').checked = false;
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred during bulk approval', 'error');
+        });
+    }
+}
+
+function bulkReject() {
+    const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedUsers.length === 0) {
+        showNotification('Please select at least one user to reject.', 'warning');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to reject ${selectedUsers.length} user(s)? This action cannot be undone.`)) {
+        fetch('/accounts/superadmin/users/bulk-reject/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_ids: selectedUsers })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                // Update all rejected users
+                data.rejected_users.forEach(userId => {
+                    updateUserRow(userId, {
+                        registration_status: 'rejected',
+                        is_active_customer: false
+                    });
+                });
+                // Uncheck all checkboxes
+                document.querySelectorAll('.user-checkbox:checked').forEach(cb => cb.checked = false);
+                document.getElementById('selectAll').checked = false;
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred during bulk rejection', 'error');
+        });
+    }
+}
+
+function showPendingApprovals() {
+    document.getElementById('verificationFilter').value = 'pending';
+    filterUsers();
+}
+
+// Utility functions
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.custom-notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `custom-notification fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        type === 'warning' ? 'bg-yellow-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'} mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+function updateUserRow(userId, userData) {
+    const row = document.querySelector(`.user-row input[value="${userId}"]`)?.closest('.user-row');
+    if (!row) {
+        console.log('Row not found for user ID:', userId);
+        return;
+    }
+    
+    console.log('Updating user row:', userId, userData);
+    
+    // Update verification status badges
+    const statusCell = row.querySelector('td:nth-child(4)');
+    if (statusCell) {
+        const registrationStatus = userData.registration_status;
+        const isActiveCustomer = userData.is_active_customer;
+        
+        // Clear existing status badges
+        const statusContainer = statusCell.querySelector('.flex.flex-col');
+        if (statusContainer) {
+            // Update registration status badge (second badge)
+            const registrationBadge = statusContainer.children[1];
+            if (registrationBadge) {
+                registrationBadge.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    registrationStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                    registrationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                }`;
+                registrationBadge.innerHTML = `
+                    <i class="fas fa-${registrationStatus === 'approved' ? 'check-circle' : registrationStatus === 'pending' ? 'clock' : 'times-circle'} mr-1"></i>
+                    ${registrationStatus === 'approved' ? 'Approved' : registrationStatus === 'pending' ? 'Pending Approval' : 'Rejected'}
+                `;
+            }
+            
+            // Update active customer status (first badge)
+            const activeBadge = statusContainer.children[0];
+            if (activeBadge && isActiveCustomer !== undefined) {
+                activeBadge.className = `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    isActiveCustomer ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`;
+                activeBadge.innerHTML = `
+                    <i class="fas fa-${isActiveCustomer ? 'check' : 'times'} mr-1"></i>
+                    ${isActiveCustomer ? 'Active' : 'Inactive'}
+                `;
+            }
+        }
+    }
+    
+    // Update action buttons
+    const actionsCell = row.querySelector('td:nth-child(7)');
+    if (actionsCell) {
+        const username = row.querySelector('.text-sm.font-medium')?.textContent?.trim() || 'User';
+        const isSuperuser = row.querySelector('.fa-crown');
+        
+        let actionsHTML = `
+            <button onclick="viewUserDetails('${userId}')" class="text-blue-600 hover:text-blue-900" title="View Details">
+                <i class="fas fa-eye"></i>
+            </button>
+            <button onclick="editUser('${userId}')" class="text-green-600 hover:text-green-900" title="Edit User">
+                <i class="fas fa-edit"></i>
+            </button>
+        `;
+        
+        if (userData.registration_status === 'pending') {
+            actionsHTML += `
+                <button onclick="approveUser('${userId}', '${username}')" class="text-green-600 hover:text-green-900" title="Approve User">
+                    <i class="fas fa-check-circle"></i>
+                </button>
+                <button onclick="rejectUser('${userId}', '${username}')" class="text-red-600 hover:text-red-900" title="Reject User">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            `;
+        } else if (userData.registration_status === 'approved') {
+            actionsHTML += `
+                <button onclick="revokeApproval('${userId}', '${username}')" class="text-orange-600 hover:text-orange-900" title="Revoke Approval">
+                    <i class="fas fa-undo"></i>
+                </button>
+            `;
+        }
+        
+        // Add status toggle and delete buttons (if not current user or superuser)
+        if (!isSuperuser) {
+            const isActive = userData.is_active !== undefined ? userData.is_active : true;
+            actionsHTML += `
+                <button onclick="toggleUserStatus('${userId}', ${isActive})" class="${isActive ? 'text-orange-600 hover:text-orange-900' : 'text-green-600 hover:text-green-900'}" title="${isActive ? 'Deactivate' : 'Activate'} User">
+                    <i class="fas fa-${isActive ? 'pause' : 'play'}"></i>
+                </button>
+                <button onclick="deleteUser('${userId}', '${username}')" class="text-red-600 hover:text-red-900" title="Delete User">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+        }
+        
+        actionsCell.innerHTML = `<div class="flex space-x-2">${actionsHTML}</div>`;
+    }
+    
+    // Update row data attributes
+    if (userData.registration_status) {
+        row.setAttribute('data-verification', userData.registration_status);
+    }
+    if (userData.is_active !== undefined) {
+        row.setAttribute('data-status', userData.is_active ? 'active' : 'inactive');
+    }
+    
+    // Update checkbox state
+    const checkbox = row.querySelector('.user-checkbox');
+    if (checkbox) {
+        if (userData.registration_status !== 'pending') {
+            checkbox.disabled = true;
+            checkbox.checked = false;
+        } else {
+            checkbox.disabled = false;
+        }
+    }
+    
+    // Update row background based on status
+    if (userData.registration_status === 'pending') {
+        row.classList.add('bg-yellow-50');
+    } else {
+        row.classList.remove('bg-yellow-50');
+        row.classList.remove('hover:bg-gray-50');
+        row.classList.add('hover:bg-gray-50');
+    }
+    
+    // Update registration date if approval date is provided
+    if (userData.approval_date) {
+        const registrationCell = row.querySelector('td:nth-child(5)');
+        if (registrationCell) {
+            const now = new Date().toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+            registrationCell.innerHTML = `
+                ${now}
+                <div class="text-xs text-gray-400">just now</div>
+                <div class="text-xs text-green-600 font-medium mt-1">
+                    <i class="fas fa-check-circle mr-1"></i>Approved
+                </div>
+            `;
+        }
+    }
+    
+    // Update statistics counters
+    updateStatisticsCounters();
+}
+
+function updateStatisticsCounters() {
+    // This function would update the statistics cards at the top
+    // For now, we'll just reload the page to get updated counts
+    // In a production app, you might want to make an API call to get updated counts
+    setTimeout(() => {
+        // Reload the page after a short delay to update all counters
+        window.location.reload();
+    }, 2000);
+}
+
+// Event listeners
+document.getElementById('searchInput').addEventListener('input', filterUsers);
+document.getElementById('roleFilter').addEventListener('change', filterUsers);
+document.getElementById('statusFilter').addEventListener('change', filterUsers);
+document.getElementById('tenantFilter').addEventListener('change', filterUsers);
+document.getElementById('verificationFilter').addEventListener('change', filterUsers);
+
+// Verification confirmation - UPDATED URL CONSTRUCTION
+document.getElementById('verificationConfirmBtn').addEventListener('click', function() {
+    const sendEmail = document.getElementById('sendEmail').value;
+    const notes = document.getElementById('verificationNotes').value;
+    
+    const endpoint = currentAction === 'approve' ? 'approve' : 'reject';
+    
+    // Construct the correct URL with accounts prefix
+    const url = `/accounts/superadmin/users/${currentUserId}/${endpoint}/`;
+    
+    console.log('Making API call to:', url); // Debug log
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRFToken(),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            send_email: sendEmail === 'yes',
+            notes: notes
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification(data.message, 'success');
+            closeVerificationModal();
+            
+            // Update the user row with the new data
+            if (data.user_data) {
+                updateUserRow(currentUserId, data.user_data);
+            } else {
+                // Fallback: create basic user data object
+                updateUserRow(currentUserId, {
+                    registration_status: currentAction === 'approve' ? 'approved' : 'rejected',
+                    is_active_customer: currentAction === 'approve',
+                    is_active: true
+                });
+            }
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred during verification. Please check the console for details.', 'error');
+    });
+});
+
+// Update other API calls to use correct URLs
+function revokeApproval(userId, username) {
+    if (confirm(`Are you sure you want to revoke approval for user "${username}"? They will need to be re-approved to access the platform.`)) {
+        const url = `/accounts/superadmin/users/${userId}/revoke-approval/`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                updateUserRow(userId, data.user_data);
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred while revoking approval', 'error');
+        });
+    }
+}
+
+function bulkApprove() {
+    const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedUsers.length === 0) {
+        showNotification('Please select at least one user to approve.', 'warning');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to approve ${selectedUsers.length} user(s)?`)) {
+        const url = '/superadmin/users/bulk-approve/';
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_ids: selectedUsers })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                // Update all approved users
+                data.approved_users.forEach(userId => {
+                    updateUserRow(userId, {
+                        registration_status: 'approved',
+                        is_active_customer: true,
+                        approval_date: new Date().toISOString()
+                    });
+                });
+                // Uncheck all checkboxes
+                document.querySelectorAll('.user-checkbox:checked').forEach(cb => cb.checked = false);
+                document.getElementById('selectAll').checked = false;
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred during bulk approval', 'error');
+        });
+    }
+}
+
+function bulkReject() {
+    const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedUsers.length === 0) {
+        showNotification('Please select at least one user to reject.', 'warning');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to reject ${selectedUsers.length} user(s)? This action cannot be undone.`)) {
+        const url = '/superadmin/users/bulk-reject/';
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_ids: selectedUsers })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                // Update all rejected users
+                data.rejected_users.forEach(userId => {
+                    updateUserRow(userId, {
+                        registration_status: 'rejected',
+                        is_active_customer: false
+                    });
+                });
+                // Uncheck all checkboxes
+                document.querySelectorAll('.user-checkbox:checked').forEach(cb => cb.checked = false);
+                document.getElementById('selectAll').checked = false;
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred during bulk rejection', 'error');
+        });
+    }
+}
+
+function toggleUserStatus(userId, isActive) {
+    const action = isActive ? 'deactivate' : 'activate';
+    if (confirm(`Are you sure you want to ${action} this user?`)) {
+        const url = `/accounts/superadmin/users/${userId}/toggle-status/`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                if (data.user_data) {
+                    updateUserRow(userId, data.user_data);
+                }
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred while updating user status', 'error');
+        });
+    }
+}
+
+function deleteUser(userId, username) {
+    if (confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+        const url = `/accounts/superadmin/users/${userId}/delete/`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showNotification(data.message, 'success');
+                // Remove the row from the table
+                const row = document.querySelector(`.user-row input[value="${userId}"]`)?.closest('.user-row');
+                if (row) {
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                }
+            } else {
+                showNotification(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred while deleting user', 'error');
+        });
+    }
+}
+function exportUsers() {
+    window.location.href = '/accounts/superadmin/users/export/';
+}
+
+// Missing modal and view functions
+function showCreateUserModal() {
+    document.getElementById('createUserModal').classList.remove('hidden');
+}
+
+function closeCreateUserModal() {
+    document.getElementById('createUserModal').classList.add('hidden');
+    document.getElementById('createUserForm').reset();
+}
+
+function viewUserDetails(userId) {
+    showNotification('Viewing user details for ID: ' + userId, 'info');
+    // TODO: Implement viewing user details (e.g., modal or redirect to detail page)
+    console.log('View user details:', userId);
+}
+
+function editUser(userId) {
+    showNotification('Editing user ID: ' + userId, 'info');
+    // TODO: Implement editing user (e.g., modal or redirect to edit page)
+    console.log('Edit user:', userId);
+}
+
+// Create user form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const createUserForm = document.getElementById('createUserForm');
+    if (createUserForm) {
+        createUserForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            // Convert checkbox to boolean
+            data.auto_approve = formData.has('auto_approve');
+            
+            fetch('/accounts/superadmin/users/create/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken(),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeCreateUserModal();
+                    // Reload page to see new user
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error creating user: ' + error.message, 'error');
+            });
+        });
+    }
+});
+
+// Close modals when clicking outside
+document.getElementById('createUserModal').addEventListener('click', function(e) {
+    if (e.target.id === 'createUserModal') {
+        closeCreateUserModal();
+    }
+});
+
+document.getElementById('verificationModal').addEventListener('click', function(e) {
+    if (e.target.id === 'verificationModal') {
+        closeVerificationModal();
+    }
+});
+
+// Add CSRF token to the page if not present
+if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    document.body.appendChild(csrfToken);
+}
+
+// Create User form submission (AJAX)
+const createUserForm = document.getElementById('createUserForm');
+if (createUserForm) {
+    createUserForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(createUserForm);
+        const payload = {};
+        formData.forEach((value, key) => { payload[key] = value; });
+
+        fetch('/superadmin/users/create/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                closeCreateUserModal();
+                // Optionally reload to show new user
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showNotification(data.message || 'Failed to create user', 'error');
+            }
+        })
+        .catch(err => {
+            console.error('Create user error', err);
+            showNotification('An error occurred while creating user', 'error');
+        });
+    });
+}
+
+// Initialize filters on page load
+document.addEventListener('DOMContentLoaded', function() {
+    filterUsers();
+});
+</script>
+<style>
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-purple-50 { background-color: #faf5ff; }
+.bg-orange-50 { background-color: #fff7ed; }
+.bg-indigo-50 { background-color: #eef2ff; }
+.bg-red-50 { background-color: #fef2f2; }
+.bg-yellow-50 { background-color: #fefce8; }
+
+.text-blue-600 { color: #2563eb; }
+.text-green-600 { color: #16a34a; }
+.text-purple-600 { color: #9333ea; }
+.text-orange-600 { color: #ea580c; }
+.text-indigo-600 { color: #4f46e5; }
+.text-red-600 { color: #dc2626; }
+.text-yellow-600 { color: #ca8a04; }
+</style>
+{% endblock %}

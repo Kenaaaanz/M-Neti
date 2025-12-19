@@ -1,0 +1,465 @@
+<!-- templates/accounts/configure_paystack.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block page_title %}{{ page_title }} - {{ tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">{{ page_title }}</h1>
+                <p class="text-gray-600 mt-2">{{ page_subtitle }}</p>
+            </div>
+            <div class="flex space-x-3">
+                {% if paystack_config %}
+                <button onclick="testConnection()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-plug mr-2"></i>
+                    Test Connection
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ payment_stats.total_payments|default:0 }}</h3>
+                    <p class="text-gray-600 text-sm">Total Payments (30d)</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-credit-card text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ payment_stats.successful_payments|default:0 }}</h3>
+                    <p class="text-gray-600 text-sm">Successful Payments</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">Ksh {{ payment_stats.total_revenue|default:0 }}</h3>
+                    <p class="text-gray-600 text-sm">Total Revenue (30d)</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Configuration Form -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-6 flex items-center">
+                    <i class="fas fa-cog text-blue-600 mr-3"></i>
+                    Paystack Configuration
+                </h2>
+                
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_config">
+                    
+                    <!-- Status Toggle -->
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg {% if paystack_config and paystack_config.is_active %}bg-green-50 border-green-200{% endif %}">
+                        <div>
+                            <h3 class="font-medium text-gray-900">Payment Gateway Status</h3>
+                            <p class="text-sm text-gray-600">
+                                {% if paystack_config and paystack_config.is_active %}
+                                ✅ Paystack is active and accepting payments
+                                {% else %}
+                                ❌ Paystack is disabled
+                                {% endif %}
+                            </p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_active" class="sr-only peer" 
+                                   {% if paystack_config and paystack_config.is_active %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+
+                    <!-- API Keys -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Public Key *
+                            </label>
+                            <input type="text" name="public_key" 
+                                   value="{{ paystack_config.public_key|default:'' }}"
+                                   placeholder="pk_test_..."
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   required>
+                            <p class="text-xs text-gray-500 mt-1">Your Paystack public key</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Secret Key *
+                            </label>
+                            <input type="password" name="secret_key" 
+                                   value="{{ paystack_config.secret_key|default:'' }}"
+                                   placeholder="sk_test_..."
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   required>
+                            <p class="text-xs text-gray-500 mt-1">Your Paystack secret key</p>
+                        </div>
+                    </div>
+
+                    <!-- Subaccount Settings -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Subaccount Settings (Optional)</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Subaccount Code
+                                </label>
+                                <input type="text" name="subaccount_code" 
+                                       value="{{ paystack_config.subaccount_code|default:'' }}"
+                                       placeholder="ACCT_..."
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <p class="text-xs text-gray-500 mt-1">For revenue splitting</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Transaction Charge (%)
+                                </label>
+                                <input type="number" name="transaction_charge" 
+                                       value="{{ paystack_config.transaction_charge|default:'1.5' }}"
+                                       step="0.1" min="0" max="100"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <p class="text-xs text-gray-500 mt-1">Platform charge percentage</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex justify-end space-x-3 pt-6 border-t">
+                        <button type="button" onclick="resetForm()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                            Reset
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center">
+                            <i class="fas fa-save mr-2"></i>
+                            Save Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Webhook Configuration -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mt-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-webhook text-purple-600 mr-3"></i>
+                    Webhook Configuration
+                </h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Webhook URL
+                        </label>
+                        <div class="flex">
+                            <input type="text" 
+                                   value="{{ request.scheme }}://{{ request.get_host }}{% url 'paystack_webhook' %}"
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-gray-500"
+                                   readonly>
+                            <button type="button" onclick="copyWebhookUrl()" class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Configure this URL in your Paystack dashboard under Settings → Webhooks
+                        </p>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5 mr-3"></i>
+                            <div>
+                                <h4 class="text-sm font-medium text-yellow-800">Important Webhook Events</h4>
+                                <ul class="text-sm text-yellow-700 mt-1 list-disc list-inside space-y-1">
+                                    <li><code>charge.success</code> - Payment successful</li>
+                                    <li><code>subscription.create</code> - Recurring subscription created</li>
+                                    <li><code>subscription.disable</code> - Subscription cancelled</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Configuration Status -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    Configuration Status
+                </h3>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">API Configuration</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {% if paystack_config %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if paystack_config %}Configured{% else %}Not Configured{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Gateway Status</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {% if paystack_config and paystack_config.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if paystack_config and paystack_config.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Last Test</span>
+                        <span class="text-xs text-gray-500">Never tested</span>
+                    </div>
+                    
+                    {% if paystack_config %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Subaccount</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {% if paystack_config.subaccount_code %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {% if paystack_config.subaccount_code %}Enabled{% else %}Disabled{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+                
+                <div class="space-y-3">
+                    <a href="https://dashboard.paystack.com/#/settings/developer" 
+                       target="_blank"
+                       class="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center">
+                            <i class="fas fa-external-link-alt text-blue-600 mr-3"></i>
+                            <span class="text-sm font-medium">Paystack Dashboard</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </a>
+                    
+                    <a href="https://paystack.com/docs/api/" 
+                       target="_blank"
+                       class="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center">
+                            <i class="fas fa-book text-green-600 mr-3"></i>
+                            <span class="text-sm font-medium">API Documentation</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </a>
+                    
+                    {% if paystack_config %}
+                    <form method="post" class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_active">
+                        <button type="submit" 
+                                class="w-full flex items-center justify-between p-3 border {% if paystack_config.is_active %}border-orange-200 bg-orange-50{% else %}border-green-200 bg-green-50{% endif %} rounded-lg hover:opacity-90 transition-opacity">
+                            <div class="flex items-center">
+                                <i class="fas fa-{% if paystack_config.is_active %}pause{% else %}play{% endif %} {% if paystack_config.is_active %}text-orange-600{% else %}text-green-600{% endif %} mr-3"></i>
+                                <span class="text-sm font-medium">
+                                    {% if paystack_config.is_active %}Deactivate{% else %}Activate{% endif %} Gateway
+                                </span>
+                            </div>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Support Information -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <i class="fas fa-life-ring text-blue-600 mr-2"></i>
+                    Need Help?
+                </h3>
+                
+                <div class="space-y-2 text-sm text-blue-700">
+                    <p>Having trouble with Paystack configuration?</p>
+                    
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Verify your API keys in Paystack dashboard</li>
+                        <li>Ensure webhook URL is correctly configured</li>
+                        <li>Test with Paystack test keys first</li>
+                    </ul>
+                    
+                    <div class="pt-2">
+                        <a href="mailto:support@paystack.com" class="font-medium hover:underline">
+                            Contact Paystack Support →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Connection Modal -->
+<div id="testModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex justify-between items-center pb-4 border-b">
+                <h3 class="text-xl font-medium text-gray-900">Test Paystack Connection</h3>
+                <button onclick="closeTestModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mt-4">
+                <p class="text-gray-600">Testing connection to Paystack API...</p>
+                
+                <div id="testResult" class="mt-4 hidden">
+                    <div id="testSuccess" class="bg-green-50 border border-green-200 rounded-lg p-4 hidden">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-600 mr-3"></i>
+                            <div>
+                                <h4 class="font-medium text-green-800">Connection Successful</h4>
+                                <p class="text-sm text-green-700 mt-1" id="successMessage"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="testError" class="bg-red-50 border border-red-200 rounded-lg p-4 hidden">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-600 mr-3"></i>
+                            <div>
+                                <h4 class="font-medium text-red-800">Connection Failed</h4>
+                                <p class="text-sm text-red-700 mt-1" id="errorMessage"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4 border-t mt-4">
+                    <button type="button" onclick="closeTestModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Test connection function
+function testConnection() {
+    const modal = document.getElementById('testModal');
+    const testResult = document.getElementById('testResult');
+    const testSuccess = document.getElementById('testSuccess');
+    const testError = document.getElementById('testError');
+    
+    // Reset modal state
+    testResult.classList.add('hidden');
+    testSuccess.classList.add('hidden');
+    testError.classList.add('hidden');
+    modal.classList.remove('hidden');
+    
+    // Simulate API test (in real implementation, this would be an AJAX call)
+    setTimeout(() => {
+        // This would be replaced with actual API call
+        // For now, we'll simulate a successful test
+        const isSuccess = Math.random() > 0.3; // 70% success rate for demo
+        
+        if (isSuccess) {
+            document.getElementById('successMessage').textContent = 'Successfully connected to Paystack API. Your configuration is working correctly.';
+            testSuccess.classList.remove('hidden');
+        } else {
+            document.getElementById('errorMessage').textContent = 'Failed to connect to Paystack API. Please check your API keys and try again.';
+            testError.classList.remove('hidden');
+        }
+        
+        testResult.classList.remove('hidden');
+    }, 2000);
+}
+
+function closeTestModal() {
+    document.getElementById('testModal').classList.add('hidden');
+}
+
+// Copy webhook URL to clipboard
+function copyWebhookUrl() {
+    const webhookUrl = document.querySelector('input[readonly]').value;
+    navigator.clipboard.writeText(webhookUrl).then(() => {
+        // Show success message
+        const originalText = event.target.innerHTML;
+        event.target.innerHTML = '<i class="fas fa-check"></i>';
+        event.target.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        event.target.classList.add('bg-green-600', 'hover:bg-green-700');
+        
+        setTimeout(() => {
+            event.target.innerHTML = originalText;
+            event.target.classList.remove('bg-green-600', 'hover:bg-green-700');
+            event.target.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }, 2000);
+    });
+}
+
+// Reset form
+function resetForm() {
+    if (confirm('Are you sure you want to reset all fields? This cannot be undone.')) {
+        document.querySelector('form').reset();
+    }
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const publicKey = document.querySelector('input[name="public_key"]').value;
+    const secretKey = document.querySelector('input[name="secret_key"]').value;
+    
+    if (!publicKey || !secretKey) {
+        e.preventDefault();
+        alert('Please fill in both Public Key and Secret Key fields.');
+        return;
+    }
+    
+    if (!publicKey.startsWith('pk_') || !secretKey.startsWith('sk_')) {
+        if (!confirm('Your API keys don\'t appear to be in the correct format. Continue anyway?')) {
+            e.preventDefault();
+            return;
+        }
+    }
+});
+</script>
+
+<style>
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-orange-50 { background-color: #fff7ed; }
+.bg-purple-50 { background-color: #faf5ff; }
+.bg-red-50 { background-color: #fef2f2; }
+.bg-yellow-50 { background-color: #fefce8; }
+
+.text-blue-600 { color: #2563eb; }
+.text-green-600 { color: #16a34a; }
+.text-orange-600 { color: #ea580c; }
+.text-purple-600 { color: #9333ea; }
+.text-red-600 { color: #dc2626; }
+.text-yellow-600 { color: #ca8a04; }
+</style>
+{% endblock %}

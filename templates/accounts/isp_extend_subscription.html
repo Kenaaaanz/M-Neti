@@ -1,0 +1,364 @@
+<!-- accounts/templates/accounts/isp_extend_subscription.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Extend Subscription - {{ customer.username }} - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Main Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-blue-50 px-6 py-4 border-b border-blue-200">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-calendar-plus text-blue-400 text-2xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-semibold text-blue-800">Extend Subscription</h3>
+                    <p class="text-sm text-blue-700 mt-1">Extend the subscription period for this customer</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <!-- Customer Summary -->
+            <div class="bg-gray-50 rounded-xl p-6 mb-8">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="flex items-start">
+                        <div class="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center mr-4">
+                            <i class="fas fa-user text-gray-600 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xl font-bold text-gray-900">{{ customer.username }}</h4>
+                            <p class="text-gray-600">{{ customer.email }}</p>
+                            <div class="flex items-center space-x-4 mt-2">
+                                <span class="px-3 py-1 text-sm font-medium rounded-full 
+                                    {% if customer.is_active_customer %}bg-green-100 text-green-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ customer.is_active_customer|yesno:"Active,Inactive" }}
+                                </span>
+                                <span class="text-gray-600">
+                                    <i class="fas fa-calendar-alt mr-1"></i> 
+                                    Next Payment: 
+                                    {% if customer.next_payment_date %}
+                                        {{ customer.next_payment_date|date:"M d, Y" }}
+                                    {% else %}
+                                        Not set
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">Current Plan</div>
+                        <div class="text-lg font-bold text-gray-900">
+                            {% if current_plan %}
+                                {{ current_plan.name }}
+                            {% else %}
+                                No Plan
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subscription Timeline -->
+                <div class="relative pt-4">
+                    <div class="absolute top-0 left-0 right-0 h-2 bg-gray-200 rounded-full"></div>
+                    <div class="absolute top-0 left-0 h-2 bg-blue-500 rounded-full" style="width: 75%;"></div>
+                    
+                    <div class="flex justify-between mt-4">
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600">Start Date</div>
+                            <div class="font-medium text-gray-900">
+                                {% if subscription %}
+                                    {{ subscription.start_date|date:"M d, Y" }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600">Current</div>
+                            <div class="font-medium text-gray-900">{% now "M d, Y" %}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600">Expiry</div>
+                            <div class="font-medium text-gray-900">
+                                {% if customer.next_payment_date %}
+                                    {{ customer.next_payment_date|date:"M d, Y" }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Extension Options -->
+            <form method="POST" action="{% url 'isp_extend_subscription' customer.id %}">
+                {% csrf_token %}
+                
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Select Extension Period</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div>
+                            <input type="radio" id="extend_7" name="days" value="7" class="hidden peer">
+                            <label for="extend_7" class="block p-4 border border-gray-300 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-300 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:ring-2 peer-checked:ring-blue-200">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-gray-900">7</div>
+                                    <div class="text-sm text-gray-600">Days</div>
+                                    <div class="text-xs text-gray-500 mt-2">One week</div>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <input type="radio" id="extend_30" name="days" value="30" class="hidden peer" checked>
+                            <label for="extend_30" class="block p-4 border border-gray-300 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-300 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:ring-2 peer-checked:ring-blue-200">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-gray-900">30</div>
+                                    <div class="text-sm text-gray-600">Days</div>
+                                    <div class="text-xs text-gray-500 mt-2">One month</div>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <input type="radio" id="extend_90" name="days" value="90" class="hidden peer">
+                            <label for="extend_90" class="block p-4 border border-gray-300 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-300 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:ring-2 peer-checked:ring-blue-200">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-gray-900">90</div>
+                                    <div class="text-sm text-gray-600">Days</div>
+                                    <div class="text-xs text-gray-500 mt-2">Three months</div>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <input type="radio" id="extend_365" name="days" value="365" class="hidden peer">
+                            <label for="extend_365" class="block p-4 border border-gray-300 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-300 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:ring-2 peer-checked:ring-blue-200">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-gray-900">365</div>
+                                    <div class="text-sm text-gray-600">Days</div>
+                                    <div class="text-xs text-gray-500 mt-2">One year</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Custom Duration -->
+                    <div class="mt-4">
+                        <label for="custom_days" class="block text-sm font-medium text-gray-700 mb-2">
+                            Or enter custom duration (days):
+                        </label>
+                        <div class="flex items-center space-x-4">
+                            <input type="number" id="custom_days" name="custom_days" min="1" max="3650"
+                                   class="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="e.g., 45">
+                            <span class="text-gray-600">days</span>
+                            <button type="button" id="useCustom" class="px-4 py-2 text-blue-600 hover:text-blue-800">
+                                Use This Duration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+                    <h4 class="text-lg font-semibold text-blue-900 mb-4">Extension Summary</h4>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <span class="text-blue-700">Current Expiry Date:</span>
+                            <span class="font-medium text-blue-900">
+                                {% if customer.next_payment_date %}
+                                    {{ customer.next_payment_date|date:"F j, Y" }}
+                                {% else %}
+                                    No expiry date set
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-blue-700">New Expiry Date:</span>
+                            <span id="newExpiryDate" class="font-bold text-green-700">--</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-blue-700">Extension Period:</span>
+                            <span id="extensionPeriod" class="font-medium text-blue-900">--</span>
+                        </div>
+                        
+                        {% if current_plan %}
+                        <div class="flex justify-between">
+                            <span class="text-blue-700">Plan Price:</span>
+                            <span class="font-medium text-blue-900">Ksh {{ current_plan.price }}/month</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-blue-700">Estimated Cost:</span>
+                            <span id="estimatedCost" class="font-bold text-green-700">--</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="mb-8">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                        Notes (Optional)
+                    </label>
+                    <textarea id="notes" name="notes" rows="3" 
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Add any notes about this extension..."></textarea>
+                </div>
+
+                <!-- Warning -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">Important Information</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    <li>Extension will activate immediately upon confirmation</li>
+                                    <li>Customer will receive email notification</li>
+                                    <li>No proration - full extension period will be applied</li>
+                                    <li>This action cannot be automatically reversed</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <a href="{% url 'isp_customer_detail' customer.id %}" 
+                       class="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 flex items-center">
+                        <i class="fas fa-times mr-2"></i> Cancel
+                    </a>
+                    <button type="submit" 
+                            class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center">
+                        <i class="fas fa-calendar-plus mr-2"></i> Extend Subscription
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const currentExpiry = "{{ customer.next_payment_date.isoformat|default:'' }}";
+    const planPrice = {% if current_plan %}{{ current_plan.price }}{% else %}0{% endif %};
+    
+    function calculateNewExpiry(days) {
+        if (!days) return;
+        
+        const daysInt = parseInt(days);
+        const currentDate = currentExpiry ? new Date(currentExpiry) : new Date();
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() + daysInt);
+        
+        // Update summary
+        document.getElementById('newExpiryDate').textContent = formatDate(newDate);
+        document.getElementById('extensionPeriod').textContent = daysInt + ' day' + (daysInt !== 1 ? 's' : '');
+        
+        // Calculate estimated cost (monthly pro-rated)
+        if (planPrice > 0) {
+            const months = daysInt / 30;
+            const estimatedCost = (planPrice * months).toFixed(2);
+            document.getElementById('estimatedCost').textContent = 'Ksh ' + estimatedCost;
+        }
+    }
+    
+    function formatDate(date) {
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+    
+    // Radio button changes
+    const radioButtons = document.querySelectorAll('input[name="days"]');
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                calculateNewExpiry(this.value);
+            }
+        });
+    });
+    
+    // Custom duration
+    const customDaysInput = document.getElementById('custom_days');
+    const useCustomBtn = document.getElementById('useCustom');
+    
+    useCustomBtn.addEventListener('click', function() {
+        const customDays = customDaysInput.value;
+        if (customDays && customDays > 0) {
+            // Uncheck other radios
+            radioButtons.forEach(radio => radio.checked = false);
+            calculateNewExpiry(customDays);
+            
+            // Create a hidden input for custom days
+            let customInput = document.querySelector('input[name="days"][value="custom"]');
+            if (!customInput) {
+                customInput = document.createElement('input');
+                customInput.type = 'hidden';
+                customInput.name = 'days';
+                customInput.value = customDays;
+                document.querySelector('form').appendChild(customInput);
+            } else {
+                customInput.value = customDays;
+            }
+        }
+    });
+    
+    // Initialize with default
+    const defaultRadio = document.querySelector('input[name="days"]:checked');
+    if (defaultRadio) {
+        calculateNewExpiry(defaultRadio.value);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,249 @@
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}Configure PayStack - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Configure PayStack for {{ tenant.name }}{% endblock %}
+{% block page_subtitle %}Set up payment gateway for this Internet Service Provider{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Display messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="mb-6 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-800 border border-red-200{% elif message.tags == 'success' %}bg-green-100 text-green-800 border border-green-200{% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}">
+                <div class="flex items-center">
+                    <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %} mr-2"></i>
+                    {{ message }}
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Current Configuration -->
+    {% if config and config.is_active %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">
+                <i class="fas fa-cog mr-2"></i>Current Configuration
+            </h3>
+            <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                <i class="fas fa-check-circle mr-1"></i> Active
+            </span>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Account Name</p>
+                <p class="font-medium text-gray-900">{{ config.account_name }}</p>
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Account Number</p>
+                <p class="font-medium text-gray-900">{{ config.account_number }}</p>
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Bank Code</p>
+                <p class="font-medium text-gray-900">{{ config.bank_code }}</p>
+            </div>
+        </div>
+        
+        {% if config.configured_by %}
+        <div class="mt-4 text-sm text-gray-500">
+            <p>Configured by: {{ config.configured_by.get_full_name|default:config.configured_by.username }} on {{ config.updated_at|date:"M d, Y" }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <button onclick="resetPaystackConfig('{{ tenant.id }}')" 
+                    class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 font-medium rounded-lg transition-colors">
+                <i class="fas fa-redo mr-2"></i>Reset Configuration
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Configuration Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-6">
+            <i class="fas fa-bank mr-2"></i>Bank Account Information
+        </h3>
+        
+        <form method="post" id="paystack-form">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-university mr-1"></i> Bank
+                    </label>
+                    <select name="bank_code" id="bank_code" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Select Bank</option>
+                        {% for bank in banks %}
+                            <option value="{{ bank.code }}" 
+                                {% if config and config.bank_code == bank.code %}selected{% endif %}>
+                                {{ bank.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-sm text-gray-500">Select the bank where the ISP receives payments</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-hashtag mr-1"></i> Account Number
+                    </label>
+                    <input type="text" 
+                           name="account_number" 
+                           id="account_number" 
+                           value="{{ config.account_number|default_if_none:'' }}" 
+                           placeholder="Enter 8-20 digit account number"
+                           required
+                           pattern="[0-9]+"
+                           minlength="8"
+                           maxlength="20"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="mt-1 text-sm text-gray-500">The bank account number where payments should be settled</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-user mr-1"></i> Account Name
+                    </label>
+                    <input type="text" 
+                           name="account_name" 
+                           id="account_name" 
+                           value="{{ config.account_name|default_if_none:'' }}" 
+                           placeholder="Account holder name as per bank records"
+                           required
+                           minlength="2"
+                           maxlength="255"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="mt-1 text-sm text-gray-500">Must match exactly with bank records</p>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-600 mt-1 mr-3"></i>
+                        <div>
+                            <h4 class="font-medium text-blue-900 mb-1">Platform Fee: 7.5%</h4>
+                            <p class="text-sm text-blue-700">
+                                All transactions processed through PayStack will include a 7.5% platform fee. 
+                                The remaining 92.5% will be settled directly to the ISP's bank account.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button type="submit" 
+                            class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if config and config.is_active %}Update Configuration{% else %}Save Configuration{% endif %}
+                    </button>
+                    
+                    <a href="{% url 'superadmin_tenant_detail' tenant.id %}" 
+                       class="px-4 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Information Section -->
+    <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">
+            <i class="fas fa-lightbulb mr-2"></i>How It Works
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="text-center p-4">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-user-plus text-blue-600"></i>
+                </div>
+                <h4 class="font-medium text-gray-900 mb-1">Create Subaccount</h4>
+                <p class="text-sm text-gray-600">PayStack subaccount created for the ISP</p>
+            </div>
+            
+            <div class="text-center p-4">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-percentage text-green-600"></i>
+                </div>
+                <h4 class="font-medium text-gray-900 mb-1">Revenue Sharing</h4>
+                <p class="text-sm text-gray-600">7.5% platform fee configured automatically</p>
+            </div>
+            
+            <div class="text-center p-4">
+                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-exchange-alt text-purple-600"></i>
+                </div>
+                <h4 class="font-medium text-gray-900 mb-1">Automatic Settlements</h4>
+                <p class="text-sm text-gray-600">Daily settlements to ISP's bank account</p>
+            </div>
+            
+            <div class="text-center p-4">
+                <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-shield-alt text-yellow-600"></i>
+                </div>
+                <h4 class="font-medium text-gray-900 mb-1">Secure Processing</h4>
+                <p class="text-sm text-gray-600">PCI DSS compliant payment processing</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function resetPaystackConfig(tenantId) {
+    if (confirm('Are you sure you want to reset the PayStack configuration? This will require reconfiguration.')) {
+        fetch(`/accounts/superadmin/tenants/${tenantId}/reset-paystack/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+// Form validation
+document.getElementById('paystack-form').addEventListener('submit', function(e) {
+    const accountNumber = document.getElementById('account_number').value;
+    const accountName = document.getElementById('account_name').value;
+    const bankCode = document.getElementById('bank_code').value;
+    
+    if (!bankCode) {
+        e.preventDefault();
+        alert('Please select a bank');
+        return;
+    }
+    
+    if (accountNumber.length < 8 || accountNumber.length > 20 || !/^\d+$/.test(accountNumber)) {
+        e.preventDefault();
+        alert('Account number must be 8-20 digits and contain only numbers');
+        return;
+    }
+    
+    if (accountName.length < 2) {
+        e.preventDefault();
+        alert('Please enter a valid account name');
+        return;
+    }
+});
+</script>
+{% endblock %}

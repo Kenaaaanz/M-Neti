@@ -1,0 +1,15 @@
+<!-- templates/admin/base_site.html -->
+{% extends "admin/base.html" %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">M-Neti Administration</a></h1>
+{% endblock %}
+
+{% block nav-global %}
+<div style="margin: 10px 0;">
+    <a href="{% url 'superadmin_dashboard' %}" style="background: #417690; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px;">
+        📊 SuperAdmin Dashboard
+    </a>
+</div>
+{{ block.super }}
+{% endblock %}

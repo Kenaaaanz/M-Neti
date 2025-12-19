@@ -1,0 +1,480 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Configure SMS Provider - {{ tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">SMS Provider Configuration</h1>
+            <p class="text-gray-600 mt-1">Configure SMS gateway for sending messages to customers</p>
+        </div>
+        <div class="flex space-x-3 mt-4 md:mt-0">
+            <a href="{% url 'isp_sms_management' %}" 
+               class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                <i class="fas fa-arrow-left mr-2"></i>Back to SMS
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Configuration Form -->
+        <div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                    {% if provider %}Update SMS Provider{% else %}Configure New Provider{% endif %}
+                </h2>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_provider">
+                    
+                    <!-- Provider Selection -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">SMS Provider</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="relative">
+                                <input type="radio" id="provider_africastalking" name="provider_name" value="africastalking" 
+                                       class="sr-only peer" {% if not provider or provider.provider_name == 'africastalking' %}checked{% endif %}>
+                                <label for="provider_africastalking" 
+                                       class="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition">
+                                    <i class="fas fa-globe-africa text-2xl text-blue-600 mb-2"></i>
+                                    <span class="font-medium">Africa's Talking</span>
+                                    <span class="text-xs text-gray-500 mt-1">Kenya & Africa</span>
+                                </label>
+                            </div>
+                            
+                            <div class="relative">
+                                <input type="radio" id="provider_twilio" name="provider_name" value="twilio" 
+                                       class="sr-only peer" {% if provider.provider_name == 'twilio' %}checked{% endif %}>
+                                <label for="provider_twilio" 
+                                       class="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition">
+                                    <i class="fas fa-comments text-2xl text-green-600 mb-2"></i>
+                                    <span class="font-medium">Twilio</span>
+                                    <span class="text-xs text-gray-500 mt-1">Global</span>
+                                </label>
+                            </div>
+                            
+                            <div class="relative">
+                                <input type="radio" id="provider_smsalert" name="provider_name" value="smsalert" 
+                                       class="sr-only peer" {% if provider.provider_name == 'smsalert' %}checked{% endif %}>
+                                <label for="provider_smsalert" 
+                                       class="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition">
+                                    <i class="fas fa-sms text-2xl text-yellow-600 mb-2"></i>
+                                    <span class="font-medium">SMS Alert</span>
+                                    <span class="text-xs text-gray-500 mt-1">India & Global</span>
+                                </label>
+                            </div>
+                            
+                            <div class="relative">
+                                <input type="radio" id="provider_custom" name="provider_name" value="custom" 
+                                       class="sr-only peer" {% if provider.provider_name == 'custom' %}checked{% endif %}>
+                                <label for="provider_custom" 
+                                       class="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-blue-300 transition">
+                                    <i class="fas fa-code text-2xl text-purple-600 mb-2"></i>
+                                    <span class="font-medium">Custom API</span>
+                                    <span class="text-xs text-gray-500 mt-1">Custom Integration</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Credentials -->
+                    <div class="space-y-4">
+                        <div>
+                            <label for="api_key" class="block text-sm font-medium text-gray-700 mb-1">
+                                API Key / Username
+                            </label>
+                            <input type="text" id="api_key" name="api_key" 
+                                   value="{{ provider.api_key|default:'' }}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Enter API Key or Username" required>
+                            <p class="text-xs text-gray-500 mt-1">
+                                For Africa's Talking: Use your API username
+                            </p>
+                        </div>
+
+                        <div>
+                            <label for="api_secret" class="block text-sm font-medium text-gray-700 mb-1">
+                                API Secret / Password
+                            </label>
+                            <input type="password" id="api_secret" name="api_secret" 
+                                   value="{{ provider.api_secret|default:'' }}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Enter API Secret or Password">
+                            <p class="text-xs text-gray-500 mt-1">
+                                Keep this secure. For Africa's Talking: Use your API Key
+                            </p>
+                        </div>
+
+                        <div>
+                            <label for="sender_id" class="block text-sm font-medium text-gray-700 mb-1">
+                                Sender ID / Short Code
+                            </label>
+                            <input type="text" id="sender_id" name="sender_id" 
+                                   value="{{ provider.sender_id|default:'' }}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="e.g., CloudNet" required>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Max 11 characters. Must be approved by provider
+                            </p>
+                        </div>
+
+                        <div>
+                            <label for="default_sender" class="block text-sm font-medium text-gray-700 mb-1">
+                                Default Sender (Optional)
+                            </label>
+                            <input type="text" id="default_sender" name="default_sender" 
+                                   value="{{ provider.default_sender|default:'' }}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="e.g., M-Neti">
+                        </div>
+
+                        <!-- Custom API URL (for custom provider) -->
+                        <div id="custom_url_field" style="display: none;">
+                            <label for="base_url" class="block text-sm font-medium text-gray-700 mb-1">
+                                API Base URL
+                            </label>
+                            <input type="url" id="base_url" name="base_url" 
+                                   value="{{ provider.base_url|default:'' }}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="https://api.example.com/sms">
+                        </div>
+
+                        <!-- Pricing & Limits -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="cost_per_sms" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Cost per SMS (Ksh)
+                                </label>
+                                <input type="number" id="cost_per_sms" name="cost_per_sms" step="0.01" min="0"
+                                       value="{{ provider.cost_per_sms|default:'1.0' }}"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+
+                            <div>
+                                <label for="max_sms_per_day" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Daily SMS Limit
+                                </label>
+                                <input type="number" id="max_sms_per_day" name="max_sms_per_day" min="1"
+                                       value="{{ provider.max_sms_per_day|default:'1000' }}"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <!-- Active Status -->
+                        <div class="flex items-center">
+                            <input type="checkbox" id="is_active" name="is_active" 
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                   {% if not provider or provider.is_active %}checked{% endif %}>
+                            <label for="is_active" class="ml-2 text-sm text-gray-700">
+                                Activate this provider
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex justify-between items-center pt-6 mt-6 border-t border-gray-200">
+                        <button type="submit" name="action" value="save_provider"
+                                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                            <i class="fas fa-save mr-2"></i>
+                            {% if provider %}Update Provider{% else %}Save Configuration{% endif %}
+                        </button>
+                        
+                        {% if provider %}
+                        <div class="flex space-x-3">
+                            <button type="submit" name="action" value="test_connection"
+                                    class="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                                <i class="fas fa-vial mr-2"></i>Test Connection
+                            </button>
+                            
+                            <button type="submit" name="action" value="toggle_active"
+                                    class="px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition">
+                                <i class="fas fa-toggle-{% if provider.is_active %}on{% else %}off{% endif %} mr-2"></i>
+                                {% if provider.is_active %}Deactivate{% else %}Activate{% endif %}
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+
+            <!-- Test Numbers -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Test Phone Numbers</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    Use these numbers to test your SMS configuration:
+                </p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <div class="font-medium text-gray-900">Kenya</div>
+                        <div class="text-sm text-gray-600">+254712345678</div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <div class="font-medium text-gray-900">Tanzania</div>
+                        <div class="text-sm text-gray-600">+255712345678</div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <div class="font-medium text-gray-900">Uganda</div>
+                        <div class="text-sm text-gray-600">+256712345678</div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <div class="font-medium text-gray-900">Nigeria</div>
+                        <div class="text-sm text-gray-600">+2348012345678</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions & Information -->
+        <div>
+            <!-- Provider Status -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Current Configuration</h2>
+                
+                {% if provider %}
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-medium text-gray-900">{{ provider.get_provider_name_display }}</div>
+                            <div class="text-sm text-gray-500">Provider Type</div>
+                        </div>
+                        <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full 
+                            {% if provider.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if provider.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-sm text-gray-500">Sender ID</div>
+                            <div class="font-medium">{{ provider.sender_id }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Daily Limit</div>
+                            <div class="font-medium">{{ provider.sms_sent_today }}/{{ provider.max_sms_per_day }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Cost per SMS</div>
+                            <div class="font-medium">Ksh {{ provider.cost_per_sms }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Last Reset</div>
+                            <div class="font-medium">{{ provider.last_reset_date|date:"M d, Y" }}</div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-200">
+                        <div class="text-sm text-gray-500 mb-2">Configuration Summary</div>
+                        <div class="text-sm text-gray-700">
+                            {% if provider.provider_name == 'africastalking' %}
+                            • Uses Africa's Talking API<br>
+                            • Sender ID: {{ provider.sender_id }}<br>
+                            • Daily limit: {{ provider.max_sms_per_day }} SMS
+                            {% elif provider.provider_name == 'twilio' %}
+                            • Uses Twilio API<br>
+                            • From: {{ provider.sender_id }}<br>
+                            • Cost: Ksh {{ provider.cost_per_sms }} per SMS
+                            {% elif provider.provider_name == 'smsalert' %}
+                            • Uses SMS Alert API<br>
+                            • Sender: {{ provider.sender_id }}<br>
+                            • Custom configuration
+                            {% else %}
+                            • Custom API Configuration<br>
+                            • Base URL: {{ provider.base_url|default:"Not set" }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-cog text-gray-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Provider Configured</h3>
+                    <p class="text-gray-600">
+                        Configure an SMS provider to start sending messages to your customers.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Africa's Talking Instructions -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+                <h3 class="text-lg font-semibold text-blue-900 mb-3">
+                    <i class="fas fa-globe-africa mr-2"></i>Africa's Talking Setup
+                </h3>
+                <div class="space-y-3 text-sm text-blue-800">
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span class="text-blue-600 font-bold">1</span>
+                        </div>
+                        <div>Sign up at <a href="https://africastalking.com" target="_blank" class="underline">africastalking.com</a></div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span class="text-blue-600 font-bold">2</span>
+                        </div>
+                        <div>Go to Settings → API → Create API Key</div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span class="text-blue-600 font-bold">3</span>
+                        </div>
+                        <div>Get your API Username and API Key</div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span class="text-blue-600 font-bold">4</span>
+                        </div>
+                        <div>Request a Sender ID (takes 1-2 days for approval)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Twilio Instructions -->
+            <div class="bg-green-50 border border-green-200 rounded-xl p-6">
+                <h3 class="text-lg font-semibold text-green-900 mb-3">
+                    <i class="fas fa-comments mr-2"></i>Twilio Setup
+                </h3>
+                <div class="space-y-3 text-sm text-green-800">
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span class="text-green-600 font-bold">1</span>
+                        </div>
+                        <div>Sign up at <a href="https://twilio.com" target="_blank" class="underline">twilio.com</a></div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span class="text-green-600 font-bold">2</span>
+                        </div>
+                        <div>Get Account SID and Auth Token from Dashboard</div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span class="text-green-600 font-bold">3</span>
+                        </div>
+                        <div>Purchase a phone number for sending SMS</div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span class="text-green-600 font-bold">4</span>
+                        </div>
+                        <div>Use the purchased number as Sender ID</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SMS Limits & Best Practices -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mt-6">
+                <h3 class="text-lg font-semibold text-yellow-900 mb-3">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Best Practices
+                </h3>
+                <ul class="space-y-2 text-sm text-yellow-800">
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                        <span>Keep your API keys secure and never share them</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                        <span>Set realistic daily limits to control costs</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                        <span>Test with small batches before sending bulk SMS</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                        <span>Monitor delivery rates and costs regularly</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                        <span>Include opt-out instructions in marketing messages</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Show/hide custom URL field based on provider selection
+    const providerRadios = document.querySelectorAll('input[name="provider_name"]');
+    const customUrlField = document.getElementById('custom_url_field');
+    
+    function toggleCustomUrlField() {
+        const selectedProvider = document.querySelector('input[name="provider_name"]:checked');
+        if (selectedProvider && selectedProvider.value === 'custom') {
+            customUrlField.style.display = 'block';
+            document.getElementById('base_url').required = true;
+        } else {
+            customUrlField.style.display = 'none';
+            document.getElementById('base_url').required = false;
+        }
+    }
+    
+    // Initial check
+    toggleCustomUrlField();
+    
+    // Add event listeners
+    providerRadios.forEach(radio => {
+        radio.addEventListener('change', toggleCustomUrlField);
+    });
+    
+    // Update API key placeholder based on provider
+    function updatePlaceholders() {
+        const selectedProvider = document.querySelector('input[name="provider_name"]:checked');
+        const apiKeyInput = document.getElementById('api_key');
+        const apiSecretInput = document.getElementById('api_secret');
+        const senderIdInput = document.getElementById('sender_id');
+        
+        if (selectedProvider) {
+            switch(selectedProvider.value) {
+                case 'africastalking':
+                    apiKeyInput.placeholder = 'Enter your API Username';
+                    apiSecretInput.placeholder = 'Enter your API Key';
+                    senderIdInput.placeholder = 'e.g., CloudNet (approved Sender ID)';
+                    break;
+                case 'twilio':
+                    apiKeyInput.placeholder = 'Enter Account SID';
+                    apiSecretInput.placeholder = 'Enter Auth Token';
+                    senderIdInput.placeholder = 'e.g., +1234567890 (Twilio number)';
+                    break;
+                case 'smsalert':
+                    apiKeyInput.placeholder = 'Enter API Key';
+                    apiSecretInput.placeholder = 'Enter Password (if required)';
+                    senderIdInput.placeholder = 'e.g., CLOUDN';
+                    break;
+                case 'custom':
+                    apiKeyInput.placeholder = 'Enter API Key/Token';
+                    apiSecretInput.placeholder = 'Enter API Secret/Password';
+                    senderIdInput.placeholder = 'Sender Name/ID';
+                    break;
+            }
+        }
+    }
+    
+    // Update on provider change
+    providerRadios.forEach(radio => {
+        radio.addEventListener('change', updatePlaceholders);
+    });
+    
+    // Initial update
+    updatePlaceholders();
+    
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const senderId = document.getElementById('sender_id').value;
+        if (senderId.length > 11) {
+            e.preventDefault();
+            alert('Sender ID must be 11 characters or less');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

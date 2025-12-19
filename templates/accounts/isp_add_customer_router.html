@@ -1,0 +1,266 @@
+<!-- accounts/templates/accounts/isp_add_customer_router.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Add Customer Router - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Add Customer Router{% endblock %}
+{% block page_subtitle %}Register a new router for a customer{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'isp_dashboard' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-home mr-2"></i>
+                    Dashboard
+                </a>
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+            </li>
+            <li>
+                <a href="{% url 'isp_routers' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-router mr-2"></i>
+                    Routers
+                </a>
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+            </li>
+            <li aria-current="page">
+                <div class="flex items-center">
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Add Customer Router</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div class="mb-8">
+            <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
+                <i class="fas fa-router text-blue-600 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900">Customer Router Registration</h3>
+            <p class="text-gray-600 mt-2">Register a new router for a customer in your network.</p>
+        </div>
+
+
+        <form method="POST" action="{% url 'isp_add_customer_router' %}">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Customer Selection -->
+                <div class="md:col-span-2">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-user text-blue-600 mr-2"></i>
+                        Customer Selection
+                    </h4>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Select Customer *
+                    </label>
+                    <select name="customer_id" required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Choose a customer</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}">
+                            {{ customer.username }} ({{ customer.email }}) - {{ customer.company_account_number }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Router Information -->
+                <div class="md:col-span-2 mt-4">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-info-circle text-green-600 mr-2"></i>
+                        Router Information
+                    </h4>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Router Model *
+                    </label>
+                    <input type="text" name="model" required 
+                        placeholder="e.g., TP-Link Archer C7, MikroTik RB750"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        MAC Address *
+                    </label>
+                    <input type="text" name="mac_address" required 
+                        placeholder="e.g., 00:1A:2B:3C:4D:5E"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">Unique identifier of the router</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        SSID (Network Name) *
+                    </label>
+                    <input type="text" name="ssid" required value="ConnectWise_Network"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        WiFi Password
+                    </label>
+                    <input type="password" name="password" 
+                        placeholder="Leave blank to use default"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Security Settings -->
+                <div class="md:col-span-2 mt-4">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-shield-alt text-orange-600 mr-2"></i>
+                        Security Settings
+                    </h4>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Security Type *
+                    </label>
+                    <select name="security_type" required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="wpa2">WPA2-Personal (Recommended)</option>
+                        <option value="wpa3">WPA3-Personal</option>
+                        <option value="wpa">WPA/WPA2-Personal</option>
+                        <option value="wep">WEP (Insecure)</option>
+                        <option value="none">None (Open Network)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Band Type *
+                    </label>
+                    <select name="band" required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="both">Both (Dual-band)</option>
+                        <option value="2.4ghz">2.4 GHz (Longer range)</option>
+                        <option value="5ghz">5 GHz (Faster speed)</option>
+                    </select>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="md:col-span-2 mt-4">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-cogs text-purple-600 mr-2"></i>
+                        Advanced Settings
+                    </h4>
+                </div>
+
+                <div class="md:col-span-2 space-y-4">
+                    <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center h-5">
+                            <input type="checkbox" name="hide_ssid" value="true" 
+                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label class="text-sm font-medium text-gray-700">Hide SSID (Network Name)</label>
+                            <p class="text-sm text-gray-500">Make the network invisible to scanning devices</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center h-5">
+                            <input type="checkbox" name="firewall_enabled" value="true" checked
+                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label class="text-sm font-medium text-gray-700">Enable Firewall</label>
+                            <p class="text-sm text-gray-500">Basic firewall protection for the network</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center h-5">
+                            <input type="checkbox" name="remote_access" value="true" 
+                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label class="text-sm font-medium text-gray-700">Enable Remote Access</label>
+                            <p class="text-sm text-gray-500">Allow remote management of the router</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center h-5">
+                            <input type="checkbox" name="upnp_enabled" value="true" 
+                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label class="text-sm font-medium text-gray-700">Enable UPnP</label>
+                            <p class="text-sm text-gray-500">Allow automatic port forwarding for applications</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Router Status -->
+                <div class="md:col-span-2 mt-4">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-signal text-orange-600 mr-2"></i>
+                        Status Settings
+                    </h4>
+                </div>
+
+                <div class="md:col-span-2">
+                    <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center h-5">
+                            <input type="checkbox" name="is_online" value="true" checked
+                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        </div>
+                        <div class="ml-3">
+                            <label class="text-sm font-medium text-gray-700">Mark as Online</label>
+                            <p class="text-sm text-gray-500">Router is currently connected and online</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <a href="{% url 'isp_routers' %}" 
+                class="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg flex items-center transition">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add Router
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Quick Tips -->
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-2xl p-6">
+        <h4 class="text-lg font-semibold text-blue-900 mb-3 flex items-center">
+            <i class="fas fa-lightbulb text-blue-600 mr-2"></i>
+            Quick Tips
+        </h4>
+        <ul class="space-y-2 text-blue-700">
+            <li class="flex items-start">
+                <i class="fas fa-check-circle text-blue-500 mt-1 mr-2 text-sm"></i>
+                <span>The MAC address is the most important identifier - it should be unique for each router</span>
+            </li>
+            <li class="flex items-start">
+                <i class="fas fa-check-circle text-blue-500 mt-1 mr-2 text-sm"></i>
+                <span>If you don't know the IP address, leave it blank - it can be detected later</span>
+            </li>
+            <li class="flex items-start">
+                <i class="fas fa-check-circle text-blue-500 mt-1 mr-2 text-sm"></i>
+                <span>You can update the router information later if needed</span>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

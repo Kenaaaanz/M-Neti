@@ -1,0 +1,224 @@
+<!-- accounts/templates/accounts/isp_port_forwarding.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Port Forwarding - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Stats and Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium mb-1">Total Rules</p>
+                    <p class="text-3xl font-bold">{{ port_rules.count }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-share-alt text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium mb-1">Active Rules</p>
+                    <p class="text-3xl font-bold">{{ port_rules.filter.is_active.count }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium mb-1">Routers</p>
+                    <p class="text-3xl font-bold">{{ router_configs.count }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-server text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex items-center justify-center">
+            <a href="{% url 'isp_add_port_forwarding' %}" class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center transition-all duration-200 cursor-pointer">
+                <i class="fas fa-plus mr-2"></i> Add New Rule
+            </a>
+        </div>
+    </div>
+
+    <!-- Port Forwarding Rules Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">Port Forwarding Rules</h3>
+                    <p class="text-sm text-gray-500 mt-1">Manage port forwarding rules for your routers</p>
+                </div>
+                <a href="{% url 'isp_add_port_forwarding' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center cursor-pointer">
+                    <i class="fas fa-plus mr-2"></i> Add Rule
+                </a>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Router</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Customer</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">External Port</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Internal IP:Port</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Protocol</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Status</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in port_rules %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-4 px-6">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-server text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ rule.router.name }}</div>
+                                    <div class="text-xs text-gray-500">{{ rule.router.ip_address }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="text-sm font-medium text-gray-900">{{ rule.customer.username }}</div>
+                            <div class="text-xs text-gray-500">{{ rule.customer.email }}</div>
+                        </td>
+                        <td class="py-4 px-6 text-sm font-mono text-gray-900">{{ rule.external_port }}</td>
+                        <td class="py-4 px-6 text-sm font-mono text-gray-900">{{ rule.internal_ip }}:{{ rule.internal_port }}</td>
+                        <td class="py-4 px-6">
+                            <span class="px-2 py-1 text-xs rounded-full {% if rule.protocol == 'tcp' %}bg-blue-100 text-blue-800{% elif rule.protocol == 'udp' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ rule.protocol|upper }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if rule.is_active %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                Inactive
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex space-x-3">
+                                <form method="POST" action="{% url 'isp_routers' %}" class="inline" onsubmit="return confirm('Toggle this port forwarding rule?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                                    <input type="hidden" name="action" value="toggle_port_rule">
+                                    <button type="submit" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
+                                        {% if rule.is_active %}Disable{% else %}Enable{% endif %}
+                                    </button>
+                                </form>
+                                
+                                <a href="{% url 'isp_delete_port_forwarding' rule.id %}" 
+                                   class="text-red-600 hover:text-red-800 text-sm cursor-pointer">
+                                    Delete
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-12 text-center">
+                            <div class="text-gray-400 mb-3">
+                                <i class="fas fa-share-alt text-4xl"></i>
+                            </div>
+                            <p class="text-gray-500 font-medium">No port forwarding rules configured yet</p>
+                            <p class="text-sm text-gray-400 mt-1">Create port forwarding rules to expose services</p>
+                            <a href="{% url 'isp_add_port_forwarding' %}" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium">
+                                Add Your First Rule
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination if needed -->
+        {% if port_rules.has_other_pages %}
+        <div class="flex items-center justify-between mt-6 pt-6 px-6 border-t border-gray-200">
+            <div class="text-sm text-gray-500">
+                Showing {{ port_rules.start_index }} to {{ port_rules.end_index }} of {{ port_rules.paginator.count }} rules
+            </div>
+            <div class="flex space-x-2">
+                {% if port_rules.has_previous %}
+                <a href="?page={{ port_rules.previous_page_number }}" 
+                   class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">
+                    Previous
+                </a>
+                {% endif %}
+                
+                {% for num in port_rules.paginator.page_range %}
+                    {% if port_rules.number == num %}
+                    <span class="px-4 py-2 border border-blue-500 bg-blue-50 rounded-lg text-sm font-medium text-blue-600">
+                        {{ num }}
+                    </span>
+                    {% elif num > port_rules.number|add:'-3' and num < port_rules.number|add:'3' %}
+                    <a href="?page={{ num }}" 
+                       class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if port_rules.has_next %}
+                <a href="?page={{ port_rules.next_page_number }}" 
+                   class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

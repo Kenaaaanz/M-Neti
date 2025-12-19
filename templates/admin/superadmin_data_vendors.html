@@ -1,0 +1,410 @@
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}Data Vendors - M-Neti{% endblock %}
+
+{% block page_title %}Data Vendors{% endblock %}
+{% block page_subtitle %}Manage telecom/data vendors{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Create New Vendor Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-6">Add New Data Vendor</h3>
+        
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_vendor">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Vendor Information -->
+                <div class="space-y-4">
+                    <h4 class="font-medium text-gray-900">Vendor Information</h4>
+                    
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                            Vendor Name *
+                        </label>
+                        <input type="text" id="name" name="name" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               placeholder="e.g., Safaricom Ltd">
+                    </div>
+                    
+                    <div>
+                        <label for="company_name" class="block text-sm font-medium text-gray-700 mb-1">
+                            Company Name *
+                        </label>
+                        <input type="text" id="company_name" name="company_name" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               placeholder="e.g., Safaricom PLC">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="contact_email" class="block text-sm font-medium text-gray-700 mb-1">
+                                Contact Email *
+                            </label>
+                            <input type="email" id="contact_email" name="contact_email" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   placeholder="contact@vendor.com">
+                        </div>
+                        
+                        <div>
+                            <label for="contact_phone" class="block text-sm font-medium text-gray-700 mb-1">
+                                Contact Phone *
+                            </label>
+                            <input type="tel" id="contact_phone" name="contact_phone" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   placeholder="+2547XXXXXXXX">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="website" class="block text-sm font-medium text-gray-700 mb-1">
+                            Website
+                        </label>
+                        <input type="url" id="website" name="website"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               placeholder="https://example.com">
+                    </div>
+                </div>
+
+                <!-- Bank Details & Commission -->
+                <div class="space-y-4">
+                    <h4 class="font-medium text-gray-900">Bank Details & Commission</h4>
+                    
+                    <div>
+                        <label for="bank_name" class="block text-sm font-medium text-gray-700 mb-1">
+                            Bank Name *
+                        </label>
+                        <input type="text" id="bank_name" name="bank_name" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               placeholder="e.g., Kenya Commercial Bank">
+                    </div>
+                    
+                    <div>
+                        <label for="account_number" class="block text-sm font-medium text-gray-700 mb-1">
+                            Account Number *
+                        </label>
+                        <input type="text" id="account_number" name="account_number" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               placeholder="e.g., 1234567890">
+                    </div>
+                    
+                    <div>
+                        <label for="account_name" class="block text-sm font-medium text-gray-700 mb-1">
+                            Account Name *
+                        </label>
+                        <input type="text" id="account_name" name="account_name" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               placeholder="e.g., SAFARICOM PLC">
+                    </div>
+                    
+                    <div>
+                        <label for="commission_rate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Vendor Commission Rate (%) *
+                        </label>
+                        <input type="number" id="commission_rate" name="commission_rate" required step="0.1"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               value="5.0">
+                        <p class="mt-1 text-sm text-gray-500">Commission percentage for vendor-sourced packages</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end pt-6 border-t border-gray-200">
+                <button type="submit"
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Create Vendor
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Vendor Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-store text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Vendors</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ vendors.count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Approved Vendors</p>
+                    <p class="text-2xl font-bold text-gray-900">
+                        {{ vendors|dictsortreversed:"is_approved"|length|default:0 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-toggle-on text-purple-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Active Vendors</p>
+                    <p class="text-2xl font-bold text-gray-900">
+                        {{ vendors|dictsortreversed:"is_active"|length|default:0 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-percentage text-yellow-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Avg Commission</p>
+                    <p class="text-2xl font-bold text-gray-900">
+                        {% with avg_rate=vendor_stats.avg_commission %}
+                            {% if avg_rate %}
+                                {{ avg_rate|floatformat:1 }}%
+                            {% else %}
+                                5.0%
+                            {% endif %}
+                        {% endwith %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendors List -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Data Vendors</h3>
+                <p class="text-sm text-gray-500">Manage telecom and data service providers</p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="exportVendors()"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition flex items-center space-x-2">
+                    <i class="fas fa-download"></i>
+                    <span>Export</span>
+                </button>
+            </div>
+        </div>
+        
+        {% if vendors %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bank Details</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Commission</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for vendor in vendors %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-store text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ vendor.name }}</div>
+                                    <div class="text-xs text-gray-500">{{ vendor.company_name }}</div>
+                                    {% if vendor.website %}
+                                    <div class="text-xs">
+                                        <a href="{{ vendor.website }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                                            {{ vendor.website }}
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ vendor.contact_email }}</div>
+                            <div class="text-xs text-gray-500">{{ vendor.contact_phone }}</div>
+                        </td>
+                        
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ vendor.bank_name }}</div>
+                            <div class="text-xs text-gray-500">
+                                {{ vendor.account_number }} • {{ vendor.account_name }}
+                            </div>
+                        </td>
+                        
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="text-sm font-medium text-gray-900">
+                                {{ vendor.commission_rate }}%
+                            </span>
+                        </td>
+                        
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex flex-col space-y-1">
+                                {% if vendor.is_approved %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Approved
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Pending
+                                </span>
+                                {% endif %}
+                                
+                                {% if vendor.is_active %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Active
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    Inactive
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <!-- Approval Toggle -->
+                                <form method="POST" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_approval">
+                                    <input type="hidden" name="vendor_id" value="{{ vendor.id }}">
+                                    <button type="submit"
+                                            onclick="return confirm('{% if vendor.is_approved %}Unapprove{% else %}Approve{% endif %} this vendor?')"
+                                            class="text-sm {% if vendor.is_approved %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                                        {% if vendor.is_approved %}
+                                        <i class="fas fa-times-circle"></i> Unapprove
+                                        {% else %}
+                                        <i class="fas fa-check-circle"></i> Approve
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                
+                                <!-- Active Toggle -->
+                                <form method="POST" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_active">
+                                    <input type="hidden" name="vendor_id" value="{{ vendor.id }}">
+                                    <button type="submit"
+                                            onclick="return confirm('{% if vendor.is_active %}Deactivate{% else %}Activate{% endif %} this vendor?')"
+                                            class="text-sm {% if vendor.is_active %}text-red-600 hover:text-red-800{% else %}text-blue-600 hover:text-blue-800{% endif %}">
+                                        {% if vendor.is_active %}
+                                        <i class="fas fa-toggle-off"></i> Deactivate
+                                        {% else %}
+                                        <i class="fas fa-toggle-on"></i> Activate
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                
+                                <!-- Edit Button -->
+                                <button onclick="editVendor('{{ vendor.id }}')"
+                                        class="text-sm text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="fas fa-store text-4xl text-gray-300 mb-4"></i>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">No Data Vendors</h4>
+            <p class="text-gray-500 mb-4">Add your first data vendor using the form above.</p>
+            <p class="text-sm text-gray-400">Vendors provide bulk data packages to ISPs through the marketplace.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Edit Vendor Modal -->
+<div id="editVendorModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Edit Vendor</h3>
+            <button onclick="closeVendorModal()" class="text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <form id="editVendorForm" method="POST" class="space-y-4">
+            {% csrf_token %}
+            <!-- Form fields for editing vendor would go here -->
+            <!-- This is a placeholder - you would need to implement the edit functionality -->
+            
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-edit text-3xl text-gray-300 mb-2"></i>
+                <p>Edit functionality coming soon</p>
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" onclick="closeVendorModal()"
+                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function editVendor(vendorId) {
+    // For now, just show a message
+    alert('Edit functionality for vendor ID: ' + vendorId + ' coming soon!');
+    // In a real implementation, you would load the vendor data via AJAX
+    // and populate the edit form
+}
+
+function closeVendorModal() {
+    document.getElementById('editVendorModal').classList.add('hidden');
+}
+
+function exportVendors() {
+    // Create CSV data
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Vendor Name,Company Name,Contact Email,Contact Phone,Website,Bank Name,Account Number,Account Name,Commission Rate,Status,Active\n";
+    
+    {% for vendor in vendors %}
+    csvContent += "{{ vendor.name|escapejs }},{{ vendor.company_name|escapejs }},{{ vendor.contact_email|escapejs }},{{ vendor.contact_phone|escapejs }},{{ vendor.website|default:""|escapejs }},{{ vendor.bank_name|escapejs }},{{ vendor.account_number|escapejs }},{{ vendor.account_name|escapejs }},{{ vendor.commission_rate }},{% if vendor.is_approved %}Approved{% else %}Pending{% endif %},{% if vendor.is_active %}Active{% else %}Inactive{% endif %}\n";
+    {% endfor %}
+    
+    // Create download link
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "data_vendors_" + new Date().toISOString().slice(0,10) + ".csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeVendorModal();
+    }
+});
+</script>
+{% endblock %}

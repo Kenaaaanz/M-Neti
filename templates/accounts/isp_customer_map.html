@@ -1,0 +1,1325 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Customer Map - M-Neti ISP{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+<style>
+    /* REMOVED OLD CONTAINER STYLES - Using base template's page-content instead */
+    
+    .header-section {
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.5rem 0;
+        margin-bottom: 1.5rem;
+    }
+    
+    .header-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+    
+    .page-title {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+    
+    .page-subtitle {
+        font-size: 1rem;
+        color: #64748b;
+        max-width: 600px;
+    }
+    
+    .stats-container {
+        max-width: 1400px;
+        margin: 0 auto 1.5rem;
+        padding: 0 1.5rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .icon-blue { background: #dbeafe; color: #1d4ed8; }
+    .icon-green { background: #d1fae5; color: #047857; }
+    .icon-orange { background: #ffedd5; color: #ea580c; }
+    .icon-purple { background: #f3e8ff; color: #7c3aed; }
+    
+    .stat-value {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-top: 0.25rem;
+    }
+    
+    .main-content {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+        width: 100%;
+    }
+    
+    .legend-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+    }
+    
+    .legend-title {
+        font-weight: 600;
+        font-size: 1.125rem;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .legend-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem;
+        border-radius: 8px;
+        background: #f8fafc;
+    }
+    
+    .legend-item:hover {
+        background: #f1f5f9;
+    }
+    
+    .legend-badge {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        flex-shrink: 0;
+    }
+    
+    .legend-text {
+        font-size: 0.875rem;
+        color: #475569;
+        font-weight: 500;
+    }
+    
+    .legend-count {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: #94a3b8;
+        background: #e2e8f0;
+        padding: 0.125rem 0.5rem;
+        border-radius: 12px;
+    }
+    
+    /* MAP SECTION - SIMPLIFIED */
+    .map-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.5rem;
+        height: 600px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    
+    .map-header {
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid #e2e8f0;
+        background: white;
+        flex-shrink: 0;
+        z-index: 10;
+    }
+    
+    .map-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .map-title {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1.125rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .map-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .control-select {
+        padding: 0.5rem 1rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: white;
+        color: #475569;
+        font-size: 0.875rem;
+        min-width: 140px;
+        cursor: pointer;
+        height: 36px;
+    }
+    
+    .control-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        height: 36px;
+        transition: background-color 0.2s ease;
+    }
+    
+    .btn-primary {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #2563eb;
+    }
+    
+    .btn-success {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #059669;
+    }
+    
+    /* MAP CONTAINER - CRITICAL */
+    .map-container-wrapper {
+        flex: 1;
+        position: relative;
+        min-height: 0;
+        background: #e8f4fd;
+    }
+    
+    #map {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+    }
+    
+    /* Loading State */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e2e8f0;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+    }
+    
+    .loading-text {
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Expand Button */
+    .expand-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        border: 1px solid #e2e8f0;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        color: #475569;
+        font-size: 1rem;
+    }
+    
+    .expand-btn:hover {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+    
+    /* Fullscreen Mode - FIXED */
+    .fullscreen-map {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999 !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        background: white !important;
+    }
+    
+    .fullscreen-map .map-container-wrapper {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+    
+    .fullscreen-map #map {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    
+    .fullscreen-map .map-header {
+        flex-shrink: 0;
+    }
+    
+    .fullscreen-map .map-container-wrapper {
+        flex: 1;
+        min-height: 0;
+    }
+    
+    .exit-fullscreen-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 10000;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        font-size: 1.25rem;
+        transition: all 0.3s ease;
+    }
+    
+    .exit-fullscreen-btn:hover {
+        background: #2563eb;
+        transform: scale(1.1);
+    }
+    
+    .exit-fullscreen-btn.show {
+        display: flex !important;
+    }
+    
+    /* Quick Actions */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .action-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        cursor: pointer;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #3b82f6;
+    }
+    
+    /* Toast */
+    .toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .map-section {
+            height: 500px;
+        }
+        
+        .map-header-content {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+        }
+        
+        .map-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .control-select,
+        .control-btn {
+            width: 100%;
+        }
+        
+        .expand-btn {
+            top: 5px;
+            right: 5px;
+        }
+        
+        .header-content,
+        .stats-container,
+        .main-content {
+            padding: 0 1rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .map-section {
+            height: 400px;
+        }
+        
+        .header-content,
+        .stats-container,
+        .main-content {
+            padding: 0 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- REMOVED .page-container - Using base template's .page-content instead -->
+
+<!-- Header -->
+<div class="header-section">
+    <div class="header-content">
+        <h1 class="page-title">Customer Map</h1>
+        <p class="page-subtitle">Visualize customer locations, monitor network coverage, and manage service zones</p>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-container">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-card-icon icon-blue">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-value">{{ total_customers }}</div>
+            <div class="stat-label">Total Customers</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-icon icon-green">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div class="stat-value">{{ customers_with_location }}</div>
+            <div class="stat-label">With Location</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-icon icon-orange">
+                <i class="fas fa-wifi"></i>
+            </div>
+            <div class="stat-value" id="online-count">0</div>
+            <div class="stat-label">Online Now</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-icon icon-purple">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-value" id="expiring-count">0</div>
+            <div class="stat-label">Expiring Soon</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Legend -->
+    <div class="legend-container">
+        <div class="legend-title">
+            <i class="fas fa-key"></i>
+            Customer Status Legend
+        </div>
+        <div class="legend-grid">
+            <div class="legend-item">
+                <div class="legend-badge" style="background-color: #10B981;"></div>
+                <span class="legend-text">Online & Active</span>
+                <span class="legend-count" id="legend-online">0</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-badge" style="background-color: #3B82F6;"></div>
+                <span class="legend-text">Offline & Active</span>
+                <span class="legend-count" id="legend-offline">0</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-badge" style="background-color: #F97316;"></div>
+                <span class="legend-text">Expiring Soon (≤7 days)</span>
+                <span class="legend-count" id="legend-expiring">0</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-badge" style="background-color: #EF4444;"></div>
+                <span class="legend-text">Subscription Expired</span>
+                <span class="legend-count" id="legend-expired">0</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-badge" style="background-color: #8B5CF6;"></div>
+                <span class="legend-text">No Subscription</span>
+                <span class="legend-count" id="legend-noplan">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Section -->
+    <div class="map-section" id="map-section">
+        <div class="map-header">
+            <div class="map-header-content">
+                <div class="map-title">
+                    <i class="fas fa-globe-africa"></i> Network Coverage Map
+                </div>
+                <div class="map-controls">
+                    <select id="status-filter" class="control-select">
+                        <option value="all">All Customers</option>
+                        <option value="online">Online Only</option>
+                        <option value="offline">Offline Only</option>
+                        <option value="expiring">Expiring Soon</option>
+                        <option value="expired">Expired</option>
+                    </select>
+                    
+                    <button id="refresh-map" class="control-btn btn-primary">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    
+                    <button id="expand-map" class="control-btn btn-success">
+                        <i class="fas fa-expand"></i> Expand
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Container -->
+        <div class="map-container-wrapper">
+            <div id="map-loading" class="loading-overlay">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Loading map...</p>
+            </div>
+            
+            <!-- Map container -->
+            <div id="map"></div>
+            
+            <button class="expand-btn" id="expand-map-btn" title="Expand to fullscreen">
+                <i class="fas fa-expand"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <div class="action-card" onclick="filterByStatus('online')">
+            <div class="action-icon icon-online">
+                <i class="fas fa-wifi"></i>
+            </div>
+            <div class="action-content">
+                <h4>Online Customers</h4>
+                <p>View all customers currently online</p>
+            </div>
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        
+        <div class="action-card" onclick="filterByStatus('expiring')">
+            <div class="action-icon icon-expiring">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="action-content">
+                <h4>Expiring Subscriptions</h4>
+                <p>Customers with subscriptions ending soon</p>
+            </div>
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        
+        <div class="action-card" onclick="filterByStatus('offline')">
+            <div class="action-icon icon-offline">
+                <i class="fas fa-wifi-slash"></i>
+            </div>
+            <div class="action-content">
+                <h4>Offline Customers</h4>
+                <p>Customers currently not connected</p>
+            </div>
+            <i class="fas fa-chevron-right"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Exit Fullscreen Button -->
+<button class="exit-fullscreen-btn" id="exit-fullscreen-btn" title="Exit fullscreen">
+    <i class="fas fa-compress"></i>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<script>
+/**
+ * FIXED MAP IMPLEMENTATION - Working drag and touch with proper fullscreen
+ */
+
+let map = null;
+let customers = [];
+let markersLayer = null;
+let isFullscreen = false;
+
+// Initialize when DOM is fully ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Initializing Customer Map...');
+    
+    // Wait a bit for CSS to settle
+    setTimeout(initMap, 100);
+});
+
+function initMap() {
+    console.log('🗺️ Creating map...');
+    
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+        console.error('❌ Map element not found');
+        showToast('Map container not found', 'error');
+        return;
+    }
+    
+    // Show loading
+    showLoading(true);
+    
+    try {
+        // Clear any existing map
+        if (map) {
+            map.remove();
+            map = null;
+        }
+        
+        // Ensure map element is visible and has dimensions
+        if (mapElement.offsetParent === null) {
+            console.warn('⚠️ Map element is not visible');
+            mapElement.style.display = 'block';
+        }
+        
+        // Set explicit dimensions
+        mapElement.style.width = '100%';
+        mapElement.style.height = '100%';
+        
+        // Create map with proper interaction settings
+        map = L.map('map', {
+            center: [1.2921, 36.8219], // Kenya coordinates
+            zoom: 5,
+            zoomControl: true,
+            attributionControl: true,
+            // ENABLE ALL INTERACTION
+            dragging: true,
+            touchZoom: true,
+            scrollWheelZoom: true,
+            doubleClickZoom: true,
+            boxZoom: true,
+            keyboard: true,
+            // Mobile optimizations
+            tap: true,
+            tapTolerance: 15,
+            // Disable tapHold to allow double-tap
+            tapHold: false,
+            // Performance settings
+            inertia: true,
+            inertiaDeceleration: 3000,
+            inertiaMaxSpeed: 1500,
+            easeLinearity: 0.2,
+            zoomSnap: 0.25,
+            zoomDelta: 0.5
+        });
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19,
+            minZoom: 2,
+            detectRetina: true,
+            updateWhenIdle: true,
+            updateWhenZooming: false
+        }).addTo(map);
+        
+        console.log('✅ Map created successfully');
+        
+        // Force resize after map creation
+        setTimeout(() => {
+            if (map) {
+                map.invalidateSize(true);
+                console.log('✅ Map size validated');
+                
+                // Load data
+                loadData();
+                
+                // Bind events
+                bindEvents();
+                
+                // Test interaction
+                testMapInteraction();
+            }
+        }, 300);
+        
+    } catch (error) {
+        console.error('❌ Map creation error:', error);
+        showToast('Failed to create map. Please refresh the page.', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function testMapInteraction() {
+    if (!map) return;
+    
+    console.log('🧪 Testing map interaction...');
+    
+    // Test if map responds to events
+    map.on('dragstart', () => console.log('🗺️ Map dragging started'));
+    map.on('dragend', () => console.log('🗺️ Map dragging ended'));
+    map.on('zoomstart', () => console.log('🔍 Zoom started'));
+    map.on('zoomend', () => console.log('🔍 Zoom ended'));
+    
+    // Add test marker to verify click events
+    const testMarker = L.marker([1.2921, 36.8219])
+        .addTo(map)
+        .bindPopup('Test marker - click works!')
+        .on('click', () => console.log('📍 Test marker clicked'));
+    
+    console.log('✅ Map interaction test complete');
+}
+
+function showLoading(show) {
+    const loadingEl = document.getElementById('map-loading');
+    if (loadingEl) {
+        loadingEl.style.display = show ? 'flex' : 'none';
+    }
+}
+
+async function loadData() {
+    try {
+        console.log('📡 Loading customer data...');
+        
+        // Use a timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch('{% url "get_customer_locations" %}', {
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            customers = data.locations || [];
+            
+            console.log(`✅ Loaded ${customers.length} customers`);
+            
+            // Update UI
+            updateStats();
+            updateLegendCounts();
+            
+            // Add markers to map
+            addMarkersToMap();
+            
+            showToast('Map data loaded successfully', 'success');
+            
+        } else {
+            throw new Error(data.error || 'Failed to load data');
+        }
+    } catch (error) {
+        console.error('❌ Data load error:', error);
+        
+        if (error.name === 'AbortError') {
+            showToast('Data loading timeout. Check your connection.', 'warning');
+        } else {
+            showToast('Failed to load customer data. Using demo data.', 'warning');
+        }
+        
+        // Load demo data as fallback
+        loadDemoData();
+    }
+}
+
+function loadDemoData() {
+    console.log('📡 Loading demo data...');
+    
+    // Create demo customers
+    customers = [
+        {
+            id: 1,
+            full_name: 'Demo Customer 1',
+            username: 'demo1',
+            latitude: 1.2921,
+            longitude: 36.8219,
+            is_online: true,
+            address: 'Nairobi, Kenya',
+            subscription: {
+                plan_name: 'Premium Plan',
+                days_remaining: 30,
+                is_active: true,
+                has_subscription: true
+            }
+        },
+        {
+            id: 2,
+            full_name: 'Demo Customer 2',
+            username: 'demo2',
+            latitude: 1.3032,
+            longitude: 36.7830,
+            is_online: false,
+            address: 'Nairobi West',
+            subscription: {
+                plan_name: 'Basic Plan',
+                days_remaining: 5,
+                is_active: true,
+                has_subscription: true
+            }
+        },
+        {
+            id: 3,
+            full_name: 'Demo Customer 3',
+            username: 'demo3',
+            latitude: 1.3173,
+            longitude: 36.8150,
+            is_online: true,
+            address: 'Nairobi East',
+            subscription: {
+                plan_name: 'Business Plan',
+                days_remaining: 0,
+                is_active: false,
+                has_subscription: true
+            }
+        }
+    ];
+    
+    // Update UI
+    updateStats();
+    updateLegendCounts();
+    
+    // Add markers to map
+    addMarkersToMap();
+    
+    showToast('Demo data loaded', 'info');
+}
+
+function addMarkersToMap() {
+    if (!map || !customers.length) return;
+    
+    console.log(`📍 Adding ${customers.length} markers...`);
+    
+    // Clear existing markers
+    if (markersLayer) {
+        map.removeLayer(markersLayer);
+        markersLayer = null;
+    }
+    
+    // Create marker cluster group
+    markersLayer = L.markerClusterGroup({
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        maxClusterRadius: 80,
+        disableClusteringAtZoom: 15
+    });
+    
+    // Add each customer as a marker
+    customers.forEach(customer => {
+        if (customer.latitude && customer.longitude) {
+            // Determine marker color based on status
+            let markerColor = '#3B82F6'; // Default blue
+            let iconHtml = '<i class="fas fa-user"></i>';
+            
+            if (customer.is_online) {
+                markerColor = '#10B981'; // Green for online
+                iconHtml = '<i class="fas fa-wifi"></i>';
+            } else if (customer.subscription?.days_remaining <= 7 && customer.subscription?.days_remaining > 0) {
+                markerColor = '#F97316'; // Orange for expiring
+                iconHtml = '<i class="fas fa-exclamation-triangle"></i>';
+            } else if (customer.subscription?.days_remaining <= 0) {
+                markerColor = '#EF4444'; // Red for expired
+                iconHtml = '<i class="fas fa-times"></i>';
+            } else if (!customer.subscription?.has_subscription) {
+                markerColor = '#8B5CF6'; // Purple for no plan
+                iconHtml = '<i class="fas fa-question"></i>';
+            }
+            
+            // Create custom marker icon
+            const customIcon = L.divIcon({
+                html: `
+                    <div style="
+                        background-color: ${markerColor};
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 50%;
+                        border: 3px solid white;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 12px;
+                        cursor: pointer;
+                    ">
+                        ${iconHtml}
+                    </div>
+                `,
+                className: 'customer-marker',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -16]
+            });
+            
+            const marker = L.marker([customer.latitude, customer.longitude], {
+                icon: customIcon,
+                title: customer.full_name || customer.username
+            }).bindPopup(createPopupContent(customer));
+            
+            // Add click handler
+            marker.on('click', function(e) {
+                console.log('📍 Marker clicked:', customer.full_name);
+                this.openPopup();
+            });
+            
+            markersLayer.addLayer(marker);
+        }
+    });
+    
+    // Add cluster group to map
+    map.addLayer(markersLayer);
+    
+    // Fit bounds to show all markers
+    if (customers.length > 0) {
+        const bounds = L.latLngBounds(customers
+            .filter(c => c.latitude && c.longitude)
+            .map(c => [c.latitude, c.longitude]));
+        
+        map.fitBounds(bounds, { 
+            padding: [50, 50],
+            maxZoom: 12,
+            animate: true
+        });
+    }
+    
+    console.log('✅ Markers added to map');
+}
+
+function createPopupContent(customer) {
+    return `
+        <div style="min-width: 200px; padding: 10px;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; background-color: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                    <i class="fas fa-user text-white"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 600; color: #1e293b;">${escapeHtml(customer.full_name || customer.username)}</h4>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">Customer ID: ${customer.id}</p>
+                </div>
+            </div>
+            
+            <div style="background-color: #f8fafc; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="font-size: 12px; color: #64748b;">Status:</span>
+                    <span style="font-size: 12px; font-weight: 600; color: ${customer.is_online ? '#10b981' : '#ef4444'}">
+                        ${customer.is_online ? '✅ Online' : '⚫ Offline'}
+                    </span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="font-size: 12px; color: #64748b;">Plan:</span>
+                    <span style="font-size: 12px; font-weight: 600; color: #475569">
+                        ${customer.subscription?.plan_name || 'No Plan'}
+                    </span>
+                </div>
+                
+                ${customer.subscription?.days_remaining !== undefined ? `
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-size: 12px; color: #64748b;">Expires in:</span>
+                    <span style="font-size: 12px; font-weight: 600; color: ${customer.subscription.days_remaining <= 7 ? '#f97316' : '#10b981'}">
+                        ${customer.subscription.days_remaining} days
+                    </span>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <p style="margin: 0 0 5px 0; font-size: 12px; color: #64748b;"><strong>Address:</strong></p>
+                <p style="margin: 0; font-size: 12px; color: #475569;">${escapeHtml(customer.address || 'Not specified')}</p>
+            </div>
+            
+            <button onclick="viewCustomerDetails(${customer.id})" 
+                    style="width: 100%; padding: 8px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                <i class="fas fa-eye" style="margin-right: 5px;"></i> View Details
+            </button>
+        </div>
+    `;
+}
+
+function updateStats() {
+    const onlineCount = customers.filter(c => c.is_online).length;
+    const expiringCount = customers.filter(c => 
+        c.subscription?.days_remaining <= 7 && c.subscription?.days_remaining > 0
+    ).length;
+    
+    document.getElementById('online-count').textContent = onlineCount;
+    document.getElementById('expiring-count').textContent = expiringCount;
+}
+
+function updateLegendCounts() {
+    const counts = {
+        online: customers.filter(c => c.is_online && c.subscription?.is_active).length,
+        offline: customers.filter(c => !c.is_online && c.subscription?.is_active).length,
+        expiring: customers.filter(c => c.subscription?.days_remaining <= 7 && c.subscription?.days_remaining > 0).length,
+        expired: customers.filter(c => c.subscription?.days_remaining <= 0).length,
+        noplan: customers.filter(c => !c.subscription?.has_subscription).length
+    };
+    
+    Object.keys(counts).forEach(key => {
+        const element = document.getElementById(`legend-${key}`);
+        if (element) element.textContent = counts[key];
+    });
+}
+
+function bindEvents() {
+    // Refresh button
+    const refreshBtn = document.getElementById('refresh-map');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            console.log('🔄 Refreshing map data...');
+            loadData();
+        });
+    }
+    
+    // Expand buttons - FIXED with proper event handling
+    const expandBtn = document.getElementById('expand-map');
+    const expandBtnSmall = document.getElementById('expand-map-btn');
+    const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
+    
+    if (expandBtn) {
+        expandBtn.addEventListener('click', function(e) {
+            console.log('Expand button clicked');
+            e.stopPropagation();
+            toggleFullscreen();
+        });
+    }
+    
+    if (expandBtnSmall) {
+        expandBtnSmall.addEventListener('click', function(e) {
+            console.log('Small expand button clicked');
+            e.stopPropagation();
+            toggleFullscreen();
+        });
+    }
+    
+    if (exitFullscreenBtn) {
+        exitFullscreenBtn.addEventListener('click', function(e) {
+            console.log('Exit fullscreen button clicked');
+            e.stopPropagation();
+            toggleFullscreen();
+        });
+    }
+    
+    // Filter change
+    const statusFilter = document.getElementById('status-filter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            console.log('Filter changed to:', this.value);
+            // Filter implementation would go here
+        });
+    }
+    
+    // Add window resize handler
+    window.addEventListener('resize', function() {
+        if (map) {
+            setTimeout(() => {
+                map.invalidateSize(true);
+                console.log('✅ Map resized');
+            }, 100);
+        }
+    });
+    
+    // Add keyboard shortcut for fullscreen (Esc key)
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && isFullscreen) {
+            toggleFullscreen();
+        }
+    });
+}
+
+function toggleFullscreen() {
+    const mapSection = document.getElementById('map-section');
+    const exitBtn = document.getElementById('exit-fullscreen-btn');
+    const expandBtn = document.getElementById('expand-map');
+    const expandBtnSmall = document.getElementById('expand-map-btn');
+    
+    if (!mapSection) return;
+    
+    if (isFullscreen) {
+        // Exit fullscreen
+        mapSection.classList.remove('fullscreen-map');
+        if (exitBtn) exitBtn.style.display = 'none';
+        
+        // Update button text/icons
+        if (expandBtn) {
+            expandBtn.innerHTML = '<i class="fas fa-expand"></i> Expand';
+        }
+        if (expandBtnSmall) {
+            expandBtnSmall.innerHTML = '<i class="fas fa-expand"></i>';
+        }
+        
+        // Show other content - FIXED for new layout
+        document.querySelectorAll('.page-content > *').forEach(el => {
+            if (el !== mapSection && el.style) {
+                el.style.display = '';
+            }
+        });
+        
+        isFullscreen = false;
+        console.log('📱 Exited fullscreen mode');
+        
+    } else {
+        // Enter fullscreen
+        mapSection.classList.add('fullscreen-map');
+        if (exitBtn) exitBtn.style.display = 'flex';
+        
+        // Update button text/icons
+        if (expandBtn) {
+            expandBtn.innerHTML = '<i class="fas fa-compress"></i> Compress';
+        }
+        if (expandBtnSmall) {
+            expandBtnSmall.innerHTML = '<i class="fas fa-compress"></i>';
+        }
+        
+        // Hide other content - FIXED for new layout
+        document.querySelectorAll('.page-content > *').forEach(el => {
+            if (el !== mapSection && el.style) {
+                el.style.display = 'none';
+            }
+        });
+        
+        isFullscreen = true;
+        console.log('🖥️ Entered fullscreen mode');
+    }
+    
+    // CRITICAL: Force map resize with multiple attempts
+    if (map) {
+        // Show loading briefly to prevent blank map
+        showLoading(true);
+        
+        // Multiple resize attempts to ensure map loads properly
+        const resizeAttempts = [50, 150, 300, 500, 800];
+        
+        resizeAttempts.forEach((delay, index) => {
+            setTimeout(() => {
+                if (map) {
+                    map.invalidateSize(true);
+                    console.log(`✅ Map resize attempt ${index + 1}`);
+                    
+                    // On last attempt, hide loading and recenter
+                    if (index === resizeAttempts.length - 1) {
+                        setTimeout(() => {
+                            showLoading(false);
+                            // Ensure map is properly centered
+                            map.setView(map.getCenter(), map.getZoom(), { animate: false });
+                        }, 100);
+                    }
+                }
+            }, delay);
+        });
+        
+        // Force a repaint of the map container
+        setTimeout(() => {
+            const mapContainer = document.getElementById('map');
+            if (mapContainer) {
+                // Trigger a repaint
+                mapContainer.style.display = 'none';
+                setTimeout(() => {
+                    mapContainer.style.display = 'block';
+                }, 10);
+            }
+        }, 100);
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <div class="toast-icon">
+            <i class="fas ${icons[type] || 'fa-info-circle'}"></i>
+        </div>
+        <div class="toast-content">
+            <div class="toast-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+            <div class="toast-message">${escapeHtml(message)}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+// Global helper functions
+function filterByStatus(status) {
+    const filter = document.getElementById('status-filter');
+    if (filter) {
+        filter.value = status;
+        filter.dispatchEvent(new Event('change'));
+    }
+}
+
+function viewCustomerDetails(customerId) {
+    window.location.href = `/accounts/customer/${customerId}/details/`;
+}
+
+// Add debug mode
+if (window.location.hash === '#debug') {
+    console.log('🔧 Debug mode enabled');
+    
+    // Log all map events
+    if (map) {
+        const events = [
+            'click', 'dblclick', 'mousedown', 'mouseup', 'mouseover',
+            'mouseout', 'mousemove', 'contextmenu', 'dragstart',
+            'drag', 'dragend', 'zoomstart', 'zoom', 'zoomend'
+        ];
+        
+        events.forEach(event => {
+            map.on(event, (e) => {
+                console.log(`🗺️ Map event: ${event}`, e.type ? `Type: ${e.type}` : '');
+            });
+        });
+    }
+}
+</script>
+{% endblock %}

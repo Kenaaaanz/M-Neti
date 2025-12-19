@@ -1,0 +1,75 @@
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}Configure PayStack - {{ tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+        <div class="mb-6">
+            <div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-credit-card text-white text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Configure PayStack for {{ tenant.name }}</h2>
+            <p class="text-gray-600">You will be redirected to the PayStack configuration page</p>
+        </div>
+        
+        <div class="mb-8">
+            <div class="bg-gray-50 rounded-lg p-6 mb-4">
+                <h3 class="font-medium text-gray-900 mb-3">What happens next:</h3>
+                <ul class="space-y-3 text-sm text-gray-600 text-left max-w-md mx-auto">
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                        <span>You'll be redirected to the ISP's PayStack configuration page</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                        <span>The ISP admin will set up their bank account details</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                        <span>PayStack subaccount will be created automatically</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-0.5 mr-3"></i>
+                        <span>7.5% platform fee will be configured</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="space-y-4">
+            <a href="{% url 'isp_configure_paystack' %}" 
+               target="_blank"
+               class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200 text-lg">
+                <i class="fas fa-external-link-alt mr-2"></i>
+                Open PayStack Configuration
+            </a>
+            
+            <p class="text-sm text-gray-500">
+                The page will open in a new tab. You can continue managing other ISPs.
+            </p>
+        </div>
+        
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <a href="{% url 'superadmin_tenant_detail' tenant.id %}" 
+               class="inline-flex items-center text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to ISP Details
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Optional: Auto-open the PayStack configuration in a new tab
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            const link = document.querySelector('a[href*="configure-paystack"]');
+            if (link) {
+                link.click();
+            }
+        }, 1000);
+    });
+</script>
+{% endblock %}

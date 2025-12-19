@@ -1,0 +1,934 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}{{ tenant.name }} ISP Dashboard - M-Neti{% endblock %}
+
+{% block page_title %}ISP Dashboard{% endblock %}
+{% block page_subtitle %}Welcome back, {{ user.get_full_name|default:user.username }}! Here's your business overview.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    /* Mini Map Styles */
+    .mini-map-container {
+        position: relative;
+        width: 100%;
+        height: 300px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #f8fafc;
+    }
+    
+    .mini-map {
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    .map-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .map-stats {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .map-stat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    
+    .map-stat-badge.online {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .map-stat-badge.offline {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .map-stat-badge.expiring {
+        background: #fde68a;
+        color: #92400e;
+    }
+    
+    .map-fullscreen-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        border: 1px solid #e5e7eb;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        color: #4b5563;
+        font-size: 14px;
+    }
+    
+    .map-fullscreen-btn:hover {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+    
+    /* Leaflet fixes for mini map */
+    .mini-map .leaflet-container {
+        font: inherit !important;
+    }
+    
+    .mini-map .leaflet-control-zoom {
+        margin-top: 10px !important;
+        margin-left: 10px !important;
+    }
+    
+    .mini-map .leaflet-control-attribution {
+        font-size: 10px !important;
+    }
+    
+    /* Custom marker styles */
+    .customer-marker {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 10px;
+    }
+    
+    .marker-online { background-color: #10b981; }
+    .marker-offline { background-color: #ef4444; }
+    .marker-expiring { background-color: #f59e0b; }
+    .marker-expired { background-color: #6b7280; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Quick Action: Data Wallet Shortcut -->
+<div class="flex justify-between items-center mb-4">
+    <div>
+        <h2 class="text-lg font-semibold text-gray-900">Network Overview</h2>
+        <p class="text-sm text-gray-500">Monitor your customer network at a glance</p>
+    </div>
+    <a href="{% url 'isp_data_wallet' %}" class="inline-flex items-center px-4 py-2 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 transition">
+        <i class="fas fa-wallet mr-2"></i>
+        Open Data Wallet
+    </a>
+</div>
+
+<!-- Quick Stats Overview -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Total Customers Card -->
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-6 -mt-6"></div>
+        <div class="relative z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium mb-1">Total Customers</p>
+                    <p class="text-3xl font-bold">{{ total_customers }}</p>
+                    <div class="flex items-center mt-2">
+                        <span class="bg-green-400 text-green-900 text-xs px-2 py-1 rounded-full font-semibold">
+                            {{ active_customers }} active
+                        </span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Approvals Card -->
+    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-6 -mt-6"></div>
+        <div class="relative z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm font-medium mb-1">Pending Approvals</p>
+                    <p class="text-3xl font-bold">{{ pending_count }}</p>
+                    <div class="mt-2">
+                        <a href="{% url 'isp_pending_approvals' %}" class="text-orange-100 hover:text-white text-sm font-medium inline-flex items-center">
+                            Review Now <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-user-clock text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network Status Card -->
+    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-6 -mt-6"></div>
+        <div class="relative z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium mb-1">Network Status</p>
+                    <p class="text-3xl font-bold">{{ online_routers }}/{{ total_routers }}</p>
+                    <div class="flex items-center mt-2">
+                        <span class="bg-white text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+                            {{ online_devices }} devices online
+                        </span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-wifi text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Card -->
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-6 -mt-6"></div>
+        <div class="relative z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium mb-1">Monthly Revenue</p>
+                    <p class="text-3xl font-bold">KSh {{ monthly_revenue|floatformat:0 }}</p>
+                    <div class="flex items-center mt-2">
+                        <span class="bg-red-400 text-red-900 text-xs px-2 py-1 rounded-full font-semibold">
+                            {{ overdue_customers }} overdue
+                        </span>
+                    </div>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-credit-card text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SMS Statistics Card -->
+    <div class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -mr-6 -mt-6"></div>
+        <div class="relative z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-teal-100 text-sm font-medium mb-1">SMS Sent Today</p>
+                    <p class="text-3xl font-bold">{{ sms_stats.today_count|default:"0" }}</p>
+                    <div class="mt-2">
+                        <a href="{% url 'isp_sms_compose' %}" class="text-teal-100 hover:text-white text-sm font-medium inline-flex items-center">
+                            Send SMS <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-sms text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- MINI CUSTOMER MAP SECTION -->
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+    <div class="map-header">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">Customer Network Map</h3>
+            <p class="text-sm text-gray-500">Real-time view of your customer locations and status</p>
+        </div>
+        <div class="map-stats">
+            <span class="map-stat-badge online">
+                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span id="online-count">0</span> Online
+            </span>
+            <span class="map-stat-badge offline">
+                <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                <span id="offline-count">0</span> Offline
+            </span>
+            <span class="map-stat-badge expiring">
+                <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                <span id="expiring-count">0</span> Expiring
+            </span>
+        </div>
+    </div>
+    
+    <div class="mini-map-container">
+        <div id="mini-map" class="mini-map"></div>
+        <button class="map-fullscreen-btn" title="View full map" onclick="openFullMap()">
+            <i class="fas fa-expand"></i>
+        </button>
+    </div>
+    
+    <div class="flex justify-between items-center mt-4 text-sm text-gray-600">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span>Online</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span>Offline</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <span>Expiring</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-gray-500 rounded-full"></div>
+                <span>Expired</span>
+            </div>
+        </div>
+        <a href="{% url 'isp_customer_map' %}" class="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1">
+            <i class="fas fa-map"></i>
+            View Full Map
+        </a>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <a href="{% url 'isp_pending_approvals' %}" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all duration-200 group">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <i class="fas fa-user-check text-orange-600 text-lg"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-gray-900 group-hover:text-orange-600">Approve Users</h3>
+                <p class="text-sm text-gray-500">{{ pending_count }} pending</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-300 group-hover:text-orange-600"></i>
+        </div>
+    </a>
+
+    <a href="{% url 'isp_customers' %}" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 group">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <i class="fas fa-user-plus text-blue-600 text-lg"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-gray-900 group-hover:text-blue-600">Manage Customers</h3>
+                <p class="text-sm text-gray-500">{{ total_customers }} total</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-300 group-hover:text-blue-600"></i>
+        </div>
+    </a>
+
+    <a href="{% url 'isp_plans' %}" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-green-300 hover:shadow-md transition-all duration-200 group">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <i class="fas fa-cube text-green-600 text-lg"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-gray-900 group-hover:text-green-600">Service Plans</h3>
+                <p class="text-sm text-gray-500">Manage packages</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-300 group-hover:text-green-600"></i>
+        </div>
+    </a>
+
+    <a href="{% url 'isp_routers' %}" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all duration-200 group">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <i class="fas fa-router text-purple-600 text-lg"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-gray-900 group-hover:text-purple-600">Routers</h3>
+                <p class="text-sm text-gray-500">{{ online_routers }}/{{ total_routers }} online</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-300 group-hover:text-purple-600"></i>
+        </div>
+    </a>
+</div>
+
+<!-- Main Analytics Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+    <!-- Revenue Chart -->
+    <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Revenue Analytics</h3>
+                <p class="text-sm text-gray-500">Last 12 months performance</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+                <span class="text-sm text-gray-600">Monthly Revenue</span>
+            </div>
+        </div>
+        <div class="h-80">
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Device Distribution -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold text-gray-900">Device Distribution</h3>
+            <div class="text-sm text-gray-500">{{ total_devices }} total</div>
+        </div>
+        <div class="h-80">
+            <canvas id="deviceDistributionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Plan Distribution -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Plan Distribution</h3>
+        <div class="h-64">
+            <canvas id="planDonut"></canvas>
+        </div>
+    </div>
+
+    <!-- Payment Status -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Status</h3>
+        <div class="h-64">
+            <canvas id="overdueChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold text-gray-900">Recent Activity</h3>
+            <a href="{% url 'isp_payments' %}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                View All
+            </a>
+        </div>
+        <div class="space-y-4">
+            {% for payment in recent_payments|slice:":4" %}
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-blue-50 transition-colors group">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check text-green-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-900 group-hover:text-blue-600">{{ payment.user.username }}</p>
+                        <p class="text-sm text-gray-500">{{ payment.plan.name|default:"No Plan" }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="font-semibold text-green-600">KSh {{ payment.amount }}</p>
+                    <p class="text-xs text-gray-500">{{ payment.created_at|timesince }} ago</p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-receipt text-gray-400 text-xl"></i>
+                </div>
+                <p class="text-gray-500 font-medium">No recent payments</p>
+                <p class="text-sm text-gray-400 mt-1">Payments will appear here</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Overdue Accounts Section -->
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">Overdue Accounts</h3>
+            <p class="text-sm text-gray-500">Requiring immediate attention</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            <span class="text-sm font-medium text-red-600">{{ overdue_customers }} accounts overdue</span>
+        </div>
+    </div>
+
+    {% if overdue_accounts %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for customer in overdue_accounts %}
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4 hover:bg-red-100 transition-colors">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-900">{{ customer.username }}</p>
+                        <p class="text-sm text-gray-600">{{ customer.company_account_number }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-bold text-red-600">{{ customer.days_overdue }} days</p>
+                    <p class="text-xs text-gray-500">Due {{ customer.next_payment_date|date:"M d" }}</p>
+                </div>
+            </div>
+            <div class="mt-3 flex items-center justify-between text-sm">
+                <span class="text-gray-600">{{ customer.email }}</span>
+                <span class="text-red-600 font-medium">KSh {{ customer.account_balance|default:"0" }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+        </div>
+        <h4 class="text-lg font-semibold text-green-600 mb-2">All Clear!</h4>
+        <p class="text-gray-500">No overdue accounts. Great work! 🎉</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Performance Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+    <div class="text-center p-4 bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="text-2xl font-bold text-blue-600">{{ active_customers }}</div>
+        <div class="text-sm text-gray-500 mt-1">Active Customers</div>
+    </div>
+    <div class="text-center p-4 bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="text-2xl font-bold text-green-600">{{ online_routers }}</div>
+        <div class="text-sm text-gray-500 mt-1">Online Routers</div>
+    </div>
+    <div class="text-center p-4 bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="text-2xl font-bold text-purple-600">{{ total_devices }}</div>
+        <div class="text-sm text-gray-500 mt-1">Total Devices</div>
+    </div>
+    <div class="text-center p-4 bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="text-2xl font-bold text-orange-600">{{ pending_count }}</div>
+        <div class="text-sm text-gray-500 mt-1">Pending Actions</div>
+    </div>
+</div>
+
+<!-- JavaScript for the Mini Map -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // ============================================
+    // MINI CUSTOMER MAP FOR DASHBOARD
+    // ============================================
+    
+    let miniMap = null;
+    let miniMapMarkers = [];
+    let customerData = [];
+    
+    // Initialize mini map
+    function initMiniMap() {
+        console.log('🗺️ Initializing mini customer map...');
+        
+        try {
+            // Create map
+            miniMap = L.map('mini-map', {
+                center: [-1.2921, 36.8219], // Kenya center
+                zoom: 6,
+                zoomControl: true,
+                attributionControl: false,
+                dragging: true,
+                touchZoom: true,
+                scrollWheelZoom: false, // Disable scroll zoom in mini map
+                doubleClickZoom: true,
+                boxZoom: false,
+                keyboard: false,
+                tap: true
+            });
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 18,
+                minZoom: 3
+            }).addTo(miniMap);
+            
+            // Load customer data
+            loadCustomerData();
+            
+            console.log('✅ Mini map initialized');
+        } catch (error) {
+            console.error('❌ Mini map init error:', error);
+        }
+    }
+    
+    // Load customer data from API
+    async function loadCustomerData() {
+        try {
+            const response = await fetch('{% url "get_customer_locations" %}');
+            const data = await response.json();
+            
+            if (data.success) {
+                customerData = data.locations || [];
+                updateMapStats();
+                addMarkersToMiniMap();
+                
+                // Fit bounds to show all markers
+                if (customerData.length > 0) {
+                    const bounds = L.latLngBounds(customerData
+                        .filter(c => c.latitude && c.longitude)
+                        .map(c => [c.latitude, c.longitude]));
+                    
+                    miniMap.fitBounds(bounds, { padding: [30, 30] });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load customer data:', error);
+            // Load demo data if real data fails
+            loadDemoData();
+        }
+    }
+    
+    // Load demo data for testing
+    function loadDemoData() {
+        customerData = [
+            {
+                id: 1,
+                full_name: 'Customer 1',
+                latitude: -1.2921,
+                longitude: 36.8219,
+                is_online: true,
+                subscription: { days_remaining: 30 }
+            },
+            {
+                id: 2,
+                full_name: 'Customer 2',
+                latitude: -1.3032,
+                longitude: 36.7830,
+                is_online: false,
+                subscription: { days_remaining: 5 }
+            },
+            {
+                id: 3,
+                full_name: 'Customer 3',
+                latitude: -1.3173,
+                longitude: 36.8150,
+                is_online: true,
+                subscription: { days_remaining: 0 }
+            },
+            {
+                id: 4,
+                full_name: 'Customer 4',
+                latitude: -1.2800,
+                longitude: 36.8500,
+                is_online: true,
+                subscription: { days_remaining: 15 }
+            },
+            {
+                id: 5,
+                full_name: 'Customer 5',
+                latitude: -1.2700,
+                longitude: 36.8000,
+                is_online: false,
+                subscription: { days_remaining: 60 }
+            }
+        ];
+        
+        updateMapStats();
+        addMarkersToMiniMap();
+    }
+    
+    // Update the stats counters
+    function updateMapStats() {
+        const onlineCount = customerData.filter(c => c.is_online).length;
+        const offlineCount = customerData.filter(c => !c.is_online).length;
+        const expiringCount = customerData.filter(c => 
+            c.subscription?.days_remaining <= 7 && c.subscription?.days_remaining > 0
+        ).length;
+        
+        document.getElementById('online-count').textContent = onlineCount;
+        document.getElementById('offline-count').textContent = offlineCount;
+        document.getElementById('expiring-count').textContent = expiringCount;
+    }
+    
+    // Add markers to the mini map
+    function addMarkersToMiniMap() {
+        // Clear existing markers
+        miniMapMarkers.forEach(marker => miniMap.removeLayer(marker));
+        miniMapMarkers = [];
+        
+        // Add each customer as a marker
+        customerData.forEach(customer => {
+            if (customer.latitude && customer.longitude) {
+                // Determine marker color based on status
+                let markerClass = 'marker-online'; // Default green for online
+                let icon = '<i class="fas fa-user"></i>';
+                
+                if (!customer.is_online) {
+                    markerClass = 'marker-offline'; // Red for offline
+                    icon = '<i class="fas fa-user-slash"></i>';
+                } else if (customer.subscription?.days_remaining <= 7 && customer.subscription?.days_remaining > 0) {
+                    markerClass = 'marker-expiring'; // Yellow for expiring soon
+                    icon = '<i class="fas fa-exclamation-triangle"></i>';
+                } else if (customer.subscription?.days_remaining <= 0) {
+                    markerClass = 'marker-expired'; // Gray for expired
+                    icon = '<i class="fas fa-times"></i>';
+                }
+                
+                // Create custom marker
+                const customIcon = L.divIcon({
+                    html: `<div class="customer-marker ${markerClass}">${icon}</div>`,
+                    className: '',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+                
+                const marker = L.marker([customer.latitude, customer.longitude], {
+                    icon: customIcon,
+                    title: customer.full_name || 'Customer'
+                });
+                
+                // Add popup with customer info
+                const popupContent = `
+                    <div style="padding: 8px; min-width: 180px;">
+                        <div class="font-semibold text-gray-900">${escapeHtml(customer.full_name || 'Customer')}</div>
+                        <div class="text-sm text-gray-600 mt-1">Status: ${customer.is_online ? '✅ Online' : '❌ Offline'}</div>
+                        ${customer.subscription?.days_remaining !== undefined ? 
+                            `<div class="text-sm text-gray-600">Expires in: ${customer.subscription.days_remaining} days</div>` : ''}
+                        <div class="mt-2">
+                            <a href="/accounts/customer/${customer.id}/" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                View Details →
+                            </a>
+                        </div>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                marker.addTo(miniMap);
+                miniMapMarkers.push(marker);
+            }
+        });
+    }
+    
+    // Open full map view
+    function openFullMap() {
+        window.location.href = '{% url "isp_customer_map" %}';
+    }
+    
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Initialize mini map when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initMiniMap();
+        
+        // Also initialize the charts
+        initCharts();
+        
+        // Refresh map data every 60 seconds
+        setInterval(loadCustomerData, 60000);
+    });
+    
+    // ============================================
+    // CHARTS (Existing code, slightly modified)
+    // ============================================
+    
+    function initCharts() {
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        const revenueMonths = {{ revenue_months|safe }};
+        const revenueSeries = {{ revenue_series|safe }};
+        
+        const revenueChart = new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: revenueMonths,
+                datasets: [{
+                    label: 'Monthly Revenue',
+                    data: revenueSeries,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#3b82f6',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: { size: 12 },
+                        bodyFont: { size: 13 },
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return `KSh ${context.parsed.y.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return 'KSh ' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Device Distribution Chart
+        const deviceCtx = document.getElementById('deviceDistributionChart').getContext('2d');
+        const deviceData = {{ device_distribution|safe }};
+        
+        const deviceChart = new Chart(deviceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: deviceData.labels,
+                datasets: [{
+                    data: deviceData.data,
+                    backgroundColor: [
+                        '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+                        '#06b6d4', '#84cc16', '#f97316', '#6366f1', '#ec4899'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                        }
+                    }
+                }
+            }
+        });
+
+        // Plan Distribution
+        const planCtx = document.getElementById('planDonut').getContext('2d');
+        const planLabels = {{ plan_labels|safe }};
+        const planCounts = {{ plan_counts|safe }};
+        
+        const planChart = new Chart(planCtx, {
+            type: 'pie',
+            data: {
+                labels: planLabels,
+                datasets: [{
+                    data: planCounts,
+                    backgroundColor: [
+                        '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
+                        '#06b6d4', '#f97316', '#6366f1'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                        }
+                    }
+                }
+            }
+        });
+
+        // Overdue vs Paid Chart
+        const overdueCtx = document.getElementById('overdueChart').getContext('2d');
+        const overdueData = {{ overdue_paid|safe }};
+        
+        const overdueChart = new Chart(overdueCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Overdue', 'Paid'],
+                datasets: [{
+                    data: overdueData,
+                    backgroundColor: ['#ef4444', '#10b981'],
+                    borderWidth: 3,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+
+        // Animate stats cards on load
+        const statCards = document.querySelectorAll('.bg-gradient-to-br');
+        statCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 150);
+        });
+    }
+</script>
+
+<style>
+    .glass-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        color: white;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-5px);
+        transition: transform 0.2s ease;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,519 @@
+<!-- templates/admin/superadmin_tenant_detail.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}ISP Details - {{ tenant.name }} - M-Neti{% endblock %}
+
+{% block page_title %}{{ tenant.name }}{% endblock %}
+{% block page_subtitle %}ISP Details & Management{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'superadmin_tenants' %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+        <i class="fas fa-arrow-left mr-2"></i> Back to ISPs
+    </a>
+</div>
+
+<!-- ISP Header -->
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between">
+        <div class="flex items-center space-x-4 mb-4 md:mb-0">
+            {% if tenant.logo %}
+            <img src="{{ tenant.logo.url }}" alt="{{ tenant.name }}" class="w-16 h-16 rounded-xl object-cover">
+            {% else %}
+            <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <span class="text-white text-2xl font-bold">{{ tenant.name|first|upper }}</span>
+            </div>
+            {% endif %}
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ tenant.name }}</h1>
+                <p class="text-gray-600">{{ tenant.company_name }}</p>
+                <div class="flex items-center space-x-2 mt-2">
+                    <span class="px-3 py-1 rounded-full text-sm font-medium 
+                        {% if tenant.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                        {% if tenant.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                    <span class="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        {{ tenant.get_subscription_plan_display }}
+                    </span>
+                    <span class="text-sm text-gray-500">
+                        <i class="fas fa-calendar mr-1"></i>Joined {{ tenant.created_at|date:"M d, Y" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="flex space-x-3">
+            <a href="{% url 'superadmin_tenant_verify' tenant.id %}" 
+               class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg">
+                <i class="fas fa-check-circle mr-2"></i> Verify/Manage
+            </a>
+            <a href="{% url 'superadmin_tenant_analytics' tenant.id %}" 
+               class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg">
+                <i class="fas fa-chart-bar mr-2"></i> Analytics
+            </a>
+            <button onclick="window.print()" 
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-lg">
+                <i class="fas fa-print mr-2"></i> Print
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-blue-100 text-sm">Total Customers</p>
+                <p class="text-2xl font-bold">{{ customer_count }}</p>
+            </div>
+            <i class="fas fa-users text-xl opacity-80"></i>
+        </div>
+    </div>
+    
+    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-green-100 text-sm">Total Revenue</p>
+                <p class="text-2xl font-bold">KSh {{ total_revenue|floatformat:0 }}</p>
+            </div>
+            <i class="fas fa-credit-card text-xl opacity-80"></i>
+        </div>
+    </div>
+    
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-purple-100 text-sm">Active Subscriptions</p>
+                <p class="text-2xl font-bold">{{ active_subscriptions }}</p>
+            </div>
+            <i class="fas fa-wifi text-xl opacity-80"></i>
+        </div>
+    </div>
+    
+    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-5 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-orange-100 text-sm">Success Rate</p>
+                <p class="text-2xl font-bold">{{ payment_success_rate }}%</p>
+            </div>
+            <i class="fas fa-percentage text-xl opacity-80"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- ISP Information -->
+    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+            ISP Information
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="font-medium text-gray-700 mb-2">Contact Details</h4>
+                <ul class="space-y-2">
+                    <li class="flex items-center">
+                        <i class="fas fa-envelope text-gray-400 mr-2 w-5"></i>
+                        <span class="text-gray-600">{{ tenant.contact_email }}</span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-phone text-gray-400 mr-2 w-5"></i>
+                        <span class="text-gray-600">{{ tenant.contact_phone|default:"Not provided" }}</span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-map-marker-alt text-gray-400 mr-2 w-5"></i>
+                        <span class="text-gray-600">{{ tenant.address|default:"Not provided" }}</span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-globe text-gray-400 mr-2 w-5"></i>
+                        <span class="text-gray-600">{{ tenant.company_name }}</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="font-medium text-gray-700 mb-2">Domain & URLs</h4>
+                <ul class="space-y-2">
+                    <li class="flex items-center">
+                        <i class="fas fa-link text-gray-400 mr-2 w-5"></i>
+                        <span class="text-gray-600">{{ tenant.primary_domain }}</span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-subscript text-gray-400 mr-2 w-5"></i>
+                        <span class="text-gray-600">{{ tenant.subdomain }}</span>
+                    </li>
+                    {% if tenant.custom_domain %}
+                    <li class="flex items-center">
+                        <i class="fas fa-globe-africa text-gray-400 mr-2 w-5"></i>
+                        <span class="text-gray-600">{{ tenant.custom_domain }}</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <div class="md:col-span-2">
+                <h4 class="font-medium text-gray-700 mb-2">Description</h4>
+                <p class="text-gray-600 bg-gray-50 p-3 rounded-lg">
+                    {{ tenant.description|default:"No description provided" }}
+                </p>
+            </div>
+        </div>
+        
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <h4 class="font-medium text-gray-700 mb-3">Brand Colors</h4>
+            <div class="flex space-x-2 mb-4">
+                {% if tenant.primary_color %}
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded mr-2 border" style="background-color: {{ tenant.primary_color }}"></div>
+                    <span class="text-sm text-gray-600">Primary</span>
+                </div>
+                {% endif %}
+                {% if tenant.secondary_color %}
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded mr-2 border" style="background-color: {{ tenant.secondary_color }}"></div>
+                    <span class="text-sm text-gray-600">Secondary</span>
+                </div>
+                {% endif %}
+                {% if tenant.accent_color %}
+                <div class="flex items-center">
+                    <div class="w-6 h-6 rounded mr-2 border" style="background-color: {{ tenant.accent_color }}"></div>
+                    <span class="text-sm text-gray-600">Accent</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Subscription & Billing -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-credit-card text-green-600 mr-2"></i>
+            Subscription & Billing
+        </h3>
+        
+        <div class="space-y-4">
+            <div>
+                <p class="text-sm text-gray-500">Current Plan</p>
+                <p class="text-lg font-semibold text-gray-900">{{ tenant.get_subscription_plan_display }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">Monthly Rate</p>
+                <p class="text-lg font-semibold text-gray-900">KSh {{ tenant.monthly_rate|default:"0" }}</p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-500">Subscription Status</p>
+                <div class="flex items-center">
+                    <span class="px-3 py-1 rounded-full text-sm font-medium 
+                        {% if tenant.subscription_status == 'active' %}bg-green-100 text-green-800
+                        {% elif tenant.subscription_status == 'expired' %}bg-red-100 text-red-800
+                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                        {{ tenant.subscription_status|title|default:"Not set" }}
+                    </span>
+                </div>
+            </div>
+            
+            {% if tenant.subscription_end %}
+            <div>
+                <p class="text-sm text-gray-500">Renewal Date</p>
+                <p class="font-medium text-gray-900">{{ tenant.subscription_end|date:"F d, Y" }}</p>
+                <p class="text-xs text-gray-500">
+                    {% if tenant.is_subscription_expiring_soon %}
+                    <span class="text-yellow-600"><i class="fas fa-exclamation-triangle mr-1"></i>Expires soon</span>
+                    {% else %}
+                    {{ tenant.days_until_renewal }} days remaining
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+            
+            <div class="pt-4 border-t border-gray-200">
+                <h4 class="font-medium text-gray-700 mb-3">Payment History</h4>
+                {% if recent_payments %}
+                <div class="space-y-2">
+                    {% for payment in recent_payments|slice:":3" %}
+                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">{{ payment.plan.name }}</p>
+                            <p class="text-xs text-gray-500">{{ payment.created_at|date:"M d" }}</p>
+                        </div>
+                        <span class="text-sm font-medium text-gray-900">KSh {{ payment.amount }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{% url 'superadmin_tenant_payments' tenant.id %}" class="text-sm text-blue-600 hover:text-blue-800 mt-2 block">
+                    View all payments →
+                </a>
+                {% else %}
+                <p class="text-sm text-gray-500">No payment history</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ISP Staff & Customers -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- ISP Staff -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-user-shield text-purple-600 mr-2"></i>
+                ISP Staff
+            </h3>
+            <span class="text-sm text-gray-500">{{ staff_count }} staff members</span>
+        </div>
+        
+        <div class="space-y-3">
+            {% for staff in staff_members|slice:":5" %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                        {{ staff.first_name|first|upper }}{{ staff.last_name|first|upper }}
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">{{ staff.get_full_name }}</p>
+                        <p class="text-xs text-gray-500">{{ staff.email }}</p>
+                    </div>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                    {{ staff.get_role_display }}
+                </span>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-center py-4">No staff members found</p>
+            {% endfor %}
+            
+            {% if staff_count > 5 %}
+            <a href="{% url 'superadmin_tenant_staff' tenant.id %}" class="text-sm text-blue-600 hover:text-blue-800 block text-center">
+                View all {{ staff_count }} staff members →
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Recent Customers -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-users text-green-600 mr-2"></i>
+                Recent Customers
+            </h3>
+            <span class="text-sm text-gray-500">{{ customer_count }} total</span>
+        </div>
+        
+        <div class="space-y-3">
+            {% for customer in recent_customers|slice:":5" %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center text-white font-bold">
+                        {{ customer.first_name|first|upper }}{{ customer.last_name|first|upper }}
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-900">{{ customer.get_full_name }}</p>
+                        <p class="text-xs text-gray-500">{{ customer.company_account_number }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-medium {% if customer.registration_status == 'approved' %}text-green-600{% else %}text-yellow-600{% endif %}">
+                        {{ customer.get_registration_status_display }}
+                    </span>
+                    <p class="text-xs text-gray-500">{{ customer.date_joined|date:"M d" }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-center py-4">No customers found</p>
+            {% endfor %}
+            
+            {% if customer_count > 5 %}
+            <a href="{% url 'superadmin_tenant_customers' tenant.id %}" class="text-sm text-blue-600 hover:text-blue-800 block text-center">
+                View all {{ customer_count }} customers →
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ISP Settings & Limits -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <i class="fas fa-cog text-orange-600 mr-2"></i>
+        ISP Settings & Limits
+    </h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+            <h4 class="font-medium text-gray-700 mb-2">Bandwidth Settings</h4>
+            <ul class="space-y-2">
+                <li class="flex justify-between">
+                    <span class="text-gray-600">Bandwidth Limit:</span>
+                    <span class="font-medium">{{ tenant.bandwidth_limit|default:"Unlimited" }} Mbps</span>
+                </li>
+                <li class="flex justify-between">
+                    <span class="text-gray-600">Client Limit:</span>
+                    <span class="font-medium">{{ tenant.client_limit|default:"Unlimited" }}</span>
+                </li>
+            </ul>
+        </div>
+        
+        <div>
+            <h4 class="font-medium text-gray-700 mb-2">Auto-Disconnect</h4>
+            <div class="flex items-center">
+                {% if tenant.auto_disconnect_enabled %}
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-1"></i>Enabled
+                </span>
+                {% else %}
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                    <i class="fas fa-times-circle mr-1"></i>Disabled
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div>
+            <h4 class="font-medium text-gray-700 mb-2">ISP Status</h4>
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Account Status:</span>
+                    <span class="font-medium {% if tenant.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if tenant.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Verified:</span>
+                    {% if tenant.is_verified %}
+                    <span class="text-green-600 font-medium"><i class="fas fa-check-circle"></i> Verified</span>
+                    {% else %}
+                    <span class="text-yellow-600 font-medium"><i class="fas fa-clock"></i> Pending</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">ISP Actions</h3>
+    
+    <div class="flex flex-wrap gap-3">
+        <button onclick="toggleISPStatus('{{ tenant.id }}')" 
+                class="px-4 py-2 {% if tenant.is_active %}bg-yellow-100 text-yellow-800 hover:bg-yellow-200{% else %}bg-green-100 text-green-800 hover:bg-green-200{% endif %} rounded-lg font-medium">
+            <i class="fas {% if tenant.is_active %}fa-toggle-off{% else %}fa-toggle-on{% endif %} mr-2"></i>
+            {% if tenant.is_active %}Deactivate ISP{% else %}Activate ISP{% endif %}
+        </button>
+
+        <a href="{% url 'superadmin_tenant_admins' tenant.id %}" 
+            class="px-4 py-2 bg-purple-100 text-purple-800 hover:bg-purple-200 rounded-lg font-medium">
+            <i class="fas fa-user-shield mr-2"></i> Manage Admins
+        </a>
+        
+        <a href="{% url 'superadmin_tenant_edit' tenant.id %}" 
+           class="px-4 py-2 bg-blue-100 text-blue-800 hover:bg-blue-200 rounded-lg font-medium">
+            <i class="fas fa-edit mr-2"></i> Edit ISP
+        </a>
+        
+        <a href="mailto:{{ tenant.contact_email }}" 
+           class="px-4 py-2 bg-purple-100 text-purple-800 hover:bg-purple-200 rounded-lg font-medium">
+            <i class="fas fa-envelope mr-2"></i> Send Email
+        </a>
+        
+        <button onclick="sendWelcomeEmail('{{ tenant.id }}')" 
+                class="px-4 py-2 bg-green-100 text-green-800 hover:bg-green-200 rounded-lg font-medium">
+            <i class="fas fa-paper-plane mr-2"></i> Send Welcome
+        </button>
+        
+        <button onclick="resetISPPassword('{{ tenant.id }}')" 
+                class="px-4 py-2 bg-orange-100 text-orange-800 hover:bg-orange-200 rounded-lg font-medium">
+            <i class="fas fa-key mr-2"></i> Reset Password
+        </button>
+        
+        <button onclick="downloadISPData('{{ tenant.id }}')" 
+                class="px-4 py-2 bg-gray-100 text-gray-800 hover:bg-gray-200 rounded-lg font-medium">
+            <i class="fas fa-download mr-2"></i> Export Data
+        </button>
+    </div>
+</div>
+
+<script>
+    function toggleISPStatus(tenantId) {
+        if (confirm('Are you sure you want to change this ISP\'s status?')) {
+            const formData = new FormData();
+            formData.append('action', 'toggle_active');
+            formData.append('tenant_id', tenantId);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            fetch('{% url "superadmin_tenants" %}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating ISP status');
+            });
+        }
+    }
+    
+    function sendWelcomeEmail(tenantId) {
+        if (confirm('Send welcome email to this ISP?')) {
+            fetch(`/api/isp/${tenantId}/send-welcome/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Welcome email sent successfully!');
+                } else {
+                    alert('Error sending email: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error sending email');
+            });
+        }
+    }
+    
+    function resetISPPassword(tenantId) {
+        if (confirm('Reset the ISP admin password? A new password will be generated and emailed.')) {
+            fetch(`/api/isp/${tenantId}/reset-password/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Password reset successfully! Check the ISP\'s email for the new password.');
+                } else {
+                    alert('Error resetting password: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error resetting password');
+            });
+        }
+    }
+    
+    function downloadISPData(tenantId) {
+        window.location.href = `/superadmin/tenant/${tenantId}/export/?format=json`;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,478 @@
+<!-- templates/admin/superadmin_tenant_delete.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Delete ISP - {{ tenant.name }} - M-Neti{% endblock %}
+
+{% block page_title %}Delete ISP: {{ tenant.name }}{% endblock %}
+{% block page_subtitle %}⚠️ This action cannot be undone</{% endblock %}>
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'superadmin_tenant_edit' tenant.id %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Edit ISP
+        </a>
+    </div>
+    
+    <!-- Warning Alert -->
+    <div class="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-lg font-semibold text-red-800">Critical Warning</h3>
+                <p class="text-red-700">You are about to permanently delete this ISP and all associated data.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ISP Summary -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">ISP Summary</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <div class="flex items-center mb-4">
+                    {% if tenant.logo %}
+                    <img src="{{ tenant.logo.url }}" alt="{{ tenant.name }}" class="w-16 h-16 rounded-lg object-cover mr-4">
+                    {% else %}
+                    <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-4">
+                        <span class="text-white text-xl font-bold">{{ tenant.name|first|upper }}</span>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <h4 class="text-xl font-bold text-gray-900">{{ tenant.name }}</h4>
+                        <p class="text-gray-600">{{ tenant.company_name }}</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Domain:</span>
+                        <span class="font-medium">{{ tenant.primary_domain }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Status:</span>
+                        <span class="font-medium {% if tenant.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if tenant.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Created:</span>
+                        <span class="font-medium">{{ tenant.created_at|date:"F d, Y" }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Subscription:</span>
+                        <span class="font-medium">{{ tenant.get_subscription_plan_display }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="font-medium text-gray-700 mb-3">Data to be Deleted</h4>
+                <div class="space-y-4">
+                    <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium text-red-800">Customers</p>
+                                <p class="text-sm text-red-700">{{ customer_count }} customer accounts</p>
+                            </div>
+                            <span class="text-lg font-bold text-red-800">{{ customer_count }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium text-red-800">Payment Records</p>
+                                <p class="text-sm text-red-700">KSh {{ total_revenue|floatformat:0|intcomma }} in payments</p>
+                            </div>
+                            <span class="text-lg font-bold text-red-800">{{ payment_count }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium text-red-800">Staff Members</p>
+                                <p class="text-sm text-red-700">{{ staff_count }} admin/staff accounts</p>
+                            </div>
+                            <span class="text-lg font-bold text-red-800">{{ staff_count }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium text-red-800">Configuration</p>
+                                <p class="text-sm text-red-700">All settings and branding</p>
+                            </div>
+                            <span class="text-lg font-bold text-red-800">Complete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Impact Analysis -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Impact Analysis</h3>
+        
+        <div class="space-y-4">
+            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-users text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h4 class="font-medium text-yellow-800">Customers Will Lose Access</h4>
+                        <p class="text-sm text-yellow-700">
+                            {{ customer_count }} customers will immediately lose access to their internet service
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-credit-card text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h4 class="font-medium text-yellow-800">Payment History Will Be Lost</h4>
+                        <p class="text-sm text-yellow-700">
+                            All payment records and financial data will be permanently deleted
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-chart-line text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h4 class="font-medium text-yellow-800">Analytics Data Will Be Removed</h4>
+                        <p class="text-sm text-yellow-700">
+                            All analytics and reporting data for this ISP will be lost
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-database text-yellow-600 text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h4 class="font-medium text-yellow-800">No Recovery Possible</h4>
+                        <p class="text-sm text-yellow-700">
+                            This action is irreversible. No backup will be created automatically.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alternatives -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Consider Alternatives</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="{% url 'superadmin_tenant_edit' tenant.id %}" 
+               class="p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-center">
+                <i class="fas fa-edit text-blue-600 text-xl mb-2"></i>
+                <p class="font-medium text-blue-800">Edit ISP Instead</p>
+                <p class="text-xs text-blue-600">Update details without deleting</p>
+            </a>
+            
+            <button onclick="deactivateInstead()" 
+                    class="p-4 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg text-center">
+                <i class="fas fa-toggle-off text-yellow-600 text-xl mb-2"></i>
+                <p class="font-medium text-yellow-800">Deactivate Instead</p>
+                <p class="text-xs text-yellow-600">Disable access temporarily</p>
+            </button>
+            
+            <button onclick="exportISPData()" 
+                    class="p-4 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg text-center">
+                <i class="fas fa-download text-green-600 text-xl mb-2"></i>
+                <p class="font-medium text-green-800">Export Data First</p>
+                <p class="text-xs text-green-600">Backup before deletion</p>
+            </button>
+            
+            <button onclick="transferISP()" 
+                    class="p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-center">
+                <i class="fas fa-exchange-alt text-purple-600 text-xl mb-2"></i>
+                <p class="font-medium text-purple-800">Transfer Ownership</p>
+                <p class="text-xs text-purple-600">Assign to another admin</p>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Deletion Confirmation -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirm Deletion</h3>
+        
+        <div class="space-y-4">
+            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-skull-crossbones text-red-600 text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h4 class="font-medium text-red-800">Final Warning</h4>
+                        <p class="text-sm text-red-700">
+                            This action cannot be undone. All data will be permanently deleted.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Confirmation Form -->
+            <form method="post" id="deleteForm">
+                {% csrf_token %}
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Type the ISP name to confirm
+                        </label>
+                        <input type="text" id="confirmationInput" 
+                               placeholder="Type '{{ tenant.name }}' to confirm"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Deletion Reason
+                        </label>
+                        <select name="deletion_reason" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select a reason</option>
+                            <option value="duplicate">Duplicate ISP</option>
+                            <option value="test">Test/Development ISP</option>
+                            <option value="merger">Business Merger/Acquisition</option>
+                            <option value="non_payment">Non-payment of fees</option>
+                            <option value="violation">Terms of Service violation</option>
+                            <option value="owner_request">Owner/Admin request</option>
+                            <option value="other">Other reason</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Additional Notes
+                        </label>
+                        <textarea name="deletion_notes" rows="3" placeholder="Add any additional notes about this deletion..."
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="confirmBackup" name="confirm_backup" required
+                               class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                        <label for="confirmBackup" class="ml-2 text-sm text-gray-700">
+                            I confirm that I have backed up any necessary data
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="confirmIrreversible" name="confirm_irreversible" required
+                               class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                        <label for="confirmIrreversible" class="ml-2 text-sm text-gray-700">
+                            I understand this action is irreversible
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="confirmResponsibility" name="confirm_responsibility" required
+                               class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                        <label for="confirmResponsibility" class="ml-2 text-sm text-gray-700">
+                            I accept full responsibility for this deletion
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <div class="flex justify-between">
+                        <a href="{% url 'superadmin_tenant_detail' tenant.id %}" 
+                           class="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">
+                            Cancel
+                        </a>
+                        <button type="button" onclick="confirmDeletion()"
+                                class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg"
+                                id="deleteButton" disabled>
+                            <i class="fas fa-trash-alt mr-2"></i> Delete ISP Permanently
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Deletion Log -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Deletion History</h3>
+        
+        <div class="space-y-3">
+            {% if deletion_history %}
+            {% for entry in deletion_history|slice:":3" %}
+            <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-medium text-gray-900">{{ entry.isp_name }}</p>
+                        <p class="text-sm text-gray-600">{{ entry.reason }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ entry.notes|truncatechars:100 }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600">{{ entry.deleted_by }}</p>
+                        <p class="text-xs text-gray-500">{{ entry.deleted_at|date:"M d, Y" }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="text-gray-500 text-center py-4">No previous ISP deletions recorded</p>
+            {% endif %}
+        </div>
+        
+        <div class="mt-4 text-center">
+            <a href="{% url 'superadmin_deletion_log' %}" class="text-sm text-blue-600 hover:text-blue-800">
+                View full deletion history →
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Confirmation input validation
+    const confirmationInput = document.getElementById('confirmationInput');
+    const deleteButton = document.getElementById('deleteButton');
+    
+    confirmationInput.addEventListener('input', function() {
+        const ispName = '{{ tenant.name }}';
+        const isConfirmed = this.value.trim() === ispName;
+        
+        // Check all required checkboxes
+        const checkboxes = document.querySelectorAll('input[type="checkbox"][required]');
+        const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+        
+        deleteButton.disabled = !(isConfirmed && allChecked);
+        
+        if (isConfirmed) {
+            this.classList.remove('border-red-300', 'bg-red-50');
+            this.classList.add('border-green-300', 'bg-green-50');
+        } else {
+            this.classList.remove('border-green-300', 'bg-green-50');
+            this.classList.add('border-red-300', 'bg-red-50');
+        }
+    });
+    
+    // Checkbox validation
+    document.querySelectorAll('input[type="checkbox"][required]').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            const ispName = '{{ tenant.name }}';
+            const isConfirmed = confirmationInput.value.trim() === ispName;
+            const allChecked = Array.from(document.querySelectorAll('input[type="checkbox"][required]'))
+                .every(cb => cb.checked);
+            
+            deleteButton.disabled = !(isConfirmed && allChecked);
+        });
+    });
+    
+    // Confirm deletion
+    function confirmDeletion() {
+        const ispName = '{{ tenant.name }}';
+        const confirmation = prompt(`Type "${ispName}" to confirm permanent deletion:`);
+        
+        if (confirmation === ispName) {
+            // Final warning
+            if (confirm(`⚠️ FINAL WARNING: This will delete ${ispName} and all associated data PERMANENTLY. This cannot be undone. Continue?`)) {
+                document.getElementById('deleteForm').submit();
+            }
+        } else if (confirmation !== null) {
+            alert('Confirmation does not match. Please type the exact ISP name.');
+        }
+    }
+    
+    // Alternative actions
+    function deactivateInstead() {
+        if (confirm('Deactivate this ISP instead of deleting? Customers will lose access but data will be preserved.')) {
+            fetch(`/api/isp/{{ tenant.id }}/deactivate/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('ISP deactivated successfully!');
+                    window.location.href = '{% url "superadmin_tenant_detail" tenant.id %}';
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deactivating ISP');
+            });
+        }
+    }
+    
+    function exportISPData() {
+        if (confirm('Export all ISP data before deletion?')) {
+            window.location.href = `/superadmin/tenant/{{ tenant.id }}/export-full/`;
+        }
+    }
+    
+    function transferISP() {
+        alert('ISP transfer functionality would open here');
+    }
+    
+    // Prevent accidental navigation away
+    let isFormDirty = false;
+    const formInputs = document.querySelectorAll('#deleteForm input, #deleteForm textarea, #deleteForm select');
+    
+    formInputs.forEach(input => {
+        input.addEventListener('input', () => {
+            isFormDirty = true;
+        });
+    });
+    
+    window.addEventListener('beforeunload', function(e) {
+        if (isFormDirty) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        }
+    });
+    
+    // Form submission handler
+    document.getElementById('deleteForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        confirmDeletion();
+    });
+</script>
+
+<style>
+    .confirmation-valid {
+        border-color: #10b981 !important;
+        background-color: #f0fdf4 !important;
+    }
+    
+    .confirmation-invalid {
+        border-color: #f87171 !important;
+        background-color: #fef2f2 !important;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,208 @@
+<!-- templates/billing/api_integration.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}API Integration - M-Neti{% endblock %}
+
+{% block page_title %}API Integration{% endblock %}
+{% block page_subtitle %}Configure external API connections for data sync{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Add New API Configuration -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 class="text-lg font-semibold mb-4">Add New API Configuration</h3>
+        
+        <form method="POST" action="{% url 'configure_api_integration' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_api">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Provider Type</label>
+                    <select name="provider_type" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Select Provider</option>
+                        {% for type_id, type_name in provider_types %}
+                        <option value="{{ type_id }}">{{ type_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Configuration Name</label>
+                    <input type="text" name="name" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                           placeholder="e.g., Safaricom Production API">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">API Endpoint</label>
+                <input type="url" name="api_endpoint" required
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                       placeholder="https://api.provider.com/v1">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">API Key</label>
+                    <input type="password" name="api_key"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                           placeholder="Your API key">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">API Secret</label>
+                    <input type="password" name="api_secret"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                           placeholder="Your API secret">
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-plug mr-2"></i>
+                    Test & Save Configuration
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Existing API Configurations -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold mb-4">Existing API Configurations</h3>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Provider</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Sync</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Synced</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for config in api_configs %}
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="font-medium">{{ config.name }}</div>
+                            <div class="text-xs text-gray-500 truncate max-w-xs">{{ config.api_endpoint }}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {{ config.get_provider_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if config.is_active %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i>
+                                Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <i class="fas fa-times-circle mr-1"></i>
+                                Inactive
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            {% if config.last_sync_at %}
+                            {{ config.last_sync_at|date:'M d, H:i' }}
+                            {% if config.last_sync_amount %}
+                            <br><span class="text-xs text-gray-500">{{ config.last_sync_amount }} GB</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-gray-400">Never</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm font-medium">
+                            {{ config.total_synced }} GB
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="flex space-x-2">
+                                <form method="POST" action="{% url 'configure_api_integration' %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="test_api">
+                                    <input type="hidden" name="config_id" value="{{ config.id }}">
+                                    <button type="submit" 
+                                            class="px-3 py-1 bg-yellow-100 text-yellow-600 rounded-md hover:bg-yellow-200 text-sm">
+                                        Test
+                                    </button>
+                                </form>
+                                
+                                <button onclick="syncAPI('{{ config.id }}')"
+                                        class="px-3 py-1 bg-green-100 text-green-600 rounded-md hover:bg-green-200 text-sm">
+                                    Sync Now
+                                </button>
+                                
+                                <button onclick="toggleAPI('{{ config.id }}')"
+                                        class="px-3 py-1 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 text-sm">
+                                    {% if config.is_active %}Disable{% else %}Enable{% endif %}
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            No API configurations found. Add one above.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function syncAPI(configId) {
+    fetch(`/billing/api-sync/${configId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Success: ' + data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Network error');
+    });
+}
+
+function toggleAPI(configId) {
+    if (confirm('Are you sure you want to toggle this API configuration?')) {
+        fetch(`/billing/api-toggle/${configId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

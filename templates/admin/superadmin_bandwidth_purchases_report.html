@@ -1,0 +1,384 @@
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}Bandwidth Purchases Report - M-Neti{% endblock %}
+
+{% block page_title %}Bandwidth Purchases Report{% endblock %}
+{% block page_subtitle %}Platform-wide bandwidth purchase analytics{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <!-- Report Header with Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Bandwidth Purchase Analytics</h3>
+                <p class="text-sm text-gray-500 mt-1">Filter and analyze bandwidth purchases</p>
+            </div>
+            
+            <div class="mt-4 md:mt-0">
+                <a href="{% url 'export_bandwidth_purchases' %}" 
+                   class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    <i class="fas fa-file-export mr-2"></i>
+                    Export CSV
+                </a>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select id="status" name="status" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="">All Statuses</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                        <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="tenant" class="block text-sm font-medium text-gray-700 mb-1">ISP</label>
+                    <select id="tenant" name="tenant" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="">All ISPs</option>
+                        {% for tenant in tenants %}
+                        <option value="{{ tenant.id }}" {% if tenant_filter == tenant.id|stringformat:"s" %}selected{% endif %}>
+                            {{ tenant.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="vendor" class="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
+                    <select id="vendor" name="vendor" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="">All Vendors</option>
+                        {% for vendor in vendors %}
+                        <option value="{{ vendor.id }}" {% if vendor_filter == vendor.id|stringformat:"s" %}selected{% endif %}>
+                            {{ vendor.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="date" id="date_from" name="date_from" value="{{ date_from }}"
+                               class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <input type="date" id="date_to" name="date_to" value="{{ date_to }}"
+                               class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Apply Filters
+                </button>
+                <a href="{% url 'superadmin_bandwidth_report' %}" 
+                   class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-shopping-cart text-blue-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Purchases</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ total_purchases }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-money-bill-wave text-green-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Revenue</p>
+                    <p class="text-2xl font-bold text-gray-900">KSh {{ total_amount|floatformat:0 }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-percentage text-purple-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Platform Commission</p>
+                    <p class="text-2xl font-bold text-gray-900">KSh {{ total_commission|floatformat:0 }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-network-wired text-indigo-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Bandwidth</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ total_bandwidth|floatformat:0 }} Mbps</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Top ISPs -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-6">Top ISPs by Bandwidth Purchased</h3>
+            
+            <div class="space-y-4">
+                {% for isp in top_isps %}
+                <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                            <span class="text-blue-700 font-medium">{{ forloop.counter }}</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">{{ isp.tenant__name }}</p>
+                            <p class="text-sm text-gray-500">{{ isp.purchase_count }} purchases</p>
+                        </div>
+                    </div>
+                    
+                    <div class="text-right">
+                        <p class="font-bold text-gray-900">{{ isp.total_bandwidth|floatformat:0 }} Mbps</p>
+                        <p class="text-sm text-gray-500">KSh {{ isp.total_spent|floatformat:0 }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8 text-gray-500">
+                    No ISP purchases found
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Monthly Trend -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-6">Monthly Performance</h3>
+            
+            <div class="space-y-4">
+                {% for month in monthly_trend %}
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-900">{{ month.month }}/{{ month.year }}</span>
+                        <span class="text-sm text-gray-500">{{ month.count }} purchases</span>
+                    </div>
+                    
+                    <div class="bg-gray-200 rounded-full h-2">
+                        {% if monthly_trend %}
+                        {% with max_revenue=monthly_trend.0.total_revenue %}
+                        {% if max_revenue > 0 %}
+                            <div class="bg-blue-600 h-2 rounded-full" 
+                                style="width: {% widthratio month.total_revenue max_revenue 100 %}%"></div>
+                            {% endif %}
+                        {% endwith %}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-600">{{ month.total_bandwidth|default:0|floatformat:0 }} Mbps</span>
+                        <span class="font-medium text-gray-900">KSh {{ month.total_revenue|default:0|floatformat:0 }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8 text-gray-500">
+                    No monthly data available
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Purchase List -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Bandwidth Purchases</h3>
+                <p class="text-sm text-gray-500 mt-1">Showing {{ purchases.count }} purchases</p>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <span class="text-sm text-gray-500">Sort by:</span>
+                <select class="text-sm border border-gray-300 rounded-lg px-2 py-1">
+                    <option>Newest First</option>
+                    <option>Oldest First</option>
+                    <option>Highest Amount</option>
+                    <option>Lowest Amount</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ISP</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bandwidth</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for purchase in purchases %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ purchase.purchased_at|date:"M d, Y" }}</div>
+                            <div class="text-xs text-gray-500">{{ purchase.purchased_at|date:"h:i A" }}</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ purchase.tenant.name }}</div>
+                            <div class="text-xs text-gray-500">{{ purchase.tenant.company_name }}</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ purchase.bandwidth_package.name }}</div>
+                            <div class="text-xs text-gray-500">{{ purchase.bandwidth_package.vendor.name }}</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {{ purchase.total_bandwidth }} {{ purchase.bandwidth_package.unit|upper }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            <div class="font-medium">KSh {{ purchase.total_price|floatformat:0 }}</div>
+                            <div class="text-xs text-gray-500">Comm: KSh {{ purchase.platform_commission|floatformat:0 }}</div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            {% if purchase.payment_status == 'active' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                Active
+                            </span>
+                            {% elif purchase.payment_status == 'completed' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                Completed
+                            </span>
+                            {% elif purchase.payment_status == 'pending' %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                Pending
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                {{ purchase.payment_status|title }}
+                            </span>
+                            {% endif %}
+                            
+                            {% if purchase.expiry_date %}
+                            <div class="text-xs text-gray-500 mt-1">
+                                Expires: {{ purchase.expiry_date|date:"M d, Y" }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            {% if purchase.payment_status == 'completed' %}
+                            <button onclick="activatePurchase('{{ purchase.id }}')"
+                                    class="text-green-600 hover:text-green-800 mr-3"
+                                    title="Activate">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            {% endif %}
+                            
+                            <a href="#" class="text-blue-600 hover:text-blue-800 mr-3"
+                               title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            
+                            {% if purchase.payment_status == 'pending' %}
+                            <button class="text-red-600 hover:text-red-800"
+                                    title="Cancel"
+                                    onclick="cancelPurchase('{{ purchase.id }}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            No bandwidth purchases found with the current filters
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination (if needed) -->
+        {% if purchases.has_other_pages %}
+        <div class="mt-6 flex items-center justify-between">
+            <div class="text-sm text-gray-500">
+                Showing {{ purchases.start_index }} to {{ purchases.end_index }} of {{ purchases.paginator.count }} entries
+            </div>
+            <div class="flex space-x-2">
+                {% if purchases.has_previous %}
+                <a href="?page={{ purchases.previous_page_number }}&status={{ status_filter }}&tenant={{ tenant_filter }}&vendor={{ vendor_filter }}&date_from={{ date_from }}&date_to={{ date_to }}"
+                   class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                    Previous
+                </a>
+                {% endif %}
+                
+                {% if purchases.has_next %}
+                <a href="?page={{ purchases.next_page_number }}&status={{ status_filter }}&tenant={{ tenant_filter }}&vendor={{ vendor_filter }}&date_from={{ date_from }}&date_to={{ date_to }}"
+                   class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function activatePurchase(purchaseId) {
+    if (confirm('Are you sure you want to activate this bandwidth purchase?')) {
+        fetch(`/api/bandwidth-purchase/${purchaseId}/activate/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+function cancelPurchase(purchaseId) {
+    if (confirm('Are you sure you want to cancel this purchase?')) {
+        // Implement cancel functionality
+        alert('Cancel functionality to be implemented');
+    }
+}
+</script>
+{% endblock %}

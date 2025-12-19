@@ -1,0 +1,76 @@
+{% extends 'admin/base_site.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">{{ chart_data.title }}</h1>
+        <a href="{% url 'superadmin_dashboard' %}" class="text-blue-500 hover:text-blue-700">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="chart-container" style="height: 500px;">
+            <canvas id="analyticsChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+        <h2 class="text-xl font-semibold mb-4">Raw Data</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="py-2 px-3 text-left">Date</th>
+                        <th class="py-2 px-3 text-left">Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for label, value in chart_data.labels|zip:chart_data.data %}
+                    <tr class="border-t">
+                        <td class="py-2 px-3">{{ label }}</td>
+                        <td class="py-2 px-3">{{ value }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('analyticsChart').getContext('2d');
+    
+    // Determine chart type based on data characteristics
+    const isTimeSeries = {{ chart_data.labels|length }} > 7;
+    const chartType = isTimeSeries ? 'line' : 'bar';
+    
+    new Chart(ctx, {
+        type: chartType,
+        data: {
+            labels: {{ chart_data.labels|safe }},
+            datasets: [{
+                label: '{{ chart_data.title }}',
+                data: {{ chart_data.data|safe }},
+                backgroundColor: chartType === 'bar' ? '#4361ee' : 'transparent',
+                borderColor: '#4361ee',
+                borderWidth: 3,
+                fill: chartType === 'line',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

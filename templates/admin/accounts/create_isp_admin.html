@@ -1,0 +1,17 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <div class="app-tenant">
+    <h1>{{ title }}</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <table>
+        {{ form.as_table }}
+      </table>
+      <div style="margin-top:1rem">
+        <input type="submit" value="Create ISP Admin" class="default">
+        <a href="{% url 'admin:accounts_tenant_changelist' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

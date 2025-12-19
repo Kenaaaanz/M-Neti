@@ -1,0 +1,146 @@
+{% extends 'accounts/superadmin_base.html' %}
+
+{% block title %}Kill Switch - M-Neti{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Emergency Kill Switch</h1>
+        <p class="text-gray-600">Platform-wide emergency controls</p>
+    </div>
+
+    <!-- Warning Banner -->
+    <div class="glass-card border-l-4 border-red-500 mb-8">
+        <div class="p-6">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-red-800">Emergency Controls</h3>
+                    <p class="text-red-700">These actions will immediately affect all ISPs and users on the platform. Use with extreme caution.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platform Controls -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Disable Platform -->
+        <div class="glass-card border-2 border-red-200">
+            <div class="p-6">
+                <div class="flex items-center space-x-4 mb-4">
+                    <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-power-off text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Disable Platform</h3>
+                        <p class="text-gray-600">Shut down all services</p>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">
+                    This will immediately disable all ISPs, disconnect all customers, and block all network access across the entire platform.
+                </p>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="disable_platform">
+                    <button type="submit" 
+                            class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center space-x-2"
+                            onclick="return confirm('🚨 CRITICAL ACTION: This will disable the ENTIRE platform and disconnect ALL users. Are you absolutely sure?')">
+                        <i class="fas fa-power-off"></i>
+                        <span>Disable Entire Platform</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Enable Platform -->
+        <div class="glass-card border-2 border-green-200">
+            <div class="p-6">
+                <div class="flex items-center space-x-4 mb-4">
+                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-play text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Enable Platform</h3>
+                        <p class="text-gray-600">Restore all services</p>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">
+                    Re-enable the platform and restore access to all active ISPs and customers.
+                </p>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="enable_platform">
+                    <button type="submit" 
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center space-x-2">
+                        <i class="fas fa-play"></i>
+                        <span>Enable Platform</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ISP-specific Controls -->
+    <div class="glass-card">
+        <div class="p-6">
+            <h3 class="text-xl font-semibold text-gray-800 mb-6">ISP-specific Controls</h3>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">ISP</th>
+                            <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Domain</th>
+                            <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                            <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for tenant in tenants %}
+                        <tr>
+                            <td class="py-3 px-4">
+                                <div class="font-medium text-gray-900">{{ tenant.name }}</div>
+                                <div class="text-sm text-gray-500">{{ tenant.company_name }}</div>
+                            </td>
+                            <td class="py-3 px-4 text-sm text-gray-900">{{ tenant.primary_domain }}</td>
+                            <td class="py-3 px-4">
+                                <span class="px-3 py-1 text-xs font-medium rounded-full 
+                                    {% if tenant.is_active %}bg-green-100 text-green-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ tenant.is_active|yesno:"Active,Disabled" }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                {% if tenant.is_active %}
+                                <form method="POST" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="tenant_id" value="{{ tenant.id }}">
+                                    <input type="hidden" name="action" value="disable_tenant">
+                                    <button type="submit" 
+                                            class="text-sm font-medium text-red-600 hover:text-red-800 transition duration-200"
+                                            onclick="return confirm('Disable {{ tenant.name }} and all its customers?')">
+                                        Disable ISP
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-sm text-gray-500">ISP disabled</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="py-8 text-center text-gray-500">
+                                No ISPs found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

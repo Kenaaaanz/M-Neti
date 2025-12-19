@@ -1,0 +1,526 @@
+<!-- templates/accounts/register.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign Up - M-Neti{% endblock %}
+
+{% block auth_content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <a href="{% url 'login' %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Login
+            </a>
+            <div class="flex justify-center items-center mb-6">
+                <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mr-4">
+                    <i class="fas fa-wifi text-white text-2xl"></i>
+                </div>
+                <div class="text-left">
+                    <h1 class="text-4xl font-bold text-gray-900">M-Neti</h1>
+                    <p class="text-blue-600 font-medium">High-Speed Internet</p>
+                </div>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-900 mt-4">Create Your Account</h2>
+            <p class="text-gray-600 mt-2 max-w-2xl mx-auto">
+                Join thousands of satisfied customers enjoying reliable, high-speed internet service
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+            <!-- Registration Form -->
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <form method="POST" id="registrationForm" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Progress Steps -->
+                    <div class="flex justify-between mb-8">
+                        <div class="flex flex-col items-center">
+                            <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                1
+                            </div>
+                            <span class="text-sm text-gray-600 mt-2">Account</span>
+                        </div>
+                        <div class="flex-1 h-1 bg-gray-200 mt-5 mx-2"></div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-10 h-10 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-semibold">
+                                2
+                            </div>
+                            <span class="text-sm text-gray-600 mt-2">Profile</span>
+                        </div>
+                        <div class="flex-1 h-1 bg-gray-200 mt-5 mx-2"></div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-10 h-10 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-semibold">
+                                3
+                            </div>
+                            <span class="text-sm text-gray-600 mt-2">Plan</span>
+                        </div>
+                    </div>
+
+                    <!-- Error Messages -->
+                    {% if messages %}
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        {% for message in messages %}
+                        <div class="flex items-center text-red-700">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Account Information -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Account Information</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">
+                                    First Name *
+                                </label>
+                                <input type="text" id="firstName" name="first_name" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                       placeholder="Enter your first name">
+                            </div>
+                            <div>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Last Name *
+                                </label>
+                                <input type="text" id="lastName" name="last_name" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                       placeholder="Enter your last name">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
+                                Username *
+                            </label>
+                            <input type="text" id="username" name="username" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                   placeholder="Choose a username">
+                            <div id="usernameFeedback" class="text-xs mt-1"></div>
+                        </div>
+
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                                Email Address *
+                            </label>
+                            <input type="email" id="email" name="email" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                   placeholder="your@email.com">
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Phone Number *
+                                </label>
+                                <input type="tel" id="phone" name="phone" required
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                       placeholder="+254 700 000000">
+                            </div>
+                            <div>
+                                <label for="accountType" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Account Type *
+                                </label>
+                                <select id="accountType" name="account_type" required
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                                    <option value="">Select account type</option>
+                                    <option value="prepaid">Prepaid</option>
+                                    <option value="postpaid">Postpaid</option>
+                                    <option value="corporate">Corporate</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Password *
+                                </label>
+                                <div class="relative">
+                                    <input type="password" id="password1" name="password1" required
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 pr-10"
+                                           placeholder="Create a password">
+                                    <button type="button" onclick="togglePassword('password1')" 
+                                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div id="passwordStrength" class="mt-2">
+                                    <div class="flex space-x-1">
+                                        <div class="flex-1 h-2 bg-gray-200 rounded-full"></div>
+                                        <div class="flex-1 h-2 bg-gray-200 rounded-full"></div>
+                                        <div class="flex-1 h-2 bg-gray-200 rounded-full"></div>
+                                        <div class="flex-1 h-2 bg-gray-200 rounded-full"></div>
+                                    </div>
+                                    <p id="passwordFeedback" class="text-xs text-gray-500 mt-1"></p>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Confirm Password *
+                                </label>
+                                <div class="relative">
+                                    <input type="password" id="password2" name="password2" required
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 pr-10"
+                                           placeholder="Confirm your password">
+                                    <button type="button" onclick="togglePassword('password2')" 
+                                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div id="confirmPasswordFeedback" class="text-xs mt-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ISP Selection -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-gray-900 border-b pb-2">Service Provider</h3>
+                        
+                        <div>
+                            <label for="tenant" class="block text-sm font-medium text-gray-700 mb-1">
+                                Select Your ISP
+                            </label>
+                            <select id="tenant" name="tenant"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                                <option value="">-- Select your Internet Service Provider --</option>
+                                {% for tenant in tenants %}
+                                <option value="{{ tenant.id }}">{{ tenant.name }} - {{ tenant.company_name }}</option>
+                                {% empty %}
+                                <option value="" disabled>No ISPs available</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">If you don't see your ISP, contact our support team</p>
+                        </div>
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <input type="checkbox" id="terms" name="terms" required
+                                   class="mt-1 mr-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <label for="terms" class="text-sm text-gray-700">
+                                I agree to the <a href="#" class="text-blue-600 hover:text-blue-800">Terms of Service</a> 
+                                and <a href="#" class="text-blue-600 hover:text-blue-800">Privacy Policy</a>. 
+                                I understand that my data will be processed in accordance with M-Neti policies.
+                            </label>
+                        </div>
+
+                        <div class="flex items-start">
+                            <input type="checkbox" id="marketing" name="marketing"
+                                   class="mt-1 mr-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <label for="marketing" class="text-sm text-gray-700">
+                                I'd like to receive updates about new plans, promotions, and service improvements via email.
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submitBtn"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg transition duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        Create Account
+                    </button>
+
+                    <!-- Login Link -->
+                    <div class="text-center">
+                        <p class="text-gray-600">
+                            Already have an account? 
+                            <a href="{% url 'login' %}" class="text-blue-600 hover:text-blue-800 font-semibold">
+                                Sign in here
+                            </a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Benefits Sidebar -->
+            <div class="space-y-8">
+                <!-- Why Join Card -->
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6">Why Join M-Neti?</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                                <i class="fas fa-bolt text-green-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">Lightning Fast Speeds</h4>
+                                <p class="text-gray-600 text-sm">Enjoy up to 1Gbps speeds for streaming, gaming, and working</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                                <i class="fas fa-shield-alt text-blue-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">Reliable Service</h4>
+                                <p class="text-gray-600 text-sm">99.9% uptime guarantee with 24/7 network monitoring</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                                <i class="fas fa-headset text-purple-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">24/7 Support</h4>
+                                <p class="text-gray-600 text-sm">Dedicated customer support team available round the clock</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
+                                <i class="fas fa-tachometer-alt text-orange-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">Easy Management</h4>
+                                <p class="text-gray-600 text-sm">Manage your account, payments, and usage from our dashboard</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonials -->
+                <div class="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl shadow-xl p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-6">What Our Customers Say</h3>
+                    <div class="space-y-6">
+                        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+                            <div class="flex items-center mb-3">
+                                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">Sarah M.</h4>
+                                    <div class="flex text-yellow-300">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-sm opacity-90">"Switched to M-Neti and never looked back. The speeds are incredible and the customer service is outstanding!"</p>
+                        </div>
+                        <div class="bg-white bg-opacity-10 rounded-xl p-4">
+                            <div class="flex items-center mb-3">
+                                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold">James K.</h4>
+                                    <div class="flex text-yellow-300">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-sm opacity-90">"Perfect for working from home. Stable connection and fast support when needed. Highly recommended!"</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support Info -->
+                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+                    <h4 class="font-semibold text-gray-900 mb-3">Need Help?</h4>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <div class="flex items-center">
+                            <i class="fas fa-phone w-5 mr-2 text-blue-600"></i>
+                            <span>+254 709 025 1635</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-envelope w-5 mr-2 text-blue-600"></i>
+                            <span>support@M-Neti.com</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-clock w-5 mr-2 text-blue-600"></i>
+                            <span>24/7 Customer Support</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-2xl p-8 flex flex-col items-center">
+        <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-700 font-semibold">Creating your account...</p>
+    </div>
+</div>
+
+<style>
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Password strength colors */
+.password-weak { background-color: #ef4444 !important; }
+.password-fair { background-color: #f59e0b !important; }
+.password-good { background-color: #10b981 !important; }
+.password-strong { background-color: #059669 !important; }
+</style>
+
+<script>
+// Password visibility toggle
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const icon = field.nextElementSibling.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        field.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Password strength checker
+document.getElementById('password1').addEventListener('input', function(e) {
+    const password = e.target.value;
+    const strengthBars = document.querySelectorAll('#passwordStrength > div > div');
+    const feedback = document.getElementById('passwordFeedback');
+    
+    let strength = 0;
+    let feedbackText = '';
+    
+    if (password.length >= 8) strength++;
+    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+    if (password.match(/\d/)) strength++;
+    if (password.match(/[^a-zA-Z\d]/)) strength++;
+    
+    // Update strength bars
+    strengthBars.forEach((bar, index) => {
+        bar.className = 'flex-1 h-2 rounded-full';
+        if (index < strength) {
+            bar.classList.add('password-weak');
+            if (strength >= 2) bar.classList.add('password-fair');
+            if (strength >= 3) bar.classList.add('password-good');
+            if (strength >= 4) bar.classList.add('password-strong');
+        } else {
+            bar.classList.add('bg-gray-200');
+        }
+    });
+    
+    // Update feedback text
+    switch(strength) {
+        case 0:
+            feedbackText = 'Enter a password';
+            break;
+        case 1:
+            feedbackText = 'Very weak';
+            break;
+        case 2:
+            feedbackText = 'Weak';
+            break;
+        case 3:
+            feedbackText = 'Good';
+            break;
+        case 4:
+            feedbackText = 'Strong';
+            break;
+    }
+    
+    feedback.textContent = feedbackText;
+    feedback.className = 'text-xs mt-1 ' + 
+        (strength <= 1 ? 'text-red-600' : 
+         strength <= 2 ? 'text-orange-600' : 
+         strength <= 3 ? 'text-green-600' : 'text-green-700 font-semibold');
+});
+
+// Password confirmation check
+document.getElementById('password2').addEventListener('input', function(e) {
+    const password = document.getElementById('password1').value;
+    const confirmPassword = e.target.value;
+    const feedback = document.getElementById('confirmPasswordFeedback');
+    
+    if (confirmPassword === '') {
+        feedback.textContent = '';
+        feedback.className = 'text-xs mt-1';
+    } else if (password === confirmPassword) {
+        feedback.textContent = '✓ Passwords match';
+        feedback.className = 'text-xs mt-1 text-green-600';
+    } else {
+        feedback.textContent = '✗ Passwords do not match';
+        feedback.className = 'text-xs mt-1 text-red-600';
+    }
+});
+
+// Form submission
+document.getElementById('registrationForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password1').value;
+    const confirmPassword = document.getElementById('password2').value;
+    const terms = document.getElementById('terms').checked;
+    
+    // Basic validation
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        showNotification('Passwords do not match!', 'error');
+        return;
+    }
+    
+    if (!terms) {
+        e.preventDefault();
+        showNotification('Please accept the Terms of Service', 'error');
+        return;
+    }
+    
+    // Show loading spinner
+    document.getElementById('loadingSpinner').classList.remove('hidden');
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating Account...';
+});
+
+// Username availability check (optional enhancement)
+document.getElementById('username').addEventListener('blur', function(e) {
+    // You can implement AJAX username availability check here
+});
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-transform duration-300 ${
+        type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// Add some interactive animations
+document.addEventListener('DOMContentLoaded', function() {
+    const formElements = document.querySelectorAll('input, select');
+    formElements.forEach((element, index) => {
+        element.style.opacity = '0';
+        element.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            element.style.transition = 'all 0.5s ease';
+            element.style.opacity = '1';
+            element.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}

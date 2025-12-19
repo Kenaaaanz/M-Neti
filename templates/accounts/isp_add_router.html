@@ -1,0 +1,230 @@
+<!-- accounts/templates/accounts/isp_add_router.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Add Router - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-xl font-semibold text-gray-900">Router Configuration Details</h3>
+            <p class="text-sm text-gray-500 mt-1">Fill in the details to add a new router configuration</p>
+        </div>
+        
+        <form method="POST" action="{% url 'isp_add_router' %}" class="p-6">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <ul class="list-disc pl-5 space-y-1">
+                                {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="space-y-6">
+                <!-- Basic Information -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="{{ form.name.id_for_label }}">
+                                {{ form.name.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="{{ form.router_type.id_for_label }}">
+                                {{ form.router_type.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.router_type }}
+                            {% if form.router_type.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.router_type.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Router Details -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Router Details</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="{{ form.router_model.id_for_label }}">
+                                {{ form.router_model.label }}
+                            </label>
+                            {{ form.router_model }}
+                            {% if form.router_model.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.router_model.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">e.g., HG8245H, Archer C7, etc.</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="{{ form.ip_address.id_for_label }}">
+                                {{ form.ip_address.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.ip_address }}
+                            {% if form.ip_address.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.ip_address.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">Router's management IP address</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Login Credentials -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Login Credentials</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="{{ form.username.id_for_label }}">
+                                {{ form.username.label }}
+                            </label>
+                            {{ form.username }}
+                            {% if form.username.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="{{ form.password.id_for_label }}">
+                                {{ form.password.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.password }}
+                            {% if form.password.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.password.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="{{ form.confirm_password.id_for_label }}">
+                                {{ form.confirm_password.label }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.confirm_password }}
+                            {% if form.confirm_password.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.confirm_password.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Settings -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Network Settings</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="{{ form.web_port.id_for_label }}">
+                                {{ form.web_port.label }}
+                            </label>
+                            {{ form.web_port }}
+                            {% if form.web_port.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.web_port.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">Default: 80 (HTTP) or 443 (HTTPS)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Information Box -->
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                        <div class="text-sm text-blue-700">
+                            <p class="font-medium">Connection Test</p>
+                            <p class="mt-1">The system will automatically test connectivity after adding the router. Make sure the router is powered on and accessible from your network.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <div class="flex justify-between">
+                    <a href="{% url 'isp_routers' %}" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-colors cursor-pointer">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium transition-colors flex items-center cursor-pointer">
+                        <i class="fas fa-plus mr-2"></i> Add Router
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+/* Style form fields to match your design */
+input, select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    transition: all 0.2s;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.errorlist {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #dc2626;
+}
+</style>
+{% endblock %}

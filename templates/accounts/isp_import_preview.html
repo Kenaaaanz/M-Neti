@@ -1,0 +1,190 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Preview Import - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Preview Import</h2>
+                <p class="text-gray-600">Review customer data before import</p>
+                <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+                    <span><i class="fas fa-file mr-1"></i> {{ file_name }}</span>
+                    <span><i class="fas fa-database mr-1"></i> {{ total_records }} records</span>
+                </div>
+            </div>
+            <div>
+                <a href="{% url 'isp_import_customers' %}" 
+                   class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Upload
+                </a>
+            </div>
+        </div>
+
+        <!-- Import Summary -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold text-gray-900 mb-1">Ready to Import</h3>
+                    <p class="text-sm text-gray-600">
+                        Preview the first {{ preview_data|length }} records below. 
+                        {% if total_records > 10 %}
+                        (Showing first 10 of {{ total_records }} total records)
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="text-right">
+                    <p class="text-2xl font-bold text-blue-600">{{ total_records }}</p>
+                    <p class="text-sm text-gray-600">Total Records</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Table -->
+        <div class="overflow-x-auto mb-6">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Row</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Username</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Email</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Phone</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">First Name</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Last Name</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Address</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for customer in preview_data %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3 px-4 text-sm text-gray-500">{{ customer.row }}</td>
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-gray-900">{{ customer.username }}</div>
+                        </td>
+                        <td class="py-3 px-4 text-sm text-gray-600">{{ customer.email|default:"-" }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-600">{{ customer.phone|default:"-" }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-600">{{ customer.first_name|default:"-" }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-600">{{ customer.last_name|default:"-" }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-600">{{ customer.address|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-gray-500">
+                            No data to preview
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Import Settings -->
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-6">
+            <h3 class="font-semibold text-gray-900 mb-4">Import Settings</h3>
+            
+            <form method="POST" action="{% url 'isp_import_preview' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="process_import">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Default Subscription Plan</label>
+                        <select name="default_plan" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">No plan (create without subscription)</option>
+                            {% for plan in available_plans %}
+                            <option value="{{ plan.id }}">{{ plan.name }} - Ksh {{ plan.price }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-sm text-gray-500 mt-1">Optional: Assign a plan to all imported customers</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password Generation</label>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input type="checkbox" name="generate_passwords" id="generate_passwords" checked class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <label for="generate_passwords" class="ml-2 block text-sm text-gray-700">
+                                    Generate random passwords for each customer
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" name="send_welcome_email" id="send_welcome_email" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <label for="send_welcome_email" class="ml-2 block text-sm text-gray-700">
+                                    Send welcome email with login credentials
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" name="auto_activate" id="auto_activate" checked class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <label for="auto_activate" class="ml-2 block text-sm text-gray-700">
+                                    Auto-activate customer accounts
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Warning Message -->
+                <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5 mr-3"></i>
+                        <div>
+                            <p class="text-sm text-yellow-800 font-medium">Important Notice</p>
+                            <p class="text-sm text-yellow-700 mt-1">
+                                This will create {{ total_records }} customer accounts. Please review the data above before proceeding.
+                                Usernames must be unique. If a username already exists, that row will be skipped.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="submit" name="action" value="cancel_import" 
+                            class="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50">
+                        Cancel Import
+                    </button>
+                    <button type="submit" 
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg flex items-center"
+                            onclick="return confirm('Are you sure you want to import {{ total_records }} customers?')">
+                        <i class="fas fa-upload mr-2"></i> Import {{ total_records }} Customers
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,530 @@
+<!-- templates/billing/payment_success.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Payment Successful - M-Neti{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --success-color: #10b981;
+    --success-light: #d1fae5;
+    --success-dark: #059669;
+    --primary-color: {{ request.tenant.primary_color|default:"#2563eb" }};
+    --secondary-color: {{ request.tenant.secondary_color|default:"#7c3aed" }};
+}
+
+@keyframes checkmark {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+@keyframes floatUp {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.success-checkmark {
+    animation: checkmark 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.confetti {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    background: var(--primary-color);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.float-animation {
+    animation: floatUp 2s ease-in-out infinite;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Confetti Background -->
+<div id="confetti-container" class="fixed inset-0 pointer-events-none -z-10 overflow-hidden"></div>
+
+<div class="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-2xl">
+        <!-- Success Card -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+            <!-- Success Header -->
+            <div class="relative">
+                <div class="h-2 bg-gradient-to-r from-green-500 to-emerald-600"></div>
+                <div class="p-8 text-center">
+                    <!-- Success Icon -->
+                    <div class="relative inline-block mb-6">
+                        <div class="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4 success-checkmark">
+                            <svg class="w-14 h-14 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <div class="absolute -top-2 -right-2 w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center animate-pulse">
+                            <i class="fas fa-gift text-white text-sm"></i>
+                        </div>
+                    </div>
+                    
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Payment Successful! 🎉</h1>
+                    <p class="text-gray-600 text-lg">Thank you for your payment. Your subscription has been activated.</p>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="px-8 pb-8">
+                <!-- Transaction Details Card -->
+                <div class="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Transaction Details</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Transaction ID</p>
+                                <p class="font-medium text-gray-900">{{ payment.reference|default:"N/A" }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Date & Time</p>
+                                <p class="font-medium text-gray-900">{{ payment.created_at|date:"F j, Y g:i A" }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Payment Method</p>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                        <i class="fab fa-cc-mastercard text-blue-600"></i>
+                                    </div>
+                                    <span class="font-medium text-gray-900">
+                                        {{ payment.get_payment_method_display|default:"Card" }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Status</p>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 mt-1">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    {{ payment.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plan Details -->
+                {% if payment.plan %}
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-100">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Plan Activated</h2>
+                    
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">
+                                <i class="fas fa-wifi text-white text-2xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">{{ payment.plan.name }}</h3>
+                                <p class="text-gray-600 mt-1">{{ payment.plan.description|default:"Premium internet service" }}</p>
+                                <div class="flex items-center gap-4 mt-3">
+                                    <span class="flex items-center gap-2 text-sm text-gray-600">
+                                        <i class="fas fa-tachometer-alt text-blue-500"></i>
+                                        {{ payment.plan.bandwidth }} Mbps
+                                    </span>
+                                    <span class="flex items-center gap-2 text-sm text-gray-600">
+                                        <i class="fas fa-database text-purple-500"></i>
+                                        {{ payment.plan.data_cap|default:"Unlimited" }} GB
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-bold text-gray-900">KSh {{ payment.amount|floatformat:0|intcomma }}</div>
+                            <div class="text-sm text-gray-600">One-time payment</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Subscription Timeline -->
+                {% if subscription %}
+                <div class="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Subscription Timeline</h2>
+                    
+                    <div class="relative">
+                        <!-- Timeline line -->
+                        <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-gray-200 ml-6"></div>
+                        
+                        <div class="space-y-6">
+                            <!-- Start Date -->
+                            <div class="relative flex items-start">
+                                <div class="w-12 h-12 rounded-full bg-green-100 border-4 border-white flex items-center justify-center z-10">
+                                    <i class="fas fa-play text-green-600"></i>
+                                </div>
+                                <div class="ml-6 flex-1">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h3 class="font-medium text-gray-900">Subscription Started</h3>
+                                            <p class="text-sm text-gray-600">{{ subscription.start_date|date:"F j, Y" }}</p>
+                                        </div>
+                                        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                                            Active
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Next Renewal -->
+                            <div class="relative flex items-start">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 border-4 border-white flex items-center justify-center z-10">
+                                    <i class="fas fa-redo text-blue-600"></i>
+                                </div>
+                                <div class="ml-6 flex-1">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h3 class="font-medium text-gray-900">Next Renewal</h3>
+                                            <p class="text-sm text-gray-600">{{ subscription.end_date|date:"F j, Y" }}</p>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                {{ subscription.days_remaining }} days remaining
+                                            </p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-lg font-bold text-gray-900">KSh {{ payment.plan.price|floatformat:0|intcomma }}</div>
+                                            <div class="text-sm text-gray-600">Auto-renewal</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Next Steps -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8">
+                    <h2 class="text-lg font-semibold text-yellow-900 mb-3 flex items-center">
+                        <i class="fas fa-lightbulb mr-2"></i>
+                        What's Next?
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center mt-1 mr-3">
+                                <i class="fas fa-check text-yellow-600 text-xs"></i>
+                            </div>
+                            <p class="text-yellow-800">Your internet service is now active and ready to use</p>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center mt-1 mr-3">
+                                <i class="fas fa-check text-yellow-600 text-xs"></i>
+                            </div>
+                            <p class="text-yellow-800">Receipt has been sent to {{ request.user.email }}</p>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center mt-1 mr-3">
+                                <i class="fas fa-check text-yellow-600 text-xs"></i>
+                            </div>
+                            <p class="text-yellow-800">Setup your router if you haven't already</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <a href="{% url 'dashboard' %}" 
+                       class="group flex flex-col items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition-all duration-200">
+                        <div class="w-12 h-12 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-home text-white text-xl"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">Go to Dashboard</span>
+                        <span class="text-sm text-gray-500 mt-1">Manage your account</span>
+                    </a>
+                    
+                    <a href="{% url 'router_settings' %}" 
+                       class="group flex flex-col items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition-all duration-200">
+                        <div class="w-12 h-12 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-wifi text-white text-xl"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">Setup Router</span>
+                        <span class="text-sm text-gray-500 mt-1">Configure your network</span>
+                    </a>
+                    
+                    <a href="{% url 'payment_history' %}" 
+                       class="group flex flex-col items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition-all duration-200">
+                        <div class="w-12 h-12 rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-receipt text-white text-xl"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">View Receipt</span>
+                        <span class="text-sm text-gray-500 mt-1">Download invoice</span>
+                    </a>
+                </div>
+
+                <!-- Download Section -->
+                <div class="mt-8 pt-8 border-t border-gray-200">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="font-medium text-gray-900">Need a copy of your receipt?</h3>
+                            <p class="text-sm text-gray-600 mt-1">Download or print your payment confirmation</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="printReceipt()"
+                                    class="px-6 py-3 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-all flex items-center gap-2">
+                                <i class="fas fa-print"></i>
+                                Print Receipt
+                            </button>
+                            <button onclick="downloadReceipt()"
+                                    class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all flex items-center gap-2">
+                                <i class="fas fa-download"></i>
+                                Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-6 bg-gray-50 border-t border-gray-200">
+                <div class="text-center">
+                    <p class="text-gray-600 text-sm">Need help with your subscription?</p>
+                    <div class="flex justify-center gap-6 mt-3">
+                        <a href="mailto:support@M-Neti.com" class="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1">
+                            <i class="fas fa-envelope"></i>
+                            Email Support
+                        </a>
+                        <a href="tel:+254700000000" class="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1">
+                            <i class="fas fa-phone"></i>
+                            Call +254 700 000 000
+                        </a>
+                        <a href="#" class="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1">
+                            <i class="fas fa-comments"></i>
+                            Live Chat
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thank You Note -->
+        <div class="text-center mt-8">
+            <p class="text-gray-500 text-sm">
+                Thank you for choosing {{ request.tenant.name|default:"M-Neti" }}. 
+                We're committed to providing you with the best internet experience.
+            </p>
+            <div class="flex justify-center gap-4 mt-4">
+                <i class="fas fa-heart text-red-400 float-animation" style="animation-delay: 0s"></i>
+                <i class="fas fa-star text-yellow-400 float-animation" style="animation-delay: 0.2s"></i>
+                <i class="fas fa-thumbs-up text-blue-400 float-animation" style="animation-delay: 0.4s"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal for Printing -->
+<div id="receiptModal" class="hidden">
+    <div class="receipt-content p-8 bg-white max-w-2xl mx-auto">
+        <!-- Receipt content for printing -->
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Payment Receipt</h2>
+            <p class="text-gray-600">Official receipt for your records</p>
+        </div>
+        
+        <div class="border-2 border-gray-300 p-6 rounded-lg">
+            <div class="flex justify-between items-start mb-6 pb-6 border-b border-gray-300">
+                <div>
+                    <h3 class="text-lg font-bold">{{ request.tenant.name|default:"M-Neti" }}</h3>
+                    <p class="text-gray-600">Internet Service Provider</p>
+                    <p class="text-gray-600 text-sm mt-2">Receipt #: {{ payment.reference|default:"N/A" }}</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-green-600">PAID</div>
+                    <p class="text-gray-600">{{ payment.created_at|date:"F j, Y" }}</p>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h4 class="font-bold text-gray-900 mb-2">Bill To:</h4>
+                <p class="text-gray-900">{{ request.user.get_full_name }}</p>
+                <p class="text-gray-600">{{ request.user.email }}</p>
+                <p class="text-gray-600">Account: {{ request.user.company_account_number }}</p>
+            </div>
+            
+            <table class="w-full mb-6">
+                <thead>
+                    <tr class="border-b border-gray-300">
+                        <th class="text-left py-2 text-gray-900">Description</th>
+                        <th class="text-right py-2 text-gray-900">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b border-gray-200">
+                        <td class="py-3">
+                            <div class="font-medium text-gray-900">{{ payment.plan.name|default:"Internet Subscription" }}</div>
+                            <div class="text-sm text-gray-600">{{ payment.description|default:"Monthly internet service" }}</div>
+                        </td>
+                        <td class="py-3 text-right font-bold text-gray-900">KSh {{ payment.amount|floatformat:2 }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td class="py-3 text-right font-bold text-gray-900">Total Paid:</td>
+                        <td class="py-3 text-right font-bold text-green-600">KSh {{ payment.amount|floatformat:2 }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <div class="border-t border-gray-300 pt-6 text-center">
+                <p class="text-gray-600 text-sm mb-2">Payment Method: {{ payment.get_payment_method_display|default:"Credit Card" }}</p>
+                <p class="text-gray-600 text-sm">Transaction ID: {{ payment.reference|default:"N/A" }}</p>
+                <p class="text-gray-600 text-sm mt-4">Thank you for your business!</p>
+                <p class="text-gray-600 text-xs mt-2">This is an official receipt. Please keep it for your records.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create confetti effect
+    createConfetti();
+    
+    // Play success sound (optional)
+    playSuccessSound();
+    
+    // Add floating animation to success icon
+    const successIcon = document.querySelector('.success-checkmark');
+    if (successIcon) {
+        successIcon.classList.add('float-animation');
+    }
+});
+
+function createConfetti() {
+    const container = document.getElementById('confetti-container');
+    const colors = [
+        'var(--primary-color)', 
+        'var(--secondary-color)', 
+        '#10b981', 
+        '#f59e0b', 
+        '#8b5cf6'
+    ];
+    
+    for (let i = 0; i < 100; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        
+        // Random properties
+        const size = Math.random() * 10 + 5;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const left = Math.random() * 100;
+        const delay = Math.random() * 2;
+        const duration = Math.random() * 2 + 2;
+        
+        confetti.style.width = `${size}px`;
+        confetti.style.height = `${size}px`;
+        confetti.style.background = color;
+        confetti.style.left = `${left}vw`;
+        confetti.style.animation = `confetti ${duration}s ease-in ${delay}s forwards`;
+        
+        // Random shape
+        if (Math.random() > 0.5) {
+            confetti.style.borderRadius = '50%';
+        }
+        
+        container.appendChild(confetti);
+        
+        // Remove after animation
+        setTimeout(() => {
+            if (confetti.parentNode) {
+                confetti.remove();
+            }
+        }, (duration + delay) * 1000);
+    }
+}
+
+function playSuccessSound() {
+    // Optional: Play a success sound
+    // You can add an audio element in your HTML and play it here
+    try {
+        const audio = new Audio('{% static "sounds/success.mp3" %}');
+        audio.volume = 0.3;
+        audio.play().catch(() => {
+            // Sound playback failed, ignore
+        });
+    } catch (e) {
+        // Audio not available, ignore
+    }
+}
+
+function printReceipt() {
+    const receiptModal = document.getElementById('receiptModal');
+    const receiptContent = receiptModal.innerHTML;
+    
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Receipt - {{ payment.reference|default:"Payment" }}</title>
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+            <style>
+                body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; }
+                .receipt-content { max-width: 800px; margin: 0 auto; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { padding: 8px 12px; text-align: left; }
+                .text-right { text-align: right; }
+                @media print {
+                    body { -webkit-print-color-adjust: exact; }
+                    .no-print { display: none !important; }
+                }
+            </style>
+        </head>
+        <body>
+            ${receiptContent}
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(() => window.close(), 1000);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+function downloadReceipt() {
+    // In a real implementation, this would trigger a PDF download from the server
+    // For now, we'll show a message
+    alert('PDF receipt download will be available in the next update!');
+    
+    // Show loading state
+    const button = event.target.closest('button');
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+    button.disabled = true;
+    
+    setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+        
+        // Simulate download
+        const link = document.createElement('a');
+        link.href = '#'; // Replace with actual PDF URL
+        link.download = \`receipt-\${Date.now()}.pdf\`;
+        link.click();
+    }, 2000);
+}
+
+// Auto-redirect after 30 seconds (optional)
+setTimeout(() => {
+    const stay = confirm('Would you like to stay on this page?');
+    if (!stay) {
+        window.location.href = '{% url "dashboard" %}';
+    }
+}, 30000);
+</script>
+{% endblock %}

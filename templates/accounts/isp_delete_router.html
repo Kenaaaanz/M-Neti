@@ -1,0 +1,129 @@
+<!-- accounts/templates/accounts/isp_delete_router.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Delete Router - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Confirmation Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
+        <div class="p-8 text-center">
+            <!-- Warning Icon -->
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            </div>
+            
+            <!-- Warning Message -->
+            <h3 class="text-2xl font-bold text-gray-900 mb-4">Delete Router Configuration</h3>
+            <p class="text-gray-600 mb-6">
+                Are you sure you want to delete the router configuration 
+                <span class="font-semibold text-gray-900">"{{ router_config.name }}"</span>?
+            </p>
+            
+            <!-- Router Details -->
+            <div class="bg-gray-50 rounded-xl p-6 mb-8 text-left">
+                <h4 class="font-medium text-gray-900 mb-3">Router Details</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Name</p>
+                        <p class="font-medium">{{ router_config.name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Type</p>
+                        <p class="font-medium">{{ router_config.router_type|title }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">IP Address</p>
+                        <p class="font-medium">{{ router_config.ip_address }}:{{ router_config.web_port }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Status</p>
+                        <p class="font-medium">
+                            {% if router_config.is_online %}
+                            <span class="text-green-600">Online</span>
+                            {% else %}
+                            <span class="text-red-600">Offline</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Warnings -->
+            {% if port_rules_count > 0 %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 text-left">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h4 class="text-sm font-medium text-yellow-800">Warning</h4>
+                        <p class="mt-1 text-sm text-yellow-700">
+                            This router has <span class="font-semibold">{{ port_rules_count }}</span> port forwarding rules.
+                            Deleting this router will also delete all associated port forwarding rules.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Confirmation Form -->
+            <form method="POST" action="{% url 'isp_delete_router' router_config.id %}" class="space-y-4">
+                {% csrf_token %}
+                
+                <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                    <a href="{% url 'isp_routers' %}" 
+                       class="px-8 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-colors cursor-pointer">
+                        Cancel
+                    </a>
+                    
+                    <button type="submit" 
+                            name="confirm" 
+                            value="yes"
+                            class="px-8 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium transition-colors cursor-pointer">
+                        Yes, Delete Router
+                    </button>
+                </div>
+                
+                <p class="text-sm text-gray-500 mt-4">
+                    This action cannot be undone. All configuration data will be permanently deleted.
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,283 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Compose SMS - {{ tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Compose Bulk SMS</h1>
+            <p class="text-gray-600 mt-1">Send messages to your customers</p>
+        </div>
+        <div class="flex space-x-3 mt-4 md:mt-0">
+            <a href="{% url 'isp_sms_management' %}" 
+               class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                <i class="fas fa-arrow-left mr-2"></i>Back to SMS
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Compose Form -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <form method="POST" id="smsForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_campaign">
+                    
+                    <!-- Campaign Name -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Campaign Name</label>
+                        <input type="text" name="campaign_name" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               value="SMS Campaign {{ now|date:'YmdHis' }}" required>
+                        <p class="text-xs text-gray-500 mt-1">Give this campaign a descriptive name</p>
+                    </div>
+
+                    <!-- Message Type -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Message Type</label>
+                        <div class="flex space-x-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="message_type" value="template" checked 
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Use Template</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="message_type" value="custom" 
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Custom Message</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Template Selection -->
+                    <div class="mb-6" id="templateSection">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select Template</label>
+                        <select name="template_id" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">-- Select Template --</option>
+                            {% for template in templates %}
+                            <option value="{{ template.id }}" data-content="{{ template.content }}">
+                                {{ template.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Custom Message -->
+                    <div class="mb-6" id="customMessageSection" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Custom Message</label>
+                        <textarea name="custom_message" rows="5" 
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="Type your message here..." maxlength="160"></textarea>
+                        <div class="flex justify-between mt-2 text-sm text-gray-500">
+                            <span id="charCount">0</span>/160 characters
+                            <span id="smsCount">0 SMS (160 chars each)</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Variables: {name}, {username}, {account}, {balance}, {plan}, {due_date}
+                        </p>
+                    </div>
+
+                    <!-- Recipients -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Recipients</label>
+                        <div class="space-y-2">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="recipient_group" value="all" checked 
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">All Active Customers with Phone Numbers</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="recipient_group" value="overdue" 
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Customers with Overdue Payments</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="recipient_group" value="recent" 
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Recently Joined (Last 30 days)</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="recipient_group" value="custom" 
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Select Individual Customers</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Schedule -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Schedule</label>
+                        <div class="flex space-x-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="schedule_type" value="now" checked 
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Send Immediately</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="schedule_type" value="later" 
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700">Schedule for Later</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Date/Time Selection -->
+                    <div class="grid grid-cols-2 gap-4 mb-6" id="scheduleDateTime" style="display: none;">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                            <input type="date" name="scheduled_date" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                            <input type="time" name="scheduled_time" value="09:00"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end">
+                        <button type="submit" 
+                                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                            <i class="fas fa-paper-plane mr-2"></i>Send Bulk SMS
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <!-- Variables -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Template Variables</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center">
+                        <code class="bg-gray-100 px-2 py-1 rounded text-xs">{name}</code>
+                        <span class="ml-2 text-gray-600">Customer's full name</span>
+                    </div>
+                    <div class="flex items-center">
+                        <code class="bg-gray-100 px-2 py-1 rounded text-xs">{username}</code>
+                        <span class="ml-2 text-gray-600">Customer's username</span>
+                    </div>
+                    <div class="flex items-center">
+                        <code class="bg-gray-100 px-2 py-1 rounded text-xs">{account}</code>
+                        <span class="ml-2 text-gray-600">Account number</span>
+                    </div>
+                    <div class="flex items-center">
+                        <code class="bg-gray-100 px-2 py-1 rounded text-xs">{balance}</code>
+                        <span class="ml-2 text-gray-600">Account balance</span>
+                    </div>
+                    <div class="flex items-center">
+                        <code class="bg-gray-100 px-2 py-1 rounded text-xs">{plan}</code>
+                        <span class="ml-2 text-gray-600">Current plan</span>
+                    </div>
+                    <div class="flex items-center">
+                        <code class="bg-gray-100 px-2 py-1 rounded text-xs">{due_date}</code>
+                        <span class="ml-2 text-gray-600">Next payment date</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Status -->
+            {% if sms_provider %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">SMS Provider</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium">{{ sms_provider.get_provider_name_display }}</span>
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                            {% if sms_provider.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if sms_provider.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <div class="flex justify-between">
+                            <span>Sender ID:</span>
+                            <span class="font-medium">{{ sms_provider.sender_id }}</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span>Cost per SMS:</span>
+                            <span class="font-medium">Ksh {{ sms_provider.cost_per_sms }}</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span>Daily Limit:</span>
+                            <span class="font-medium">{{ sms_provider.sms_sent_today }}/{{ sms_provider.max_sms_per_day }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle message type
+    const messageTypeRadios = document.querySelectorAll('input[name="message_type"]');
+    const templateSection = document.getElementById('templateSection');
+    const customMessageSection = document.getElementById('customMessageSection');
+    
+    messageTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'template') {
+                templateSection.style.display = 'block';
+                customMessageSection.style.display = 'none';
+            } else {
+                templateSection.style.display = 'none';
+                customMessageSection.style.display = 'block';
+            }
+        });
+    });
+    
+    // Character count
+    const messageInput = document.querySelector('textarea[name="custom_message"]');
+    const charCount = document.getElementById('charCount');
+    const smsCount = document.getElementById('smsCount');
+    
+    if (messageInput) {
+        messageInput.addEventListener('input', function() {
+            const chars = this.value.length;
+            charCount.textContent = chars;
+            const sms = Math.ceil(chars / 160);
+            smsCount.textContent = `${sms} SMS (160 chars each)`;
+        });
+    }
+    
+    // Schedule toggle
+    const scheduleRadios = document.querySelectorAll('input[name="schedule_type"]');
+    const scheduleDateTime = document.getElementById('scheduleDateTime');
+    
+    scheduleRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'later') {
+                scheduleDateTime.style.display = 'grid';
+            } else {
+                scheduleDateTime.style.display = 'none';
+            }
+        });
+    });
+    
+    // Template selection
+    const templateSelect = document.querySelector('select[name="template_id"]');
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            const selected = this.options[this.selectedIndex];
+            if (selected.value) {
+                const content = selected.getAttribute('data-content');
+                document.querySelector('textarea[name="custom_message"]').value = content;
+                // Trigger input event to update character count
+                const event = new Event('input');
+                document.querySelector('textarea[name="custom_message"]').dispatchEvent(event);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

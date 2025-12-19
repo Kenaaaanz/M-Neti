@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Support Chat - M-Neti{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-lg shadow p-4">
+        <h2 class="text-lg font-semibold mb-2">Support Chat</h2>
+        <p class="text-sm text-gray-500 mb-4">Start a chat with ISP support. This will attempt a bot reply; operators will appear when enabled.</p>
+
+        <div class="mb-3">
+            <input id="chatSubject" type="text" class="w-full rounded-md border-gray-300 p-2" placeholder="Subject (e.g. 'Billing issue', 'Slow connection')" />
+        </div>
+        <div id="chatBox" class="border rounded-md p-4 h-64 overflow-y-auto bg-gray-50">
+            <!-- messages will be appended here -->
+        </div>
+
+        <div class="mt-4 flex space-x-2">
+            <input id="chatInput" type="text" class="flex-1 rounded-md border-gray-300 p-2" placeholder="Type your message..." />
+            <button id="chatSendBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    function getCsrfToken(){
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== ''){
+            const cookies = document.cookie.split(';');
+            for (let i=0;i<cookies.length;i++){
+                const c = cookies[i].trim();
+                if (c.substring(0, name.length+1) === (name + '=')){
+                    cookieValue = decodeURIComponent(c.substring(name.length+1));
+                    break;
+                }
+            }
+        }
+        if (!cookieValue){
+            const t = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (t) cookieValue = t.value;
+        }
+        return cookieValue || '';
+    }
+
+    const chatBox = document.getElementById('chatBox');
+    const chatInput = document.getElementById('chatInput');
+    const chatSendBtn = document.getElementById('chatSendBtn');
+    const sendUrl = '{% url "isp_support_chat_send" %}';
+    const storageKey = 'support_conv_id';
+    let convId = localStorage.getItem(storageKey) || null;
+    function messagesUrl(id){ return '{% url "isp_support_chat_messages" 0 %}'.replace('/0/messages/','/'+id+'/messages/'); }
+    const csrfToken = getCsrfToken();
+
+    function appendMessage(text, who){
+        const el = document.createElement('div');
+        el.className = who === 'me' ? 'text-right text-sm mb-2' : 'text-left text-sm mb-2';
+        el.innerHTML = `<div class="inline-block px-3 py-2 rounded ${who==='me' ? 'bg-blue-600 text-white' : 'bg-white text-gray-800 border'}">${text}</div>`;
+        chatBox.appendChild(el);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage(){
+        const txt = chatInput.value.trim();
+        if (!txt) return;
+        appendMessage(txt, 'me');
+        chatInput.value = '';
+        try{
+            const resp = await fetch(sendUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    message: txt,
+                    conversation_id: convId,
+                    subject: (document.getElementById('chatSubject') ? document.getElementById('chatSubject').value.trim() : '')
+                })
+            });
+            if (!resp.ok){
+                const t = await resp.text();
+                appendMessage('Server error: '+resp.status, 'bot');
+                console.error('Server error', t);
+                return;
+            }
+            const data = await resp.json();
+            if (data.success){
+                // if conversation id provided, save it
+                if (data.conversation_id) {
+                    convId = data.conversation_id;
+                    localStorage.setItem(storageKey, convId);
+                }
+                // show returned recent messages if present
+                if (data.recent_messages && Array.isArray(data.recent_messages)){
+                    // clear and render
+                    chatBox.innerHTML = '';
+                    let lastId = 0;
+                    data.recent_messages.forEach(m => { appendMessage(m.message, m.sender_type === 'user' ? 'me' : 'bot'); if (m.id && m.id>lastId) lastId = m.id; });
+                    if (data.conversation_id && lastId>0) {
+                        // store last seen message id for dashboard unread checks
+                        localStorage.setItem(storageKey, data.conversation_id);
+                        localStorage.setItem('support_last_seen_' + data.conversation_id, String(lastId));
+                    }
+                } else {
+                    appendMessage(data.reply, 'bot');
+                }
+            } else {
+                appendMessage('Error: '+(data.error||'unknown'), 'bot');
+            }
+        }catch(e){
+            console.error(e);
+            appendMessage('Network error. Please try again.', 'bot');
+        }
+    }
+
+    chatSendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') sendMessage(); });
+
+    // Poll messages for this conversation if exists
+    async function pollMessages(){
+        if (!convId) return;
+        try{
+            const r = await fetch(messagesUrl(convId), {credentials: 'same-origin'});
+            if (!r.ok) return;
+            const d = await r.json();
+            if (d.success){
+                chatBox.innerHTML = '';
+                let lastId = 0;
+                d.messages.forEach(m => { appendMessage(m.message, m.sender_type === 'user' ? 'me' : 'bot'); if (m.id && m.id>lastId) lastId = m.id; });
+                if (convId && lastId>0) {
+                    localStorage.setItem('support_last_seen_' + convId, String(lastId));
+                }
+            }
+        }catch(e){console.error(e)}
+    }
+
+    setInterval(pollMessages, 3000);
+    // initial poll if conv exists
+    if (convId) pollMessages();
+
+})();
+</script>
+
+{% endblock %}

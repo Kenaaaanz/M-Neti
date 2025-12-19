@@ -1,0 +1,332 @@
+<!-- accounts/templates/accounts/isp_customer_logs.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Activity Logs - {{ customer.username }} - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Customer Header -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-history text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">{{ customer.username }}</h2>
+                    <p class="text-gray-600">Activity Logs & System Events</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'isp_customer_detail' customer.id %}" 
+                   class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Profile
+                </a>
+                <div class="relative">
+                    <select id="logFilter" class="appearance-none px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer">
+                        <option value="all">All Log Types</option>
+                        <option value="info">Information</option>
+                        <option value="warning">Warnings</option>
+                        <option value="error">Errors</option>
+                        <option value="security">Security</option>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-3 top-3 text-gray-400 pointer-events-none"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-info-circle text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">Info Events</p>
+                    <p class="text-2xl font-bold text-gray-900">248</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">Warnings</p>
+                    <p class="text-2xl font-bold text-gray-900">12</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-times-circle text-red-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">Errors</p>
+                    <p class="text-2xl font-bold text-gray-900">3</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-shield-alt text-green-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">Security</p>
+                    <p class="text-2xl font-bold text-gray-900">45</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Container -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">Activity Timeline</h3>
+                <div class="text-sm text-gray-500">
+                    Last updated: {% now "F j, Y H:i" %}
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <!-- Logs Timeline -->
+            <div class="space-y-4">
+                {% if router_logs %}
+                    {% for log in router_logs %}
+                    <div class="log-item border-l-4 
+                        {% if log.log_type == 'info' %}border-blue-500 bg-blue-50
+                        {% elif log.log_type == 'warning' %}border-yellow-500 bg-yellow-50
+                        {% elif log.log_type == 'error' %}border-red-500 bg-red-50
+                        {% elif log.log_type == 'security' %}border-green-500 bg-green-50
+                        {% else %}border-gray-500 bg-gray-50{% endif %} 
+                        rounded-r-lg p-4">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <span class="px-3 py-1 text-xs rounded-full 
+                                        {% if log.log_type == 'info' %}bg-blue-100 text-blue-800
+                                        {% elif log.log_type == 'warning' %}bg-yellow-100 text-yellow-800
+                                        {% elif log.log_type == 'error' %}bg-red-100 text-red-800
+                                        {% elif log.log_type == 'security' %}bg-green-100 text-green-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ log.log_type|title }}
+                                    </span>
+                                    <span class="mx-3 text-gray-400">•</span>
+                                    <span class="text-sm text-gray-600">
+                                        <i class="far fa-clock mr-1"></i>{{ log.created_at|date:"M d, Y H:i:s" }}
+                                    </span>
+                                </div>
+                                <p class="text-gray-900 font-medium mb-1">{{ log.message }}</p>
+                                {% if log.details %}
+                                <p class="text-sm text-gray-600">{{ log.details }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="ml-4">
+                                <button class="text-gray-400 hover:text-gray-600" title="View details">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <!-- Sample Logs (replace with actual data) -->
+                <div class="log-item border-l-4 border-blue-500 bg-blue-50 rounded-r-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <span class="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                    Info
+                                </span>
+                                <span class="mx-3 text-gray-400">•</span>
+                                <span class="text-sm text-gray-600">
+                                    <i class="far fa-clock mr-1"></i>{% now "M d, Y H:i:s" %}
+                                </span>
+                            </div>
+                            <p class="text-gray-900 font-medium mb-1">Router connection established</p>
+                            <p class="text-sm text-gray-600">Device successfully connected to network</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="log-item border-l-4 border-green-500 bg-green-50 rounded-r-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <span class="px-3 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                    Security
+                                </span>
+                                <span class="mx-3 text-gray-400">•</span>
+                                <span class="text-sm text-gray-600">
+                                    <i class="far fa-clock mr-1"></i>{% now "M d, Y 00:00:00" %}
+                                </span>
+                            </div>
+                            <p class="text-gray-900 font-medium mb-1">Monthly payment processed successfully</p>
+                            <p class="text-sm text-gray-600">Transaction ID: PAY_{{ customer.company_account_number }}_{% now "Ym" %}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="log-item border-l-4 border-yellow-500 bg-yellow-50 rounded-r-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <span class="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                                    Warning
+                                </span>
+                                <span class="mx-3 text-gray-400">•</span>
+                                <span class="text-sm text-gray-600">
+                                    <i class="far fa-clock mr-1"></i>{% now "M d, Y 00:00:00"|date:"Y-m-d" %} 23:45:00
+                                </span>
+                            </div>
+                            <p class="text-gray-900 font-medium mb-1">High bandwidth usage detected</p>
+                            <p class="text-sm text-gray-600">Usage exceeded 80% of data cap</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- No Logs Message -->
+            {% if not router_logs and not sample_logs %}
+            <div class="text-center py-12">
+                <div class="text-gray-400 mb-3">
+                    <i class="fas fa-history text-4xl"></i>
+                </div>
+                <p class="text-gray-500 font-medium">No activity logs found</p>
+                <p class="text-sm text-gray-400 mt-1">Activity logs will appear here when events are generated</p>
+            </div>
+            {% endif %}
+
+            <!-- Pagination -->
+            <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+                <div class="text-sm text-gray-500">
+                    Showing 1-10 of 263 events
+                </div>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="px-3 py-2 border border-blue-500 bg-blue-50 text-blue-700 rounded-lg">
+                        1
+                    </button>
+                    <button class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                        2
+                    </button>
+                    <button class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                        3
+                    </button>
+                    <span class="px-3 py-2 text-gray-500">...</span>
+                    <button class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                        27
+                    </button>
+                    <button class="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Section -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h4 class="font-semibold text-gray-900">Export Logs</h4>
+                <p class="text-sm text-gray-600 mt-1">Download activity logs for record keeping or analysis</p>
+            </div>
+            <div class="flex space-x-3">
+                <button class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 flex items-center">
+                    <i class="fas fa-file-pdf mr-2"></i> PDF
+                </button>
+                <button class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 flex items-center">
+                    <i class="fas fa-file-csv mr-2"></i> CSV
+                </button>
+                <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg flex items-center">
+                    <i class="fas fa-download mr-2"></i> Export All
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const logFilter = document.getElementById('logFilter');
+    const logItems = document.querySelectorAll('.log-item');
+    
+    logFilter.addEventListener('change', function() {
+        const filterValue = this.value;
+        
+        logItems.forEach(item => {
+            if (filterValue === 'all') {
+                item.style.display = 'block';
+            } else {
+                const logType = item.classList.contains('border-blue-500') ? 'info' :
+                              item.classList.contains('border-yellow-500') ? 'warning' :
+                              item.classList.contains('border-red-500') ? 'error' :
+                              item.classList.contains('border-green-500') ? 'security' : 'other';
+                
+                if (logType === filterValue) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            }
+        });
+    });
+    
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        console.log('Refreshing logs...');
+        // You can implement AJAX refresh here
+    }, 30000);
+});
+</script>
+{% endblock %}

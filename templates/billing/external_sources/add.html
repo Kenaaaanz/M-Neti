@@ -1,0 +1,158 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Add External Source - M-Neti{% endblock %}
+
+{% block page_title %}Add External Source{% endblock %}
+{% block page_subtitle %}Configure a new external data source{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <form method="POST" action="{% url 'add_external_source' %}" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Basic Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Source Name *</label>
+                        <input type="text" name="name" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                               placeholder="e.g., Safaricom Production API">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Source Type *</label>
+                        <select name="source_type" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="">Select Type</option>
+                            <option value="external_api">External API</option>
+                            <option value="isp_server">ISP Server/Database</option>
+                            <option value="csv_upload">CSV File Upload</option>
+                            <option value="manual_entry">Manual Entry</option>
+                            <option value="invoice">Invoice/Bill Upload</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" rows="2"
+                              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                              placeholder="Describe this data source..."></textarea>
+                </div>
+            </div>
+            
+            <!-- API Configuration (shown for API type) -->
+            <div id="apiConfig" style="display: none;">
+                <h3 class="text-lg font-semibold mb-4">API Configuration</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">API Endpoint *</label>
+                        <input type="url" name="api_endpoint"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                               placeholder="https://api.provider.com/v1">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">API Key</label>
+                            <input type="password" name="api_key"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                   placeholder="Your API key">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">API Secret</label>
+                            <input type="password" name="api_secret"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                   placeholder="Your API secret">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- File Configuration (shown for file types) -->
+            <div id="fileConfig" style="display: none;">
+                <h3 class="text-lg font-semibold mb-4">File Configuration</h3>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">File Format</label>
+                    <select name="file_format"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="csv">CSV (Comma Separated Values)</option>
+                        <option value="excel">Excel (.xlsx)</option>
+                        <option value="json">JSON</option>
+                        <option value="xml">XML</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Sync Configuration -->
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Sync Configuration</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" name="auto_sync" id="auto_sync"
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="auto_sync" class="ml-2 block text-sm text-gray-700">
+                            Enable automatic synchronization
+                        </label>
+                    </div>
+                    
+                    <div id="syncFrequency" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700">Sync Frequency</label>
+                        <select name="sync_frequency"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="hourly">Hourly</option>
+                            <option value="daily" selected>Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="manual">Manual Only</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                <a href="{% url 'manage_external_sources' %}" 
+                   class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>
+                    Save Source
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Show/hide configuration sections based on source type
+document.querySelector('[name="source_type"]').addEventListener('change', function() {
+    const sourceType = this.value;
+    const apiConfig = document.getElementById('apiConfig');
+    const fileConfig = document.getElementById('fileConfig');
+    
+    // Hide all config sections
+    apiConfig.style.display = 'none';
+    fileConfig.style.display = 'none';
+    
+    // Show relevant config section
+    if (sourceType === 'external_api') {
+        apiConfig.style.display = 'block';
+    } else if (['csv_upload', 'invoice'].includes(sourceType)) {
+        fileConfig.style.display = 'block';
+    }
+});
+
+// Show/hide sync frequency based on auto_sync checkbox
+document.getElementById('auto_sync').addEventListener('change', function() {
+    const syncFrequency = document.getElementById('syncFrequency');
+    syncFrequency.style.display = this.checked ? 'block' : 'none';
+});
+</script>
+{% endblock %}

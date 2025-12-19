@@ -1,0 +1,556 @@
+<!-- accounts/templates/accounts/isp_customer_detail.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}{{ customer.username }} - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Customer Header -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-start justify-between">
+            <div class="flex items-start">
+                <div class="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-user text-blue-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">{{ customer.username }}</h2>
+                    <p class="text-gray-600">{{ customer.email }}</p>
+                    <div class="flex items-center space-x-4 mt-2">
+                        <span class="px-3 py-1 text-sm font-medium rounded-full 
+                            {% if customer.is_active_customer %}bg-green-100 text-green-800
+                            {% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ customer.is_active_customer|yesno:"Active,Inactive" }}
+                        </span>
+                        {% if customer.phone %}
+                        <span class="text-gray-600">
+                            <i class="fas fa-phone mr-1"></i> {{ customer.phone }}
+                        </span>
+                        {% endif %}
+                        <span class="text-gray-600">
+                            <i class="fas fa-id-card mr-1"></i> {{ customer.company_account_number }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'isp_edit_customer' customer.id %}" 
+                   class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium flex items-center cursor-pointer">
+                    <i class="fas fa-edit mr-2"></i> Edit
+                </a>
+                <a href="{% url 'isp_extend_subscription' customer.id %}" 
+                   class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center cursor-pointer">
+                    <i class="fas fa-calendar-plus mr-2"></i> Extend
+                </a>
+                <a href="{% url 'isp_delete_customer' customer.id %}" 
+                   class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center cursor-pointer">
+                    <i class="fas fa-user-slash mr-2"></i> Deactivate
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium mb-1">Current Plan</p>
+                    <p class="text-2xl font-bold">
+                        {% if current_plan %}
+                            {{ current_plan.name }}
+                        {% else %}
+                            No Plan
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-wifi text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium mb-1">Connected Devices</p>
+                    <p class="text-2xl font-bold">{{ devices.count }}</p>
+                    <p class="text-green-100 text-xs">{{ online_devices.count }} online</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-laptop text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium mb-1">Total Payments</p>
+                    <p class="text-2xl font-bold">{{ total_payments }}</p>
+                    <p class="text-purple-100 text-xs">Ksh {{ total_amount|floatformat:2 }}</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-credit-card text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm font-medium mb-1">Next Payment</p>
+                    <p class="text-2xl font-bold">
+                        {% if customer.next_payment_date %}
+                            {{ customer.next_payment_date|date:"M d" }}
+                        {% else %}
+                            Not set
+                        {% endif %}
+                    </p>
+                    {% if customer.is_payment_overdue %}
+                    <p class="text-orange-100 text-xs">Overdue</p>
+                    {% endif %}
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-calendar-alt text-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons Row -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Customer Details</h3>
+                <p class="text-sm text-gray-600 mt-1">Overview and management options</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a href="{% url 'isp_customer_detail' customer.id %}" 
+                   class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center cursor-pointer">
+                    <i class="fas fa-chart-bar mr-2"></i> Overview
+                </a>
+                <a href="#" onclick="scrollToDevices()" 
+                   class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center cursor-pointer">
+                    <i class="fas fa-laptop mr-2"></i> Devices ({{ devices.count }})
+                </a>
+                <a href="{% url 'isp_customer_payments' customer.id %}" 
+                   class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center cursor-pointer">
+                    <i class="fas fa-credit-card mr-2"></i> Payments ({{ total_payments }})
+                </a>
+                <a href="{% url 'isp_customer_logs' customer.id %}" 
+                   class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium flex items-center cursor-pointer">
+                    <i class="fas fa-history mr-2"></i> Activity Logs
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 mb-8">
+        <!-- Overview Section -->
+        <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Customer Information -->
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Full Name:</span>
+                            <span class="font-medium text-gray-900">
+                                {% if customer.first_name or customer.last_name %}
+                                    {{ customer.first_name }} {{ customer.last_name }}
+                                {% else %}
+                                    Not provided
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Email:</span>
+                            <span class="font-medium text-gray-900">{{ customer.email|default:"Not provided" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Phone:</span>
+                            <span class="font-medium text-gray-900">{{ customer.phone|default:"Not provided" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Address:</span>
+                            <span class="font-medium text-gray-900">{{ customer.address|default:"Not provided" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Account Number:</span>
+                            <span class="font-medium text-gray-900">{{ customer.company_account_number }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Registration Date:</span>
+                            <span class="font-medium text-gray-900">{{ customer.registration_date|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Account Status:</span>
+                            <span class="font-medium {% if customer.is_active_customer %}text-green-600{% else %}text-red-600{% endif %}">
+                                {{ customer.is_active_customer|yesno:"Active,Inactive" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subscription Information -->
+                <div class="bg-gray-50 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Subscription Information</h3>
+                    {% if current_plan %}
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Current Plan:</span>
+                            <span class="font-medium text-gray-900">{{ current_plan.name }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Bandwidth:</span>
+                            <span class="font-medium text-gray-900">{{ current_plan.bandwidth }} Mbps</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Price:</span>
+                            <span class="font-medium text-gray-900">Ksh {{ current_plan.price }}/month</span>
+                        </div>
+                        {% if current_plan.data_cap %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Data Cap:</span>
+                            <span class="font-medium text-gray-900">{{ current_plan.data_cap }} GB</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Next Payment:</span>
+                            <span class="font-medium {% if customer.is_payment_overdue %}text-red-600{% else %}text-gray-900{% endif %}">
+                                {% if customer.next_payment_date %}
+                                    {{ customer.next_payment_date|date:"M d, Y" }}
+                                    {% if customer.is_payment_overdue %}
+                                        ({{ customer.days_overdue }} days overdue)
+                                    {% endif %}
+                                {% else %}
+                                    Not set
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% if subscription %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Subscription Start:</span>
+                            <span class="font-medium text-gray-900">{{ subscription.start_date|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Subscription End:</span>
+                            <span class="font-medium text-gray-900">{{ subscription.end_date|date:"M d, Y" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-wifi text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-600">No active subscription</p>
+                        <a href="{% url 'isp_edit_customer' customer.id %}" class="mt-3 inline-block text-blue-600 hover:text-blue-800">
+                            Assign a plan →
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Payments -->
+            <div class="mt-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Recent Payments</h3>
+                    <a href="{% url 'isp_customer_payments' customer.id %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+                        View all payments <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+                {% if recent_payments %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Date</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Amount</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Plan</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Transaction ID</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in recent_payments|slice:":5" %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-3 px-4 text-sm text-gray-900">{{ payment.created_at|date:"M d, Y" }}</td>
+                                <td class="py-3 px-4 text-sm font-medium text-gray-900">Ksh {{ payment.amount }}</td>
+                                <td class="py-3 px-4 text-sm text-gray-600">{{ payment.plan.name|default:"-" }}</td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2 py-1 text-xs rounded-full 
+                                        {% if payment.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ payment.status|title }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-sm text-gray-500 font-mono">{{ payment.transaction_id|truncatechars:12 }}</td>
+                                <td class="py-3 px-4">
+                                    <a href="{% url 'isp_customer_payments' customer.id %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-8 bg-gray-50 rounded-xl">
+                    <i class="fas fa-credit-card text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-600">No payment history</p>
+                    <a href="{% url 'isp_customer_payments' customer.id %}" class="mt-2 inline-block text-blue-600 hover:text-blue-800 text-sm">
+                        Go to Payments →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Devices Section -->
+            <div id="devices-section" class="mt-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Connected Devices</h3>
+                    <div class="text-sm text-gray-500 flex items-center">
+                        {{ online_devices.count }} online of {{ devices.count }} total
+                        <a href="#" onclick="scrollToDevices()" class="text-blue-600 hover:text-blue-800 ml-2">
+                            <i class="fas fa-arrow-down"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                {% if devices %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for device in devices|slice:":6" %}
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h4 class="font-semibold text-gray-900">{{ device.name|default:"Unnamed Device" }}</h4>
+                                <p class="text-xs text-gray-500">{{ device.mac_address|truncatechars:12 }}</p>
+                            </div>
+                            <div class="flex items-center">
+                                {% if device.is_online %}
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-1" title="Online"></span>
+                                <span class="text-xs text-green-600">Online</span>
+                                {% else %}
+                                <span class="w-2 h-2 bg-red-500 rounded-full mr-1" title="Offline"></span>
+                                <span class="text-xs text-red-600">Offline</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-1 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">IP:</span>
+                                <span class="font-mono text-gray-900">{{ device.ip_address|default:"-" }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Last Seen:</span>
+                                <span class="text-gray-900">
+                                    {% if device.last_seen %}
+                                        {{ device.last_seen|timesince }} ago
+                                    {% else %}
+                                        Never
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if devices.count > 6 %}
+                <div class="mt-4 text-center">
+                    <p class="text-sm text-gray-500">Showing 6 of {{ devices.count }} devices</p>
+                    <a href="#" onclick="scrollToDevices()" class="text-blue-600 hover:text-blue-800 text-sm mt-1 inline-block">
+                        View all devices <i class="fas fa-arrow-down ml-1"></i>
+                    </a>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="text-center py-8 bg-gray-50 rounded-xl">
+                    <div class="text-gray-400 mb-3">
+                        <i class="fas fa-laptop text-4xl"></i>
+                    </div>
+                    <p class="text-gray-500 font-medium">No devices connected</p>
+                    <p class="text-sm text-gray-400 mt-1">Devices will appear here when the customer connects to the network</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- All Devices Section (collapsible) -->
+            {% if devices.count > 0 %}
+            <div id="all-devices-section" class="mt-8 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">All Connected Devices</h3>
+                    <button onclick="scrollToTop()" class="text-blue-600 hover:text-blue-800 text-sm flex items-center">
+                        Back to top <i class="fas fa-arrow-up ml-1"></i>
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Device Name</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">MAC Address</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">IP Address</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Type</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for device in devices %}
+                            <tr class="border-b border-gray-200 hover:bg-gray-50">
+                                <td class="py-3 px-4 text-sm font-medium text-gray-900">{{ device.name|default:"Unnamed Device" }}</td>
+                                <td class="py-3 px-4 text-sm text-gray-600 font-mono">{{ device.mac_address }}</td>
+                                <td class="py-3 px-4 text-sm text-gray-900 font-mono">{{ device.ip_address|default:"-" }}</td>
+                                <td class="py-3 px-4 text-sm text-gray-600">{{ device.device_type|default:"Unknown"|title }}</td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2 py-1 text-xs rounded-full 
+                                        {% if device.is_online %}bg-green-100 text-green-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ device.is_online|yesno:"Online,Offline" }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-sm text-gray-500">
+                                    {% if device.last_seen %}
+                                        {{ device.last_seen|date:"M d, Y H:i" }}
+                                    {% else %}
+                                        Never
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Activity Logs Preview -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                <p class="text-sm text-gray-600 mt-1">Latest system events and logs</p>
+            </div>
+            <a href="{% url 'isp_customer_logs' customer.id %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+                View all logs <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        
+        {% if router_logs %}
+        <div class="space-y-3">
+            {% for log in router_logs|slice:":5" %}
+            <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex-1">
+                    <div class="flex items-center mb-1">
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            {% if log.log_type == 'info' %}bg-blue-100 text-blue-800
+                            {% elif log.log_type == 'warning' %}bg-yellow-100 text-yellow-800
+                            {% elif log.log_type == 'error' %}bg-red-100 text-red-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ log.log_type|title }}
+                        </span>
+                        <span class="mx-2 text-gray-400">•</span>
+                        <span class="text-xs text-gray-500">{{ log.created_at|timesince }} ago</span>
+                    </div>
+                    <p class="text-sm text-gray-900">{{ log.message }}</p>
+                </div>
+                <a href="{% url 'isp_customer_logs' customer.id %}" class="text-blue-600 hover:text-blue-800 ml-2">
+                    <i class="fas fa-external-link-alt text-sm"></i>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <div class="text-gray-400 mb-3">
+                <i class="fas fa-history text-4xl"></i>
+            </div>
+            <p class="text-gray-500 font-medium">No recent activity</p>
+            <a href="{% url 'isp_customer_logs' customer.id %}" class="mt-2 inline-block text-blue-600 hover:text-blue-800 text-sm">
+                Go to Activity Logs →
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function scrollToDevices() {
+    const devicesSection = document.getElementById('all-devices-section');
+    if (devicesSection) {
+        // Show all devices section if hidden
+        if (devicesSection.classList.contains('hidden')) {
+            devicesSection.classList.remove('hidden');
+        }
+        // Scroll to devices section
+        devicesSection.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth scrolling to all internal links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+            
+            const targetElement = document.querySelector(targetId);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

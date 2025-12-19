@@ -1,0 +1,493 @@
+<!-- accounts/templates/accounts/isp_routers.html - UPDATED -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Router Management - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Router Management{% endblock %}
+{% block page_subtitle %}Manage and configure routers for your network{% endblock %}
+
+{% block content %}
+<!-- Quick Stats -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-blue-100 text-sm font-medium mb-1">Total Routers</p>
+                <p class="text-3xl font-bold">{{ total_routers }}</p>
+            </div>
+            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                <i class="fas fa-router text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-green-100 text-sm font-medium mb-1">Online Routers</p>
+                <p class="text-3xl font-bold">{{ online_routers }}</p>
+            </div>
+            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                <i class="fas fa-wifi text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-purple-100 text-sm font-medium mb-1">Managed Configs</p>
+                <p class="text-3xl font-bold">{{ router_configs.count }}</p>
+            </div>
+            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                <i class="fas fa-server text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-orange-100 text-sm font-medium mb-1">Total Devices</p>
+                <p class="text-3xl font-bold">{{ total_devices }}</p>
+            </div>
+            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                <i class="fas fa-laptop text-xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Manage Router Configurations Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-server text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Managed Configurations</h3>
+                    <p class="text-sm text-gray-500">{{ router_configs.count }} routers</p>
+                </div>
+            </div>
+        </div>
+        <div class="space-y-3">
+            <a href="{% url 'isp_add_router' %}" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-plus mr-2"></i> Add New Router
+            </a>
+            <a href="{% url 'isp_port_forwarding' %}" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-share-alt mr-2"></i> Manage Port Forwarding
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Router Configurations Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-wifi text-green-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Recent Configurations</h3>
+                    <p class="text-sm text-gray-500">Recently added routers</p>
+                </div>
+            </div>
+        </div>
+        <div class="space-y-3">
+            {% for config in router_configs|slice:":3" %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                    <p class="font-medium text-gray-900">{{ config.name }}</p>
+                    <p class="text-sm text-gray-500">{{ config.router_type|title }} • {{ config.ip_address }}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <a href="{% url 'isp_edit_router' config.id %}" class="text-blue-600 hover:text-blue-800 p-1" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{% url 'isp_delete_router' config.id %}" class="text-red-600 hover:text-red-800 p-1" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-center py-4">No router configurations yet</p>
+            {% endfor %}
+            {% if router_configs.count > 3 %}
+            <a href="#managed-configs" onclick="switchTab('managed-configs')" class="text-blue-600 hover:text-blue-800 text-sm font-medium text-center block">
+                View all {{ router_configs.count }} configurations →
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Customer Routers Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-router text-purple-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Customer Routers</h3>
+                    <p class="text-sm text-gray-500">{{ routers.count }} connected</p>
+                </div>
+            </div>
+        </div>
+        <div class="space-y-3">
+            {% for router in routers|slice:":3" %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                    <p class="font-medium text-gray-900">{{ router.user.username }}</p>
+                    <p class="text-sm text-gray-500">{{ router.model }} • {{ router.mac_address|slice:":8" }}...</p>
+                </div>
+                <div>
+                    {% if router.is_online %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                        Online
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <span class="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+                        Offline
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-center py-4">No customer routers connected</p>
+            {% endfor %}
+            {% if routers.count > 3 %}
+            <a href="#customer-routers" onclick="switchTab('customer-routers')" class="text-blue-600 hover:text-blue-800 text-sm font-medium text-center block">
+                View all {{ routers.count }} routers →
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Tabs -->
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200">
+    <div class="border-b border-gray-200">
+        <nav class="flex -mb-px">
+            <button id="tab-customer-routers" class="tab-button active py-4 px-6 text-sm font-medium border-b-2 border-blue-500 text-blue-600 cursor-pointer transition">
+                Customer Routers ({{ routers.count }})
+            </button>
+            <button id="tab-managed-configs" class="tab-button py-4 px-6 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 cursor-pointer transition">
+                Managed Configurations ({{ router_configs.count }})
+            </button>
+            <button id="tab-port-forwarding" class="tab-button py-4 px-6 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 cursor-pointer transition">
+                Port Forwarding Rules ({{ port_rules.count }})
+            </button>
+        </nav>
+    </div>
+
+    <!-- Customer Routers Tab -->
+    <div id="content-customer-routers" class="tab-content active p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900">Customer Routers</h3>
+            <a href="{% url 'isp_add_customer_router' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center">
+                <i class="fas fa-plus mr-2"></i> Add Router
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Router Name</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Customer</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Status</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">MAC Address</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Model</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Last Seen</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for router in routers %}
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <td class="py-4 px-6">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-router text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-900">{{ router.name|default:router.model }}</div>
+                                    <div class="text-sm text-gray-500">{{ router.ssid|default:"No SSID" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="text-sm font-medium text-gray-900">{{ router.user.username }}</div>
+                            <div class="text-xs text-gray-500">{{ router.user.email }}</div>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if router.is_online %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                Online
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                                Offline
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 text-sm text-gray-900 font-mono">{{ router.mac_address }}</td>
+                        <td class="py-4 px-6 text-sm text-gray-600">{{ router.model }}</td>
+                        <td class="py-4 px-6 text-sm text-gray-500">
+                            {% if router.last_seen %}
+                                {{ router.last_seen|timesince }} ago
+                            {% else %}
+                                Never
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'isp_edit_customer_router' router.id %}" 
+                                   class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+                                   title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'isp_delete_customer_router' router.id %}" 
+                                   class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+                                   title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-12 text-center">
+                            <div class="text-gray-400 mb-3">
+                                <i class="fas fa-router text-4xl"></i>
+                            </div>
+                            <p class="text-gray-500 font-medium">No customer routers found</p>
+                            <p class="text-sm text-gray-400 mt-1">Customer routers will appear here when they connect</p>
+                            <a href="{% url 'isp_add_customer_router' %}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">
+                                Add Your First Router
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Managed Configurations Tab -->
+    <div id="content-managed-configs" class="tab-content hidden p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900">Managed Router Configurations</h3>
+            <a href="{% url 'isp_add_router' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center">
+                <i class="fas fa-plus mr-2"></i> Add Configuration
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for config in router_configs %}
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h4 class="font-semibold text-gray-900">{{ config.name }}</h4>
+                        <p class="text-sm text-gray-500">{{ config.router_type|title }} • {{ config.router_model }}</p>
+                    </div>
+                    <div class="flex items-center">
+                        {% if config.is_online %}
+                        <span class="w-3 h-3 bg-green-500 rounded-full mr-2" title="Online"></span>
+                        {% else %}
+                        <span class="w-3 h-3 bg-red-500 rounded-full mr-2" title="Offline"></span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="space-y-2 mb-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">IP Address:</span>
+                        <span class="font-mono text-gray-900">{{ config.ip_address }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Port:</span>
+                        <span class="font-mono text-gray-900">{{ config.web_port }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Username:</span>
+                        <span class="font-mono text-gray-900">{{ config.username }}</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-between pt-4 border-t border-gray-200">
+                    <form method="POST" action="{% url 'isp_routers' %}" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="config_id" value="{{ config.id }}">
+                        <input type="hidden" name="action" value="test_connection">
+                        <button type="submit" class="text-blue-600 hover:text-blue-800 text-sm font-medium cursor-pointer">
+                            Test Connection
+                        </button>
+                    </form>
+                    
+                    <a href="{% url 'isp_add_port_forwarding' %}?router_id={{ config.id }}" 
+                       class="text-green-600 hover:text-green-800 text-sm font-medium cursor-pointer">
+                        Port Forward
+                    </a>
+                    
+                    <a href="{% url 'isp_edit_router' config.id %}" 
+                       class="text-gray-600 hover:text-gray-800 text-sm font-medium cursor-pointer">
+                        Edit
+                    </a>
+                    
+                    <a href="{% url 'isp_delete_router' config.id %}" 
+                       class="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer">
+                        Delete
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-3 text-center py-12">
+                <div class="text-gray-400 mb-3">
+                    <i class="fas fa-server text-4xl"></i>
+                </div>
+                <p class="text-gray-500 font-medium">No managed configurations</p>
+                <p class="text-sm text-gray-400 mt-1">Add router configurations to manage them centrally</p>
+                <a href="{% url 'isp_add_router' %}" class="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">
+                    Add Your First Router
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Port Forwarding Tab -->
+    <div id="content-port-forwarding" class="tab-content hidden p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900">Port Forwarding Rules</h3>
+            <a href="{% url 'isp_add_port_forwarding' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center cursor-pointer">
+                <i class="fas fa-plus mr-2"></i> Add Rule
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Router</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Customer</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">External Port</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Internal IP:Port</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Protocol</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Status</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in port_rules %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-4 px-6 text-sm text-gray-900">{{ rule.router.name }}</td>
+                        <td class="py-4 px-6 text-sm text-gray-600">{{ rule.customer.username }}</td>
+                        <td class="py-4 px-6 text-sm font-mono text-gray-900">{{ rule.external_port }}</td>
+                        <td class="py-4 px-6 text-sm font-mono text-gray-900">{{ rule.internal_ip }}:{{ rule.internal_port }}</td>
+                        <td class="py-4 px-6">
+                            <span class="px-2 py-1 text-xs rounded-full {% if rule.protocol == 'tcp' %}bg-blue-100 text-blue-800{% elif rule.protocol == 'udp' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ rule.protocol|upper }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if rule.is_active %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                Inactive
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex space-x-3">
+                                <form method="POST" action="{% url 'isp_routers' %}" class="inline" onsubmit="return confirm('Toggle this port forwarding rule?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                                    <input type="hidden" name="action" value="toggle_port_rule">
+                                    <button type="submit" class="text-blue-600 hover:text-blue-800 text-sm cursor-pointer">
+                                        {% if rule.is_active %}Disable{% else %}Enable{% endif %}
+                                    </button>
+                                </form>
+                                
+                                <a href="{% url 'isp_delete_port_forwarding' rule.id %}" 
+                                   class="text-red-600 hover:text-red-800 text-sm cursor-pointer">
+                                    Delete
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-12 text-center">
+                            <div class="text-gray-400 mb-3">
+                                <i class="fas fa-share-alt text-4xl"></i>
+                            </div>
+                            <p class="text-gray-500 font-medium">No port forwarding rules configured yet</p>
+                            <p class="text-sm text-gray-400 mt-1">Create port forwarding rules to expose services</p>
+                            <a href="{% url 'isp_add_port_forwarding' %}" class="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium">
+                                Add Your First Rule
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Tab Management
+document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tabId = this.id.replace('tab-', 'content-');
+            
+            // Remove active state from all buttons and contents
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+                content.classList.remove('active');
+            });
+            
+            // Add active state to clicked button
+            this.classList.add('border-blue-500', 'text-blue-600');
+            this.classList.remove('border-transparent', 'text-gray-500');
+            
+            // Show corresponding content
+            const targetContent = document.getElementById(tabId);
+            if (targetContent) {
+                targetContent.classList.remove('hidden');
+                targetContent.classList.add('active');
+            }
+        });
+    });
+});
+
+// Utility function for switching tabs programmatically
+function switchTab(tabName) {
+    const tabButton = document.getElementById('tab-' + tabName);
+    if (tabButton) {
+        tabButton.click();
+    }
+}
+</script>
+{% endblock %}

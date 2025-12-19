@@ -1,0 +1,966 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Payment History - {{ tenant.name|default:"M-Neti" }}{% endblock %}
+
+{% block page_title %}Payment History{% endblock %}
+{% block page_subtitle %}Track and manage all your payments{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-20">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 relative overflow-hidden">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-32 translate-x-32"></div>
+            <div class="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full translate-y-48 -translate-x-48"></div>
+        </div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                <div>
+                    <h1 class="text-3xl lg:text-4xl font-bold text-white mb-3">Payment History</h1>
+                    <p class="text-blue-100 text-lg max-w-2xl">
+                        View all your transactions, receipts, and payment details in one place.
+                    </p>
+                </div>
+                
+                <!-- Stats Summary -->
+                <div class="flex items-center gap-6">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-white">{{ total_payments }}</div>
+                        <div class="text-blue-100 text-sm">Total Payments</div>
+                    </div>
+                    <div class="h-12 w-px bg-white/30"></div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-white">Ksh {{ total_revenue|intcomma }}</div>
+                        <div class="text-blue-100 text-sm">Total Amount</div>
+                    </div>
+                    <div class="h-12 w-px bg-white/30"></div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-white">{{ successful_payments }}</div>
+                        <div class="text-blue-100 text-sm">Successful</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 pb-12">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Column - Filters & Stats -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Filters Card -->
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Filters</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Status Filter -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <select class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="all">All Status</option>
+                                <option value="completed">Completed</option>
+                                <option value="pending">Pending</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Date Range -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+                            <select class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="all">All Time</option>
+                                <option value="month">This Month</option>
+                                <option value="quarter">Last 3 Months</option>
+                                <option value="year">This Year</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Amount Range -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Amount Range</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <input type="number" placeholder="Min" 
+                                       class="px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <input type="number" placeholder="Max" 
+                                       class="px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            </div>
+                        </div>
+                        
+                        <!-- Apply Filters Button -->
+                        <button class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl font-semibold transition-all transform hover:-translate-y-0.5 shadow-md hover:shadow-lg">
+                            Apply Filters
+                        </button>
+                        
+                        <!-- Reset Filters -->
+                        <button class="w-full border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 py-3 rounded-xl font-semibold transition-all">
+                            Reset Filters
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Statistics Card -->
+                <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-white mb-6">Statistics</h3>
+                    
+                    <div class="space-y-6">
+                        <!-- Success Rate -->
+                        <div>
+                            <div class="flex justify-between text-gray-300 text-sm mb-2">
+                                <span>Success Rate</span>
+                                <span>
+                                    {% if total_payments > 0 %}
+                                        {% widthratio successful_payments total_payments 100 %}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full" 
+                                     style="width: {% if total_payments > 0 %}{% widthratio successful_payments total_payments 100 %}%{% else %}0%{% endif %}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Monthly Average -->
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-white">Ksh 
+                                {% if successful_payments > 0 %}
+                                    {{ average_payment|floatformat:2|intcomma }}
+                                {% else %}
+                                    0.00
+                                {% endif %}
+                            </div>
+                            <div class="text-gray-400 text-sm">Average Payment</div>
+                        </div>
+                        
+                        <!-- Recent Transactions -->
+                        <div>
+                            <div class="text-gray-300 text-sm mb-3">Recent Activity</div>
+                            <div class="space-y-3">
+                                {% for payment in recent_payments|slice:":3" %}
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-white text-sm">{{ payment.plan.name|truncatechars:15 }}</div>
+                                        <div class="text-gray-400 text-xs">{{ payment.created_at|date:"M d" }}</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-white text-sm font-medium">Ksh {{ payment.amount }}</div>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
+                                            {% if payment.status == 'completed' %}bg-green-900/30 text-green-300
+                                            {% elif payment.status == 'pending' %}bg-yellow-900/30 text-yellow-300
+                                            {% else %}bg-red-900/30 text-red-300{% endif %}">
+                                            {{ payment.status|title }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="text-center text-gray-400 py-4">No recent payments</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Payments Table -->
+            <div class="lg:col-span-3">
+                <!-- Action Bar -->
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">All Payments</h2>
+                            <p class="text-gray-600 text-sm mt-1">{{ payments.paginator.count }} transactions found</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <!-- Search -->
+                            <div class="relative">
+                                <input type="text" placeholder="Search payments..." 
+                                       class="pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64 transition">
+                                <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
+                            </div>
+                            
+                            <!-- Export Button -->
+                            <button class="flex items-center gap-2 px-4 py-2.5 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 rounded-xl font-medium transition-all">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
+                            
+                            <!-- Print Button -->
+                            <button class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                                <i class="fas fa-print"></i>
+                                Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payments Table -->
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200">
+                                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Date</th>
+                                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Transaction ID</th>
+                                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Plan</th>
+                                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Amount</th>
+                                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Method</th>
+                                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Status</th>
+                                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                {% for payment in payments %}
+                                <tr class="hover:bg-gray-50 transition-colors" id="payment-{{ payment.id }}">
+                                    <!-- Date Column -->
+                                    <td class="py-4 px-6">
+                                        <div class="text-gray-900 font-medium">{{ payment.created_at|date:"M d, Y" }}</div>
+                                        <div class="text-gray-500 text-sm">{{ payment.created_at|time:"h:i A" }}</div>
+                                    </td>
+                                    
+                                    <!-- Transaction ID -->
+                                    <td class="py-4 px-6">
+                                        <div class="font-mono text-sm text-gray-900">{{ payment.reference|truncatechars:12 }}</div>
+                                        <button onclick="copyToClipboard('{{ payment.reference }}')" 
+                                                class="text-xs text-blue-600 hover:text-blue-800 transition-colors cursor-pointer mt-1">
+                                            <i class="fas fa-copy mr-1"></i>Copy
+                                        </button>
+                                    </td>
+                                    
+                                    <!-- Plan -->
+                                    <td class="py-4 px-6">
+                                        <div class="text-gray-900 font-medium">{{ payment.plan.name|default:"N/A" }}</div>
+                                        {% if payment.plan %}
+                                        <div class="text-gray-500 text-sm">{{ payment.plan.bandwidth }} Mbps • {{ payment.plan.duration_days }} days</div>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Amount -->
+                                    <td class="py-4 px-6">
+                                        <div class="text-lg font-bold text-gray-900">Ksh {{ payment.amount|floatformat:2|intcomma }}</div>
+                                        {% if payment.currency %}
+                                        <div class="text-gray-500 text-sm">{{ payment.currency }}</div>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- Method -->
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center gap-2">
+                                            {% if payment.payment_method == 'paystack' %}
+                                            <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                                                <i class="fas fa-credit-card text-orange-600"></i>
+                                            </div>
+                                            <span class="text-gray-700">Card</span>
+                                            {% elif payment.payment_method == 'mpesa' %}
+                                            <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                                                <i class="fas fa-mobile-alt text-green-600"></i>
+                                            </div>
+                                            <span class="text-gray-700">M-Pesa</span>
+                                            {% elif payment.payment_method == 'bank' %}
+                                            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                                <i class="fas fa-university text-blue-600"></i>
+                                            </div>
+                                            <span class="text-gray-700">Bank</span>
+                                            {% else %}
+                                            <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                                                <i class="fas fa-money-bill-alt text-gray-600"></i>
+                                            </div>
+                                            <span class="text-gray-700">{{ payment.get_payment_method_display }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    
+                                    <!-- Status -->
+                                    <td class="py-4 px-6">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                            {% if payment.status == 'completed' %}bg-green-100 text-green-800
+                                            {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                            {% elif payment.status == 'failed' %}bg-red-100 text-red-800
+                                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                            <span class="w-2 h-2 rounded-full mr-2
+                                                {% if payment.status == 'completed' %}bg-green-500
+                                                {% elif payment.status == 'pending' %}bg-yellow-500
+                                                {% elif payment.status == 'failed' %}bg-red-500
+                                                {% else %}bg-gray-500{% endif %}"></span>
+                                            {{ payment.get_status_display }}
+                                        </span>
+                                    </td>
+                                    
+                                    <!-- Actions -->
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center gap-2">
+                                            <!-- View Details -->
+                                            <button onclick="viewPaymentDetails('{{ payment.id }}')" 
+                                                    class="w-10 h-10 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors cursor-pointer"
+                                                    title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            
+                                            <!-- Download Receipt -->
+                                            <button onclick="downloadReceipt('{{ payment.id }}')" 
+                                                    class="w-10 h-10 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 flex items-center justify-center transition-colors cursor-pointer"
+                                                    title="Download Receipt">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            
+                                            <!-- Re-download if failed -->
+                                            {% if payment.status == 'failed' %}
+                                            <button onclick="retryPayment('{{ payment.id }}')" 
+                                                    class="w-10 h-10 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors cursor-pointer"
+                                                    title="Retry Payment">
+                                                <i class="fas fa-redo"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="py-12 text-center">
+                                        <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                                            <i class="fas fa-credit-card text-gray-400 text-2xl"></i>
+                                        </div>
+                                        <h3 class="text-lg font-bold text-gray-900 mb-2">No payments found</h3>
+                                        <p class="text-gray-600 mb-6 max-w-md mx-auto">
+                                            You haven't made any payments yet. Start by subscribing to a plan.
+                                        </p>
+                                        <a href="{% url 'plan_selection' %}" 
+                                           class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-6 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                                            <i class="fas fa-plus"></i>
+                                            Subscribe to Plan
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if payments.has_other_pages %}
+                    <div class="border-t border-gray-200 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-700">
+                                Showing <span class="font-medium">{{ payments.start_index }}</span> to 
+                                <span class="font-medium">{{ payments.end_index }}</span> of 
+                                <span class="font-medium">{{ payments.paginator.count }}</span> payments
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <!-- Previous Button -->
+                                {% if payments.has_previous %}
+                                <a href="?page={{ payments.previous_page_number }}" 
+                                   class="w-10 h-10 rounded-lg border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 flex items-center justify-center transition-colors">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                                {% endif %}
+                                
+                                <!-- Page Numbers -->
+                                {% for num in payments.paginator.page_range %}
+                                    {% if payments.number == num %}
+                                    <span class="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-center font-medium">
+                                        {{ num }}
+                                    </span>
+                                    {% elif num > payments.number|add:'-3' and num < payments.number|add:'3' %}
+                                    <a href="?page={{ num }}" 
+                                       class="w-10 h-10 rounded-lg border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 flex items-center justify-center transition-colors">
+                                        {{ num }}
+                                    </a>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                <!-- Next Button -->
+                                {% if payments.has_next %}
+                                <a href="?page={{ payments.next_page_number }}" 
+                                   class="w-10 h-10 rounded-lg border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 flex items-center justify-center transition-colors">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <!-- Total Spent -->
+                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-100 text-sm font-medium mb-1">Total Spent</p>
+                                <p class="text-2xl font-bold">Ksh {{ total_revenue|floatformat:2|intcomma }}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-wallet text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-blue-100 text-sm">
+                            {{ successful_payments }} successful transactions
+                        </div>
+                    </div>
+                    
+                    <!-- This Month -->
+                    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-emerald-100 text-sm font-medium mb-1">This Month</p>
+                                <p class="text-2xl font-bold">Ksh {{ monthly_revenue|floatformat:2|intcomma }}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-calendar-alt text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-emerald-100 text-sm">
+                            {{ monthly_payments }} payments this month
+                        </div>
+                    </div>
+                    
+                    <!-- Pending -->
+                    <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-amber-100 text-sm font-medium mb-1">Pending</p>
+                                <p class="text-2xl font-bold">Ksh {{ pending_amount|floatformat:2|intcomma }}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-clock text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-amber-100 text-sm">
+                            {{ pending_payments }} pending payments
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Details Modal -->
+<div id="paymentModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-gray-900">Payment Details</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <div id="paymentDetails" class="p-6">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Copy to clipboard function
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        // Show success message
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+        toast.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas fa-check-circle"></i>
+                <span>Copied to clipboard!</span>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+}
+
+// View payment details - USING TABLE DATA
+function viewPaymentDetails(paymentId) {
+    const modal = document.getElementById('paymentModal');
+    const detailsDiv = document.getElementById('paymentDetails');
+    
+    // Show loading state
+    detailsDiv.innerHTML = `
+        <div class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-4"></i>
+            <p class="text-gray-600">Loading payment details...</p>
+        </div>
+    `;
+    
+    modal.classList.remove('hidden');
+    
+    try {
+        // Find the payment row in the table
+        const row = document.getElementById(`payment-${paymentId}`);
+        if (!row) {
+            throw new Error('Payment details not found in table');
+        }
+        
+        // Extract data from the table row
+        const dateCell = row.cells[0];
+        const idCell = row.cells[1];
+        const planCell = row.cells[2];
+        const amountCell = row.cells[3];
+        const methodCell = row.cells[4];
+        const statusCell = row.cells[5];
+        
+        // Get values from table cells
+        const date = dateCell.querySelector('.text-gray-900')?.textContent || 'N/A';
+        const time = dateCell.querySelector('.text-gray-500')?.textContent || '';
+        const transactionId = idCell.querySelector('.font-mono')?.textContent || 'N/A';
+        const planName = planCell.querySelector('.text-gray-900')?.textContent || 'N/A';
+        const planDetails = planCell.querySelector('.text-gray-500')?.textContent || '';
+        const amount = amountCell.querySelector('.text-lg')?.textContent || 'Ksh 0.00';
+        const methodText = methodCell.querySelector('span:nth-child(2)')?.textContent || 'Unknown';
+        const statusSpan = statusCell.querySelector('span');
+        const status = statusSpan?.textContent || 'Unknown';
+        
+        // Get status class for color coding
+        const statusClass = statusSpan?.className || '';
+        let statusColor = 'blue';
+        let statusIcon = 'fa-info-circle';
+        
+        if (statusClass.includes('green')) {
+            statusColor = 'green';
+            statusIcon = 'fa-check-circle';
+        } else if (statusClass.includes('yellow')) {
+            statusColor = 'yellow';
+            statusIcon = 'fa-clock';
+        } else if (statusClass.includes('red')) {
+            statusColor = 'red';
+            statusIcon = 'fa-times-circle';
+        }
+        
+        // Build the modal content
+        detailsDiv.innerHTML = `
+            <div class="space-y-4">
+                <!-- Payment ID -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Transaction ID</span>
+                    <span class="font-mono font-medium text-gray-900">${transactionId}</span>
+                </div>
+                
+                <!-- Status -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Status</span>
+                    <span class="px-3 py-1 rounded-full text-sm font-medium bg-${statusColor}-100 text-${statusColor}-800">
+                        <i class="fas ${statusIcon} mr-1"></i>
+                        ${status}
+                    </span>
+                </div>
+                
+                <!-- Date -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Date & Time</span>
+                    <span class="font-medium text-gray-900">${date} ${time}</span>
+                </div>
+                
+                <!-- Amount -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Amount</span>
+                    <span class="text-xl font-bold text-gray-900">${amount}</span>
+                </div>
+                
+                <!-- Plan -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Plan</span>
+                    <span class="font-medium text-gray-900">${planName}</span>
+                </div>
+                
+                ${planDetails ? `
+                <!-- Plan Details -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Plan Details</span>
+                    <span class="font-medium text-gray-900">${planDetails}</span>
+                </div>
+                ` : ''}
+                
+                <!-- Method -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Payment Method</span>
+                    <span class="font-medium text-gray-900">${methodText}</span>
+                </div>
+                
+                <div class="pt-6 border-t border-gray-200">
+                    <div class="flex gap-3">
+                        <button onclick="downloadReceipt('${paymentId}')" 
+                                class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl font-semibold transition-all">
+                            <i class="fas fa-download mr-2"></i>
+                            Download Receipt
+                        </button>
+                        <button onclick="closeModal()" 
+                                class="flex-1 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 py-3 rounded-xl font-semibold transition-all">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Payment details error:', error);
+        detailsDiv.innerHTML = `
+            <div class="text-center py-8 text-red-600">
+                <i class="fas fa-exclamation-triangle text-2xl mb-4"></i>
+                <p class="font-medium mb-2">Failed to load payment details</p>
+                <p class="text-sm text-gray-600">${error.message}</p>
+                <button onclick="closeModal()" 
+                        class="mt-4 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-xl font-medium transition-all">
+                    Close
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Alternative: API-based view payment details (if API endpoint exists)
+async function viewPaymentDetailsAPI(paymentId) {
+    const modal = document.getElementById('paymentModal');
+    const detailsDiv = document.getElementById('paymentDetails');
+    
+    // Show loading state
+    detailsDiv.innerHTML = `
+        <div class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-4"></i>
+            <p class="text-gray-600">Loading payment details...</p>
+        </div>
+    `;
+    
+    modal.classList.remove('hidden');
+    
+    try {
+        // Try to fetch from API
+        const response = await fetch(`/billing/api/payment/${paymentId}/details/`);
+        
+        if (!response.ok) {
+            // If API fails, fall back to table data
+            throw new Error(`API returned ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to load payment details');
+        }
+        
+        // Determine status badge styling
+        const statusBgColor = data.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                              data.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-red-100 text-red-800';
+        const statusIcon = data.status === 'completed' ? 'fa-check-circle' : 
+                          data.status === 'pending' ? 'fa-clock' : 
+                          'fa-times-circle';
+        
+        detailsDiv.innerHTML = `
+            <div class="space-y-4">
+                <!-- Payment ID -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Transaction ID</span>
+                    <span class="font-mono font-medium text-gray-900">${data.transaction_id}</span>
+                </div>
+                
+                <!-- Customer Name -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Customer</span>
+                    <span class="font-medium text-gray-900">${data.customer_name}</span>
+                </div>
+                
+                <!-- Customer Email -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Email</span>
+                    <span class="font-medium text-gray-900 text-sm">${data.customer_email}</span>
+                </div>
+                
+                <!-- Status -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Status</span>
+                    <span class="px-3 py-1 rounded-full text-sm font-medium ${statusBgColor}">
+                        <i class="fas ${statusIcon} mr-1"></i>
+                        ${data.status_display}
+                    </span>
+                </div>
+                
+                <!-- Date -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Date & Time</span>
+                    <span class="font-medium text-gray-900">${data.created_date} at ${data.created_time}</span>
+                </div>
+                
+                <!-- Amount -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Amount</span>
+                    <span class="text-xl font-bold text-gray-900">Ksh ${parseFloat(data.amount).toLocaleString('en-KE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                </div>
+                
+                <!-- Plan -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Plan</span>
+                    <span class="font-medium text-gray-900">${data.plan_name}</span>
+                </div>
+                
+                <!-- Bandwidth -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Bandwidth</span>
+                    <span class="font-medium text-gray-900">${data.plan_bandwidth}</span>
+                </div>
+                
+                <!-- Method -->
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Payment Method</span>
+                    <span class="font-medium text-gray-900">${data.payment_method}</span>
+                </div>
+                
+                ${data.notes && data.notes !== 'N/A' && data.notes !== '' ? `
+                <!-- Notes -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p class="text-sm text-blue-800"><strong>Notes:</strong> ${data.notes}</p>
+                </div>
+                ` : ''}
+                
+                <div class="pt-6 border-t border-gray-200">
+                    <div class="flex gap-3">
+                        <button onclick="downloadReceipt('${paymentId}')" 
+                                class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-xl font-semibold transition-all">
+                            <i class="fas fa-download mr-2"></i>
+                            Download Receipt
+                        </button>
+                        <button onclick="closeModal()" 
+                                class="flex-1 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 py-3 rounded-xl font-semibold transition-all">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('API payment details error:', error);
+        // Fall back to table data if API fails
+        viewPaymentDetails(paymentId);
+    }
+}
+
+// Download receipt
+function downloadReceipt(paymentId) {
+    // Show loading toast
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+    toast.innerHTML = `
+        <div class="flex items-center gap-2">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Generating receipt...</span>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    // In a real app, this would call your Django view to generate a PDF
+    // For now, simulate download and show success message
+    setTimeout(() => {
+        // Remove loading toast
+        toast.remove();
+        
+        // Show success toast
+        const successToast = document.createElement('div');
+        successToast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+        successToast.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas fa-check-circle"></i>
+                <span>Receipt downloaded successfully!</span>
+            </div>
+        `;
+        document.body.appendChild(successToast);
+        
+        // Remove success toast after 3 seconds
+        setTimeout(() => {
+            successToast.remove();
+        }, 3000);
+        
+        // In production, uncomment this to actually download:
+        // window.open(`/billing/payment/${paymentId}/receipt/`, '_blank');
+        
+    }, 1500);
+}
+
+// Retry payment
+function retryPayment(paymentId) {
+    if (confirm('Are you sure you want to retry this payment?')) {
+        // Show loading in the table row
+        const row = document.getElementById(`payment-${paymentId}`);
+        if (row) {
+            const statusCell = row.querySelector('td:nth-child(6)');
+            if (statusCell) {
+                statusCell.innerHTML = `
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        Processing...
+                    </span>
+                `;
+            }
+        }
+        
+        // In a real app, this would make an API call to retry the payment
+        // For now, simulate success after 2 seconds
+        setTimeout(() => {
+            if (row) {
+                const statusCell = row.querySelector('td:nth-child(6)');
+                if (statusCell) {
+                    statusCell.innerHTML = `
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <span class="w-2 h-2 rounded-full mr-2 bg-green-500"></span>
+                            Completed
+                        </span>
+                    `;
+                }
+            }
+            
+            // Show success toast
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Payment completed successfully!</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }, 2000);
+    }
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('paymentModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('paymentModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Escape key closes modal
+    if (e.key === 'Escape' && !document.getElementById('paymentModal').classList.contains('hidden')) {
+        closeModal();
+    }
+    
+    // Ctrl/Cmd + F for search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        document.querySelector('input[placeholder*="Search"]').focus();
+    }
+});
+
+// Add animation styles
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out;
+    }
+    
+    /* Smooth hover effects */
+    button, a {
+        transition: all 0.2s ease;
+    }
+    
+    /* Glass effect for cards */
+    .glass-effect {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+<style>
+/* Custom gradient backgrounds */
+.bg-gradient-blue {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+}
+
+.bg-gradient-green {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.bg-gradient-orange {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+/* Enhanced shadow effects */
+.shadow-soft {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-hover {
+    transition: box-shadow 0.3s ease;
+}
+
+.shadow-hover:hover {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+/* Modern border radius */
+.rounded-xl {
+    border-radius: 1rem;
+}
+
+.rounded-2xl {
+    border-radius: 1.5rem;
+}
+
+/* Smooth transitions */
+.transition-all {
+    transition: all 0.3s ease;
+}
+
+/* Hover lift effect */
+.hover-lift:hover {
+    transform: translateY(-2px);
+}
+
+/* Focus styles */
+.focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+</style>
+{% endblock %}

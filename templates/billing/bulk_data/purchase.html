@@ -1,0 +1,256 @@
+<!-- templates/billing/bulk_data/purchase.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Purchase {{ package.name }} - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Purchase {{ package.name }}{% endblock %}
+{% block page_subtitle %}Review and confirm your bulk data purchase{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Package Summary -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-start justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">{{ package.name }}</h3>
+                <p class="text-gray-600">{{ package.description }}</p>
+            </div>
+            <span class="px-3 py-1 bg-{% if package.source_type == 'platform' %}blue{% else %}green{% endif %}-100 text-{% if package.source_type == 'platform' %}blue{% else %}green{% endif %}-800 text-xs font-medium rounded-full">
+                {{ package.get_source_type_display }}
+            </span>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="text-center p-4 bg-gray-50 rounded-lg">
+                <div class="text-3xl font-bold text-gray-900 mb-1">{{ package.data_amount }}GB</div>
+                <p class="text-sm text-gray-500">Data Amount</p>
+            </div>
+            
+            <div class="text-center p-4 bg-gray-50 rounded-lg">
+                <div class="text-3xl font-bold text-gray-900 mb-1">{{ package.validity_days }} days</div>
+                <p class="text-sm text-gray-500">Validity</p>
+            </div>
+            
+            <div class="text-center p-4 bg-gray-50 rounded-lg">
+                <div class="text-3xl font-bold text-gray-900 mb-1">KSh {{ package.selling_price|floatformat:0 }}</div>
+                <p class="text-sm text-gray-500">Price per package</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-6">
+            <i class="fas fa-shopping-cart mr-2"></i>Purchase Details
+        </h3>
+        
+        <form method="post" id="purchase-form">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <!-- Quantity -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-hashtag mr-1"></i> Quantity
+                    </label>
+                    <div class="flex items-center space-x-4">
+                        <button type="button" onclick="decreaseQuantity()" 
+                                class="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        
+                        <input type="number" 
+                               name="quantity" 
+                               id="quantity" 
+                               value="1" 
+                               min="1" 
+                               max="100"
+                               class="w-20 text-center px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               onchange="calculateTotals()">
+                        
+                        <button type="button" onclick="increaseQuantity()" 
+                                class="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        
+                        <span class="text-sm text-gray-500">
+                            Maximum 100 packages per purchase
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Distribution Settings -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-users mr-1"></i> Distribution Settings
+                    </label>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   name="auto_distribute" 
+                                   id="auto_distribute" 
+                                   checked
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="auto_distribute" class="ml-2 text-sm text-gray-700">
+                                Auto-distribute data to customers after purchase
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Distribute to:</label>
+                            <select name="distribute_to" 
+                                    id="distribute_to"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="all">All Active Customers</option>
+                                <option value="prepaid">Prepaid Customers Only</option>
+                                <option value="postpaid">Postpaid Customers Only</option>
+                                <option value="custom">Selected Plans Only</option>
+                            </select>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Choose which customers receive the distributed data
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Commission Information -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-medium text-blue-900 mb-2 flex items-center">
+                        <i class="fas fa-percentage mr-2"></i> Commission Information
+                    </h4>
+                    
+                    <div class="space-y-2 text-sm text-blue-700">
+                        <div class="flex justify-between">
+                            <span>Platform Commission Rate:</span>
+                            <span class="font-medium">{{ package.commission_rate }}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Commission per package:</span>
+                            <span class="font-medium">KSh {{ commission_amount|floatformat:0 }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Net amount per package:</span>
+                            <span class="font-medium">KSh {{ net_amount|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Summary -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Purchase Summary</h4>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Unit Price:</span>
+                            <span class="font-medium">KSh {{ package.selling_price|floatformat:0 }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Quantity:</span>
+                            <span class="font-medium" id="summary-quantity">1</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Total Data:</span>
+                            <span class="font-medium" id="summary-data">{{ package.data_amount }} GB</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Subtotal:</span>
+                            <span class="font-medium" id="summary-subtotal">KSh {{ package.selling_price|floatformat:0 }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Platform Commission ({{ package.commission_rate }}%):</span>
+                            <span class="text-red-600 font-medium" id="summary-commission">- KSh {{ commission_amount|floatformat:0 }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between text-lg font-bold pt-3 border-t border-gray-200">
+                            <span class="text-gray-900">Net Amount for Data:</span>
+                            <span class="text-green-600" id="summary-net">KSh {{ net_amount|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-center space-x-4 pt-6">
+                    <button type="submit" 
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200">
+                        <i class="fas fa-credit-card mr-2"></i>
+                        Proceed to Payment
+                    </button>
+                    
+                    <a href="{% url 'bulk_data_marketplace' %}" 
+                       class="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Important Notes -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-yellow-600 mt-1 mr-3"></i>
+            <div>
+                <h4 class="font-medium text-yellow-900 mb-1">Important Information</h4>
+                <ul class="text-sm text-yellow-700 space-y-1">
+                    <li>• Platform commission of {{ package.commission_rate }}% will be deducted from the total amount</li>
+                    <li>• The net amount will be used for data distribution to your customers</li>
+                    <li>• Data distribution begins immediately after successful payment</li>
+                    <li>• You can view distribution logs in the purchase details page</li>
+                    <li>• All purchases are final and non-refundable</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const unitPrice = {{ package.selling_price }};
+const commissionRate = {{ package.commission_rate }};
+const dataAmount = {{ package.data_amount }};
+const unitCommission = {{ commission_amount }};
+const unitNet = {{ net_amount }};
+
+function calculateTotals() {
+    const quantity = parseInt(document.getElementById('quantity').value) || 1;
+    
+    // Update summary
+    document.getElementById('summary-quantity').textContent = quantity;
+    document.getElementById('summary-data').textContent = (dataAmount * quantity).toFixed(2) + ' GB';
+    
+    const subtotal = unitPrice * quantity;
+    const totalCommission = unitCommission * quantity;
+    const totalNet = unitNet * quantity;
+    
+    document.getElementById('summary-subtotal').textContent = 'KSh ' + subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('summary-commission').textContent = '- KSh ' + totalCommission.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('summary-net').textContent = 'KSh ' + totalNet.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function increaseQuantity() {
+    const input = document.getElementById('quantity');
+    let value = parseInt(input.value) || 1;
+    if (value < 100) {
+        input.value = value + 1;
+        calculateTotals();
+    }
+}
+
+function decreaseQuantity() {
+    const input = document.getElementById('quantity');
+    let value = parseInt(input.value) || 1;
+    if (value > 1) {
+        input.value = value - 1;
+        calculateTotals();
+    }
+}
+
+// Initialize calculations
+calculateTotals();
+</script>
+{% endblock %}

@@ -1,0 +1,202 @@
+{% extends 'router/base_router.html' %}
+
+{% block router_content %}
+<div class="bg-white rounded-xl shadow-sm p-6">
+    <h2 class="text-2xl font-semibold mb-6 flex items-center">
+        <i class="fas fa-chart-bar text-blue-500 mr-3"></i>
+        Router Status
+    </h2>
+
+    <!-- Status Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-signal text-blue-500"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold">{% if router.is_online %}Online{% else %}Offline{% endif %}</div>
+                    <div class="text-sm text-gray-600">Connection Status</div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-green-50 p-4 rounded-lg">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-devices text-green-500"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold">{{ online_devices_count }}</div>
+                    <div class="text-sm text-gray-600">Active Devices</div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-purple-50 p-4 rounded-lg">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-database text-purple-500"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold">{{ total_data|filesizeformat }}</div>
+                    <div class="text-sm text-gray-600">Data Transferred</div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-yellow-50 p-4 rounded-lg">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-clock text-yellow-500"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold">{{ router.uptime }}</div>
+                    <div class="text-sm text-gray-600">Uptime</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- Internet Speed -->
+        <div class="bg-white border border-gray-200 rounded-lg p-5">
+            <h3 class="font-semibold text-lg mb-4 flex items-center">
+                <i class="fas fa-tachometer-alt text-blue-500 mr-2"></i>
+                Internet Speed
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-blue-600">95.2</div>
+                    <div class="text-sm text-gray-600">Download (Mbps)</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-green-600">23.8</div>
+                    <div class="text-sm text-gray-600">Upload (Mbps)</div>
+                </div>
+            </div>
+            <button class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg">
+                <i class="fas fa-sync-alt mr-2"></i> Test Speed
+            </button>
+        </div>
+
+        <!-- Network Health -->
+        <div class="bg-white border border-gray-200 rounded-lg p-5">
+            <h3 class="font-semibold text-lg mb-4 flex items-center">
+                <i class="fas fa-heartbeat text-red-500 mr-2"></i>
+                Network Health
+            </h3>
+            <div class="mb-3">
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm">Signal Strength</span>
+                    <span class="text-sm font-medium">{% if avg_signal > -60 %}Excellent{% elif avg_signal > -70 %}Good{% elif avg_signal > -80 %}Fair{% else %}Poor{% endif %}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-green-500 h-2 rounded-full" style="width: {{ avg_signal|add:100|divisibleby:1|floatformat:0 }}%"></div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm">Connection Stability</span>
+                    <span class="text-sm font-medium">Excellent</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-green-500 h-2 rounded-full" style="width: 95%"></div>
+                </div>
+            </div>
+            <div>
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm">Latency</span>
+                    <span class="text-sm font-medium">12ms</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-green-500 h-2 rounded-full" style="width: 90%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+        <h3 class="font-semibold text-lg mb-4 flex items-center">
+            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+            System Information
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-600">Router Model</span>
+                    <span class="font-medium">{{ router.model }}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-600">MAC Address</span>
+                    <span class="font-medium">{{ router.mac_address }}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-600">Firmware Version</span>
+                    <span class="font-medium">v2.1.4</span>
+                </div>
+            </div>
+            <div>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-600">Last Reboot</span>
+                    <span class="font-medium">{{ router.last_reboot|timesince }} ago</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-600">CPU Usage</span>
+                    <span class="font-medium">24%</span>
+                </div>
+                <div class="flex justify-between py-2">
+                    <span class="text-gray-600">Memory Usage</span>
+                    <span class="font-medium">256/512 MB (50%)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Events -->
+    <div class="bg-white border border-gray-200 rounded-lg p-5">
+        <h3 class="font-semibold text-lg mb-4 flex items-center">
+            <i class="fas fa-history text-blue-500 mr-2"></i>
+            Recent Events
+        </h3>
+        <div class="space-y-3">
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                    <i class="fas fa-check text-green-500"></i>
+                </div>
+                <div>
+                    <h4 class="font-medium">System reboot completed</h4>
+                    <p class="text-sm text-gray-600">2 minutes ago</p>
+                </div>
+            </div>
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                    <i class="fas fa-wifi text-blue-500"></i>
+                </div>
+                <div>
+                    <h4 class="font-medium">New device connected: iPhone</h4>
+                    <p class="text-sm text-gray-600">15 minutes ago</p>
+                </div>
+            </div>
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3 mt-1">
+                    <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                </div>
+                <div>
+                    <h4 class="font-medium">Internet connection temporarily lost</h4>
+                    <p class="text-sm text-gray-600">1 hour ago</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}

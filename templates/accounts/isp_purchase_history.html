@@ -1,0 +1,227 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Purchase History - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Purchase History{% endblock %}
+{% block page_subtitle %}View all your marketplace purchases{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-shopping-cart text-blue-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Purchases</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ total_purchases }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-money-bill-wave text-green-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Spent</p>
+                    <p class="text-2xl font-bold text-gray-900">KSh {{ total_spent|floatformat:0 }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-database text-indigo-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Data Purchased</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ total_data_purchased|floatformat:0 }} GB</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-network-wired text-purple-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Bandwidth Purchased</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ total_bandwidth_purchased|floatformat:0 }} Mbps</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="">All Statuses</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="processing" {% if status_filter == 'processing' %}selected{% endif %}>Processing</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Package Type</label>
+                    <select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="">All Types</option>
+                        <option value="data" {% if type_filter == 'data' %}selected{% endif %}>Data Packages</option>
+                        <option value="bandwidth" {% if type_filter == 'bandwidth' %}selected{% endif %}>Bandwidth Packages</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <input type="date" name="date_from" value="{{ date_from }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <input type="date" name="date_to" value="{{ date_to }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Apply Filters
+                </button>
+                <a href="{% url 'isp_purchase_history' %}" 
+                   class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Purchase List -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Package
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Amount
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for purchase in purchases %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ purchase.purchased_at|date:"M d, Y" }}</div>
+                            <div class="text-xs text-gray-500">{{ purchase.purchased_at|date:"H:i" }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                {% if purchase.bulk_package %}
+                                    {{ purchase.bulk_package.name }}
+                                {% else %}
+                                    {{ purchase.bulk_bandwidth_package.name }}
+                                {% endif %}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {% if purchase.package_type == 'data' %}
+                                    {{ purchase.total_data_amount }} GB • {{ purchase.quantity }} units
+                                {% else %}
+                                    {{ purchase.total_bandwidth_amount }} Mbps • {{ purchase.quantity }} units
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-gray-900">KSh {{ purchase.total_price|floatformat:0 }}</div>
+                            <div class="text-xs text-gray-500">Net: KSh {{ purchase.isp_net_amount|floatformat:0 }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full
+                                {% if purchase.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif purchase.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif purchase.status == 'processing' %}bg-blue-100 text-blue-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ purchase.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="{% url 'isp_purchase_detail' purchase.id %}" 
+                               class="text-blue-600 hover:text-blue-900 mr-3">
+                                View
+                            </a>
+                            {% if purchase.status == 'completed' and purchase.package_type == 'bandwidth' %}
+                            <a href="{% url 'isp_allocate_bandwidth' purchase.id %}" 
+                               class="text-indigo-600 hover:text-indigo-900">
+                                Allocate
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                            <i class="fas fa-shopping-cart text-3xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-900 font-medium">No purchases found</p>
+                            <p class="text-gray-600 mt-1">Your purchase history will appear here</p>
+                            <a href="{% url 'isp_vendor_marketplace' %}" class="text-blue-600 hover:text-blue-800 mt-3 inline-block">
+                                Visit Marketplace →
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if purchases.has_other_pages %}
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                    Showing {{ purchases.start_index }} to {{ purchases.end_index }} of {{ purchases.paginator.count }} entries
+                </div>
+                <div class="flex space-x-2">
+                    {% if purchases.has_previous %}
+                    <a href="?page={{ purchases.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                       class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                        Previous
+                    </a>
+                    {% endif %}
+                    
+                    {% if purchases.has_next %}
+                    <a href="?page={{ purchases.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                       class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                        Next
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

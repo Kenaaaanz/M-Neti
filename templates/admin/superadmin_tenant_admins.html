@@ -1,0 +1,1035 @@
+<!-- templates/admin/superadmin_tenant_admins.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}ISP Admins - {{ tenant.name }} - M-Neti{% endblock %}
+
+{% block page_title %}ISP Admins: {{ tenant.name }}{% endblock %}
+{% block page_subtitle %}Manage administrators for {{ tenant.company_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'superadmin_tenant_detail' tenant.id %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+        <i class="fas fa-arrow-left mr-2"></i> Back to ISP Details
+    </a>
+</div>
+
+<!-- Admin Statistics -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-user-shield text-blue-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Total Admins</p>
+                <p class="text-2xl font-bold text-gray-900">{{ admin_count }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-check-circle text-green-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Active Admins</p>
+                <p class="text-2xl font-bold text-gray-900">{{ active_admin_count }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-clock text-yellow-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Pending Invites</p>
+                <p class="text-2xl font-bold text-gray-900">{{ pending_invites_count }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-chart-line text-purple-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Last 30 Days</p>
+                <p class="text-2xl font-bold text-gray-900">{{ recent_admins_count }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Bar -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">ISP Administrator Management</h3>
+            <p class="text-sm text-gray-500">Assign and manage administrators for this ISP</p>
+        </div>
+        <div class="flex space-x-3 mt-4 md:mt-0">
+            <button onclick="openCreateAdminModal()" 
+                    class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg">
+                <i class="fas fa-plus mr-2"></i>
+                Create New Admin
+            </button>
+            <button onclick="openBulkInviteModal()" 
+                    class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg">
+                <i class="fas fa-user-plus mr-2"></i>
+                Bulk Invite
+            </button>
+            <button onclick="exportAdmins()" 
+                    class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg">
+                <i class="fas fa-download mr-2"></i>
+                Export
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Admins Table -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-900">Administrators</h3>
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <input type="text" id="searchAdmins" placeholder="Search admins..." 
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                <select id="adminStatusFilter" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Admin Details
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Contact Information
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Permissions
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Last Active
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200" id="adminsTable">
+                {% for admin in admins %}
+                <tr class="hover:bg-gray-50 admin-row" 
+                    data-status="{% if admin.is_active %}active{% else %}inactive{% endif %}"
+                    data-name="{{ admin.get_full_name|lower }}"
+                    data-email="{{ admin.email|lower }}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                    <span class="text-white font-bold text-sm">
+                                        {{ admin.first_name|first|upper }}{{ admin.last_name|first|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ admin.get_full_name }}</div>
+                                <div class="text-sm text-gray-500">@{{ admin.username }}</div>
+                                <div class="text-xs text-gray-400">
+                                    <i class="fas fa-id-card mr-1"></i>{{ admin.company_account_number|default:"No ID" }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">
+                            <div class="flex items-center mb-1">
+                                <i class="fas fa-envelope text-gray-400 mr-2 text-xs"></i>
+                                <a href="mailto:{{ admin.email }}" class="text-blue-600 hover:text-blue-800">
+                                    {{ admin.email }}
+                                </a>
+                            </div>
+                            {% if admin.phone %}
+                            <div class="flex items-center">
+                                <i class="fas fa-phone text-gray-400 mr-2 text-xs"></i>
+                                <span class="text-gray-900">{{ admin.phone }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex flex-wrap gap-1">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                <i class="fas fa-cogs mr-1"></i>{{ admin.get_role_display }}
+                            </span>
+                            {% if admin.is_staff %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                <i class="fas fa-shield-alt mr-1"></i>Staff Access
+                            </span>
+                            {% endif %}
+                            {% if admin.is_superuser %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                <i class="fas fa-crown mr-1"></i>Super Admin
+                            </span>
+                            {% endif %}
+                            <div class="mt-1 text-xs text-gray-500">
+                                Joined: {{ admin.date_joined|date:"M d, Y" }}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <span class="relative flex h-3 w-3 mr-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full 
+                                    {% if admin.is_active %}bg-green-400 opacity-75{% else %}bg-red-400 opacity-75{% endif %}"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 
+                                    {% if admin.is_active %}bg-green-500{% else %}bg-red-500{% endif %}"></span>
+                            </span>
+                            {% if admin.is_active %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                Active
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                Inactive
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            {% if admin.registration_status == 'approved' %}
+                            <span class="text-green-600">✓ Approved</span>
+                            {% elif admin.registration_status == 'pending' %}
+                            <span class="text-yellow-600">⏳ Pending</span>
+                            {% else %}
+                            <span class="text-red-600">✗ {{ admin.get_registration_status_display }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if admin.last_login %}
+                        <div class="text-sm text-gray-900">{{ admin.last_login|date:"M d, Y" }}</div>
+                        <div class="text-xs text-gray-500">{{ admin.last_login|time:"H:i" }}</div>
+                        <div class="text-xs text-gray-400">{{ admin.last_login|timesince }} ago</div>
+                        {% else %}
+                        <span class="text-sm text-gray-500">Never logged in</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center space-x-2">
+                            <button onclick="viewAdminDetails('{{ admin.id }}')" 
+                                    class="text-blue-600 hover:text-blue-900"
+                                    title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="editAdminPermissions('{{ admin.id }}')" 
+                                    class="text-green-600 hover:text-green-900"
+                                    title="Edit Permissions">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            {% if admin.is_active %}
+                            <button onclick="toggleAdminStatus('{{ admin.id }}')" 
+                                    class="text-yellow-600 hover:text-yellow-900"
+                                    title="Deactivate">
+                                <i class="fas fa-toggle-on"></i>
+                            </button>
+                            {% else %}
+                            <button onclick="toggleAdminStatus('{{ admin.id }}')" 
+                                    class="text-green-600 hover:text-green-900"
+                                    title="Activate">
+                                <i class="fas fa-toggle-off"></i>
+                            </button>
+                            {% endif %}
+                            <button onclick="sendPasswordReset('{{ admin.id }}')" 
+                                    class="text-purple-600 hover:text-purple-900"
+                                    title="Reset Password">
+                                <i class="fas fa-key"></i>
+                            </button>
+                            {% if admin.id != request.user.id %}
+                            <button onclick="removeAdmin('{{ admin.id }}')" 
+                                    class="text-red-600 hover:text-red-900"
+                                    title="Remove Admin">
+                                <i class="fas fa-user-minus"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center">
+                        <div class="text-gray-400">
+                            <i class="fas fa-user-shield text-4xl mb-3"></i>
+                            <p class="text-lg font-medium">No administrators found</p>
+                            <p class="text-sm mt-1">Create the first administrator for this ISP</p>
+                            <button onclick="openCreateAdminModal()" class="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-plus mr-1"></i> Create First Admin
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if admins.has_other_pages %}
+    <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div class="flex items-center justify-between">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if admins.has_previous %}
+                <a href="?page={{ admins.previous_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Previous
+                </a>
+                {% endif %}
+                {% if admins.has_next %}
+                <a href="?page={{ admins.next_page_number }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ admins.start_index }}</span> to 
+                        <span class="font-medium">{{ admins.end_index }}</span> of 
+                        <span class="font-medium">{{ admins.paginator.count }}</span> admins
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if admins.has_previous %}
+                        <a href="?page={{ admins.previous_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Previous</span>
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                        
+                        {% for num in admins.paginator.page_range %}
+                            {% if admins.number == num %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600">
+                                {{ num }}
+                            </span>
+                            {% elif num > admins.number|add:'-3' and num < admins.number|add:'3' %}
+                            <a href="?page={{ num }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ num }}
+                            </a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if admins.has_next %}
+                        <a href="?page={{ admins.next_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Next</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Pending Invites -->
+{% if pending_invites %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+    <div class="flex justify-between items-center mb-4">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">Pending Invitations</h3>
+            <p class="text-sm text-gray-500">Invited administrators awaiting response</p>
+        </div>
+        <span class="text-sm text-yellow-600">{{ pending_invites|length }} pending</span>
+    </div>
+    
+    <div class="space-y-3">
+        {% for invite in pending_invites %}
+        <div class="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                    <i class="fas fa-envelope text-yellow-600"></i>
+                </div>
+                <div>
+                    <p class="font-medium text-gray-900">{{ invite.email }}</p>
+                    <p class="text-sm text-gray-600">
+                        Invited {{ invite.created_at|timesince }} ago
+                        {% if invite.invited_by %}
+                        by {{ invite.invited_by.get_full_name }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="resendInvite('{{ invite.id }}')" 
+                        class="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-sm font-medium rounded">
+                    <i class="fas fa-paper-plane mr-1"></i> Resend
+                </button>
+                <button onclick="cancelInvite('{{ invite.id }}')" 
+                        class="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 text-sm font-medium rounded">
+                    <i class="fas fa-times mr-1"></i> Cancel
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Admin Activity Log -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Recent Admin Activity</h3>
+        <button onclick="viewFullActivityLog()" class="text-sm text-blue-600 hover:text-blue-800">
+            View Full Log →
+        </button>
+    </div>
+    
+    <div class="space-y-3">
+        {% for activity in recent_activity %}
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                    {% if activity.action_type == 'login' %}
+                    <i class="fas fa-sign-in-alt text-green-600"></i>
+                    {% elif activity.action_type == 'logout' %}
+                    <i class="fas fa-sign-out-alt text-blue-600"></i>
+                    {% elif activity.action_type == 'create' %}
+                    <i class="fas fa-plus text-purple-600"></i>
+                    {% elif activity.action_type == 'update' %}
+                    <i class="fas fa-edit text-yellow-600"></i>
+                    {% else %}
+                    <i class="fas fa-history text-gray-600"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-900">{{ activity.description }}</p>
+                    <p class="text-xs text-gray-500">
+                        {{ activity.user.get_full_name }} • {{ activity.timestamp|timesince }} ago
+                    </p>
+                </div>
+            </div>
+            <span class="text-xs text-gray-500">{{ activity.timestamp|date:"H:i" }}</span>
+        </div>
+        {% empty %}
+        <p class="text-gray-500 text-center py-4">No recent activity</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Create Admin Modal -->
+<div id="createAdminModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Create New ISP Admin</h3>
+            <button onclick="closeCreateAdminModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <form id="createAdminForm" method="post" action="{% url 'superadmin_create_tenant_admin' tenant.id %}">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            First Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="first_name" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Last Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="last_name" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" name="email" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="admin@{{ tenant.subdomain }}.com">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Username <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="username" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Unique username">
+                    <p class="text-xs text-gray-500 mt-1">Will be used for login</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Phone Number
+                        </label>
+                        <input type="tel" name="phone"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Company Account Number
+                        </label>
+                        <input type="text" name="company_account_number"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Optional">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Password <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" name="password" id="password" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <div class="text-xs text-gray-500 mt-1">
+                            <div id="passwordStrength" class="h-1 w-full bg-gray-200 rounded mt-1">
+                                <div id="passwordStrengthBar" class="h-1 rounded transition-all duration-300"></div>
+                            </div>
+                            <ul class="mt-1 space-y-1">
+                                <li id="lengthCheck" class="text-red-500">• At least 8 characters</li>
+                                <li id="numberCheck" class="text-red-500">• Contains a number</li>
+                                <li id="letterCheck" class="text-red-500">• Contains a letter</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Confirm Password <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" name="confirm_password" id="confirmPassword" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <div id="passwordMatch" class="text-xs text-red-500 mt-1 hidden">
+                            <i class="fas fa-times-circle mr-1"></i>Passwords do not match
+                        </div>
+                        <div id="passwordMatchSuccess" class="text-xs text-green-500 mt-1 hidden">
+                            <i class="fas fa-check-circle mr-1"></i>Passwords match
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <h4 class="font-medium text-gray-700">Permissions & Settings</h4>
+                    
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" name="is_staff" id="is_staff" checked
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="is_staff" class="ml-2 text-sm text-gray-700">
+                                Grant staff access (can access admin panel)
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" name="send_welcome_email" id="send_welcome_email" checked
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="send_welcome_email" class="ml-2 text-sm text-gray-700">
+                                Send welcome email with login instructions
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" name="auto_approve" id="auto_approve" checked
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="auto_approve" class="ml-2 text-sm text-gray-700">
+                                Auto-approve account (skip pending status)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select name="role" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="isp_admin">ISP Administrator (Full Access)</option>
+                        <option value="isp_staff">ISP Staff (Limited Access)</option>
+                        <option value="support">Support Staff (Customer Support Only)</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                    <textarea name="notes" rows="2"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Any additional notes about this admin..."></textarea>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t border-gray-200">
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeCreateAdminModal()"
+                            class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" id="createAdminSubmit"
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                        <i class="fas fa-user-plus mr-2"></i> Create Admin
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Admin Details Modal -->
+<div id="adminDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900" id="adminDetailsTitle">Admin Details</h3>
+            <button onclick="closeAdminDetailsModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="mt-3" id="adminDetailsContent">
+            <!-- Dynamic content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // Search and Filter Functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchAdmins');
+        const statusFilter = document.getElementById('adminStatusFilter');
+        const adminRows = document.querySelectorAll('.admin-row');
+        
+        function filterAdmins() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const statusValue = statusFilter.value;
+            
+            adminRows.forEach(row => {
+                const adminName = row.getAttribute('data-name');
+                const adminEmail = row.getAttribute('data-email');
+                const adminStatus = row.getAttribute('data-status');
+                
+                const matchesSearch = searchTerm === '' || 
+                    adminName.includes(searchTerm) || 
+                    adminEmail.includes(searchTerm);
+                
+                const matchesStatus = statusValue === 'all' || adminStatus === statusValue;
+                
+                row.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
+            });
+        }
+        
+        searchInput.addEventListener('input', filterAdmins);
+        statusFilter.addEventListener('change', filterAdmins);
+        
+        // Initialize filtering
+        filterAdmins();
+        
+        // Password validation
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const createAdminSubmit = document.getElementById('createAdminSubmit');
+        
+        if (passwordInput && confirmPasswordInput) {
+            passwordInput.addEventListener('input', validatePassword);
+            confirmPasswordInput.addEventListener('input', validatePassword);
+        }
+        
+        function validatePassword() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            // Check password strength
+            let strength = 0;
+            const checks = {
+                length: password.length >= 8,
+                number: /\d/.test(password),
+                letter: /[a-zA-Z]/.test(password)
+            };
+            
+            // Update UI for each check
+            document.getElementById('lengthCheck').className = checks.length ? 'text-green-500' : 'text-red-500';
+            document.getElementById('numberCheck').className = checks.number ? 'text-green-500' : 'text-red-500';
+            document.getElementById('letterCheck').className = checks.letter ? 'text-green-500' : 'text-red-500';
+            
+            // Calculate strength
+            strength = Object.values(checks).filter(Boolean).length;
+            
+            // Update strength bar
+            const strengthBar = document.getElementById('passwordStrengthBar');
+            if (strength === 0) {
+                strengthBar.style.width = '0%';
+                strengthBar.className = 'h-1 rounded bg-red-500 transition-all duration-300';
+            } else if (strength === 1) {
+                strengthBar.style.width = '33%';
+                strengthBar.className = 'h-1 rounded bg-red-500 transition-all duration-300';
+            } else if (strength === 2) {
+                strengthBar.style.width = '66%';
+                strengthBar.className = 'h-1 rounded bg-yellow-500 transition-all duration-300';
+            } else {
+                strengthBar.style.width = '100%';
+                strengthBar.className = 'h-1 rounded bg-green-500 transition-all duration-300';
+            }
+            
+            // Check password match
+            const matchDiv = document.getElementById('passwordMatch');
+            const matchSuccessDiv = document.getElementById('passwordMatchSuccess');
+            
+            if (confirmPassword) {
+                if (password === confirmPassword) {
+                    matchDiv.classList.add('hidden');
+                    matchSuccessDiv.classList.remove('hidden');
+                } else {
+                    matchDiv.classList.remove('hidden');
+                    matchSuccessDiv.classList.add('hidden');
+                }
+            } else {
+                matchDiv.classList.add('hidden');
+                matchSuccessDiv.classList.add('hidden');
+            }
+            
+            // Enable/disable submit button
+            const allChecksValid = Object.values(checks).every(Boolean) && password === confirmPassword;
+            createAdminSubmit.disabled = !allChecksValid;
+        }
+    });
+    
+    // Modal Functions
+    function openCreateAdminModal() {
+        document.getElementById('createAdminModal').classList.remove('hidden');
+    }
+    
+    function closeCreateAdminModal() {
+        document.getElementById('createAdminModal').classList.add('hidden');
+    }
+    
+    function openBulkInviteModal() {
+        // Implement bulk invite modal
+        alert('Bulk invite functionality would open here');
+    }
+    
+    // Admin Actions
+    function viewAdminDetails(adminId) {
+        fetch(`/api/isp/{{ tenant.id }}/admins/${adminId}/details/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('adminDetailsTitle').textContent = `Admin: ${data.admin.full_name}`;
+                document.getElementById('adminDetailsContent').innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-4 mb-4">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                <span class="text-white text-xl font-bold">
+                                    ${data.admin.first_name[0]}${data.admin.last_name[0]}
+                                </span>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">${data.admin.full_name}</h4>
+                                <p class="text-gray-600">${data.admin.role_display}</p>
+                                <p class="text-sm text-gray-500">@${data.admin.username}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Email</p>
+                                <p class="font-medium">${data.admin.email}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Phone</p>
+                                <p class="font-medium">${data.admin.phone || 'Not provided'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Account Number</p>
+                                <p class="font-medium">${data.admin.company_account_number || 'Not assigned'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Status</p>
+                                <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                    ${data.admin.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${data.admin.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-500 mb-2">Permissions</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                    ${data.admin.role_display}
+                                </span>
+                                ${data.admin.is_staff ? 
+                                    '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Staff Access</span>' : ''}
+                                ${data.admin.is_superuser ? 
+                                    '<span class="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">Super Admin</span>' : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Joined</p>
+                                <p class="font-medium">${new Date(data.admin.date_joined).toLocaleDateString()}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Last Login</p>
+                                <p class="font-medium">
+                                    ${data.admin.last_login ? new Date(data.admin.last_login).toLocaleString() : 'Never'}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4 border-t border-gray-200">
+                            <h5 class="font-medium text-gray-700 mb-2">Recent Activity</h5>
+                            ${data.recent_activity && data.recent_activity.length > 0 ?
+                                data.recent_activity.map(activity => `
+                                    <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                                        <span class="text-sm text-gray-600">${activity.description}</span>
+                                        <span class="text-xs text-gray-500">${activity.time_ago}</span>
+                                    </div>
+                                `).join('') :
+                                '<p class="text-sm text-gray-500">No recent activity</p>'
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <div class="flex space-x-3">
+                            <button onclick="editAdminPermissions('${data.admin.id}')" 
+                                    class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">
+                                <i class="fas fa-edit mr-2"></i> Edit Permissions
+                            </button>
+                            <button onclick="closeAdminDetailsModal()" 
+                                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('adminDetailsModal').classList.remove('hidden');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading admin details');
+        });
+    }
+    
+    function closeAdminDetailsModal() {
+        document.getElementById('adminDetailsModal').classList.add('hidden');
+    }
+    
+    function toggleAdminStatus(adminId) {
+        if (confirm('Toggle this admin\'s active status?')) {
+            fetch(`/api/isp/{{ tenant.id }}/admins/${adminId}/toggle-status/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Admin ${data.is_active ? 'activated' : 'deactivated'} successfully!`);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating admin status');
+            });
+        }
+    }
+    
+    function editAdminPermissions(adminId) {
+        // This would open a permissions editor modal
+        // For now, redirect to edit page or show alert
+        alert(`Edit permissions for admin ${adminId} - would open permissions editor`);
+    }
+    
+    function sendPasswordReset(adminId) {
+        if (confirm('Send password reset email to this admin?')) {
+            fetch(`/api/isp/{{ tenant.id }}/admins/${adminId}/reset-password/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Password reset email sent successfully!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error sending password reset');
+            });
+        }
+    }
+    
+    function removeAdmin(adminId) {
+        if (confirm('Remove this admin from the ISP? They will lose access but account will remain.')) {
+            fetch(`/api/isp/{{ tenant.id }}/admins/${adminId}/remove/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Admin removed successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error removing admin');
+            });
+        }
+    }
+    
+    function resendInvite(inviteId) {
+        if (confirm('Resend invitation email?')) {
+            fetch(`/api/isp/{{ tenant.id }}/invites/${inviteId}/resend/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Invitation resent successfully!');
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error resending invitation');
+            });
+        }
+    }
+    
+    function cancelInvite(inviteId) {
+        if (confirm('Cancel this invitation?')) {
+            fetch(`/api/isp/{{ tenant.id }}/invites/${inviteId}/cancel/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Invitation cancelled!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error cancelling invitation');
+            });
+        }
+    }
+    
+    function exportAdmins() {
+        window.location.href = `/superadmin/tenant/{{ tenant.id }}/admins/export/`;
+    }
+    
+    function viewFullActivityLog() {
+        window.location.href = `/superadmin/tenant/{{ tenant.id }}/admins/activity/`;
+    }
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(event) {
+        const createModal = document.getElementById('createAdminModal');
+        const detailsModal = document.getElementById('adminDetailsModal');
+        
+        if (event.target === createModal) {
+            closeCreateAdminModal();
+        }
+        if (event.target === detailsModal) {
+            closeAdminDetailsModal();
+        }
+    });
+    
+    // Form submission for create admin
+    document.getElementById('createAdminForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitButton = document.getElementById('createAdminSubmit');
+        const originalText = submitButton.innerHTML;
+        
+        // Disable button and show loading
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating...';
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Admin created successfully!');
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error creating admin');
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,752 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Dashboard - {{ tenant.name|default:"M-Neti" }}{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Welcome back, {{ user.first_name|default:user.username }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-20">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 relative overflow-hidden">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-32 translate-x-32"></div>
+            <div class="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full translate-y-48 -translate-x-48"></div>
+        </div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                <div>
+                    <h1 class="text-3xl lg:text-4xl font-bold text-white mb-3">Dashboard</h1>
+                    <p class="text-blue-100 text-lg max-w-2xl">
+                        Welcome back, {{ user.first_name|default:user.username }}! Here's your account overview.
+                    </p>
+                </div>
+                
+                <!-- Stats Summary -->
+                <div class="flex items-center gap-6">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-white">{{ subscription.days_remaining|default:"0" }}</div>
+                        <div class="text-blue-100 text-sm">Days Left</div>
+                    </div>
+                    <div class="h-12 w-px bg-white/30"></div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-white">{{ subscription.plan.bandwidth|default:"0" }} Mbps</div>
+                        <div class="text-blue-100 text-sm">Speed</div>
+                    </div>
+                    <div class="h-12 w-px bg-white/30"></div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-white">{{ user.data_usage|default:"0" }} GB</div>
+                        <div class="text-blue-100 text-sm">Usage</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 pb-12">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Column - Quick Stats -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Account Status Card -->
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Account Status</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Status -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full {% if user.is_active_customer %}bg-green-500{% else %}bg-red-500{% endif %}"></span>
+                                <span class="text-gray-700">{{ user.is_active_customer|yesno:"Active,Inactive" }}</span>
+                            </div>
+                            <div class="text-sm text-gray-600">ID: {{ user.company_account_number }}</div>
+                        </div>
+                        
+                        <!-- Days Remaining -->
+                        <div>
+                            <div class="text-xs text-gray-500 mb-2">Days Remaining</div>
+                            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full" 
+                                     style="width: {% if subscription.days_remaining_percentage %}{{ subscription.days_remaining_percentage }}%{% else %}0%{% endif %}">
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>{{ subscription.start_date|date:"M d"|default:"Start" }}</span>
+                                <span>{{ subscription.end_date|date:"M d"|default:"End" }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Plan -->
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <div class="text-2xl font-bold text-gray-900">Ksh {{ subscription.plan.price|default:"0" }}</div>
+                            <div class="text-sm text-gray-600">{{ subscription.plan.name|default:"No Plan" }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Card -->
+                <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-white mb-6">Quick Actions</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Manage Plan -->
+                        <a href="{% url 'plan_selection' %}" 
+                           class="flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all group cursor-pointer">
+                            <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                                <i class="fas fa-credit-card text-white"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">Manage Plan</div>
+                                <div class="text-gray-400 text-sm">Upgrade or renew</div>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400 group-hover:translate-x-1 transition-transform"></i>
+                        </a>
+                        
+                        <!-- Payment History -->
+                        <a href="{% url 'payment_history' %}" 
+                           class="flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all group cursor-pointer">
+                            <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                                <i class="fas fa-history text-white"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">Payment History</div>
+                                <div class="text-gray-400 text-sm">View transactions</div>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400 group-hover:translate-x-1 transition-transform"></i>
+                        </a>
+                        
+                        <!-- Support / Live Chat -->
+                        <a id="dashboard-chat-link" href="{% url 'support_chat' %}" 
+                           class="flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all group cursor-pointer">
+                            <div class="relative w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                                <i class="fas fa-headset text-white"></i>
+                                <!-- Unread red dot -->
+                                <span id="chat-unread-badge" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-white hidden" title="New messages"></span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">Live Chat</div>
+                                <div class="text-gray-400 text-sm">Chat with ISP</div>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400 group-hover:translate-x-1 transition-transform"></i>
+                        </a>
+                        
+                        <!-- Profile -->
+                        <a href="{% url 'profile' %}" 
+                           class="flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all group cursor-pointer">
+                            <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                                <i class="fas fa-user-cog text-white"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-white font-medium">Profile</div>
+                                <div class="text-gray-400 text-sm">Manage account</div>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400 group-hover:translate-x-1 transition-transform"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Account Summary -->
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Account Summary</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Member Since -->
+                        <div class="flex items-center justify-between">
+                            <div class="text-gray-600">Member Since</div>
+                            <div class="font-medium">{{ user.date_joined|date:"M d, Y" }}</div>
+                        </div>
+                        
+                        <!-- Billing Cycle -->
+                        <div class="flex items-center justify-between">
+                            <div class="text-gray-600">Billing Cycle</div>
+                            <div class="font-medium">
+                                {% if subscription %}{{ subscription.plan.duration_days }} days{% else %}—{% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Next Renewal -->
+                        <div class="flex items-center justify-between">
+                            <div class="text-gray-600">Next Renewal</div>
+                            <div class="font-medium">
+                                {% if subscription %}{{ subscription.end_date|date:"M d, Y" }}{% else %}—{% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Account Type -->
+                        <div class="flex items-center justify-between">
+                            <div class="text-gray-600">Account Type</div>
+                            <div class="font-medium">{{ user.get_role_display }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Main Dashboard -->
+            <div class="lg:col-span-3">
+                <!-- Action Bar -->
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">Subscription Overview</h2>
+                            <p class="text-gray-600 text-sm mt-1">Manage your internet plan and billing</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <!-- Renew Button -->
+                            {% if subscription %}
+                            <a href="{% url 'plan_selection' %}" 
+                               class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                                <i class="fas fa-redo"></i>
+                                Renew Plan
+                            </a>
+                            {% endif %}
+                            
+                            <!-- Upgrade Button -->
+                            <a href="{% url 'plan_selection' %}" 
+                               class="flex items-center gap-2 px-4 py-2.5 border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 rounded-xl font-medium transition-all">
+                                <i class="fas fa-sync-alt"></i>
+                                Upgrade
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {% if subscription %}
+                <!-- Active Subscription -->
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">
+                                    <i class="fas fa-crown text-white text-2xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-900">{{ subscription.plan.name }}</h3>
+                                    <p class="text-gray-600">{{ subscription.plan.description|default:"Premium internet service" }}</p>
+                                </div>
+                            </div>
+                            <span class="px-4 py-2 rounded-full text-sm font-medium
+                                {% if subscription.days_remaining <= 7 %}bg-red-100 text-red-800
+                                {% elif subscription.days_remaining <= 14 %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-green-100 text-green-800{% endif %}">
+                                {{ subscription.days_remaining }} days left
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Speed -->
+                            <div class="text-center">
+                                <div class="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-tachometer-alt text-blue-600 text-2xl"></i>
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900">{{ subscription.plan.bandwidth }} Mbps</div>
+                                <div class="text-gray-600">Internet Speed</div>
+                            </div>
+                            
+                            <!-- Data -->
+                            <div class="text-center">
+                                <div class="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-database text-green-600 text-2xl"></i>
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900">{{ subscription.plan.data_cap|default:"Unlimited" }} GB</div>
+                                <div class="text-gray-600">Data Cap</div>
+                            </div>
+                            
+                            <!-- Price -->
+                            <div class="text-center">
+                                <div class="w-20 h-20 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-tag text-purple-600 text-2xl"></i>
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900">Ksh {{ subscription.plan.price }}</div>
+                                <div class="text-gray-600">Every {{ subscription.plan.duration_days }} days</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Timeline -->
+                        <div class="mt-8 pt-8 border-t border-gray-200">
+                            <div class="flex justify-between text-sm text-gray-600 mb-3">
+                                <span>Started: {{ subscription.start_date|date:"M d, Y" }}</span>
+                                <span>Ends: {{ subscription.end_date|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="relative">
+                                <div class="absolute inset-0 flex items-center">
+                                    <div class="w-full h-2 bg-gray-200 rounded-full"></div>
+                                </div>
+                                <div class="relative flex justify-between">
+                                    <div class="relative">
+                                        <div class="w-3 h-3 rounded-full bg-white border-4 border-green-500"></div>
+                                    </div>
+                                    <div class="relative" style="left: {{ subscription.days_remaining_percentage|default:50 }}%">
+                                        <div class="w-8 h-8 rounded-full bg-white border-4 border-blue-500 shadow-lg flex items-center justify-center">
+                                            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                        </div>
+                                    </div>
+                                    <div class="relative">
+                                        <div class="w-3 h-3 rounded-full bg-white border-4 border-red-500"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <!-- No Subscription -->
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-12 text-center mb-6">
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-wifi text-white text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-3">No Active Subscription</h3>
+                    <p class="text-gray-600 mb-8 max-w-md mx-auto">
+                        Get connected with our high-speed internet plans designed for your needs.
+                    </p>
+                    <a href="{% url 'plan_selection' %}" 
+                       class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 px-8 rounded-xl font-bold text-lg transition-all shadow-md hover:shadow-lg transform hover:scale-105">
+                        <i class="fas fa-rocket"></i>
+                        Browse Plans
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Network Status -->
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg p-6 text-white mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Network Status</h3>
+                            <p class="text-blue-100 text-sm">Real-time connection information</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full {% if router and router.is_online %}bg-green-500 animate-pulse{% else %}bg-red-500{% endif %}"></span>
+                            <span class="text-white/80 text-sm">
+                                {% if router and router.is_online %}Online{% else %}Offline{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Speed -->
+                        <div>
+                            <div class="flex justify-between text-blue-100 text-sm mb-2">
+                                <span>Internet Speed</span>
+                                <span>{{ subscription.plan.bandwidth|default:"—" }} Mbps</span>
+                            </div>
+                            <div class="w-full h-2 bg-blue-300/30 rounded-full overflow-hidden">
+                                <div class="h-full bg-white rounded-full" 
+                                     style="width: {% widthratio subscription.plan.bandwidth|default:100 1000 100 %}%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Data Usage -->
+                        <div>
+                            <div class="flex justify-between text-blue-100 text-sm mb-2">
+                                <span>Data Usage</span>
+                                <span>{{ user.data_usage|default:"0" }} / {{ subscription.plan.data_cap|default:"∞" }} GB</span>
+                            </div>
+                            <div class="w-full h-2 bg-blue-300/30 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-green-400 to-emerald-400 rounded-full" 
+                                     style="width: {% widthratio user.data_usage|default:0 subscription.plan.data_cap|default:100 100 %}%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Devices -->
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-white mb-2">{{ router.devices.count|default:"0" }}</div>
+                            <div class="text-blue-100">Connected Devices</div>
+                        </div>
+                    </div>
+                    
+                    {% if router %}
+                    <a href="{% url 'router_settings' %}" 
+                       class="mt-6 inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white py-3 px-6 rounded-xl font-medium transition-all border border-white/20">
+                        <i class="fas fa-sliders-h"></i>
+                        Router Dashboard
+                    </a>
+                    {% else %}
+                    <a href="{% url 'router_settings' %}" 
+                       class="mt-6 inline-flex items-center gap-2 bg-white hover:text-blue-600 text-blue-600 py-3 px-6 rounded-xl font-medium transition-all">
+                        <i class="fas fa-plus"></i>
+                        Setup Router
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-bold text-gray-900">Recent Activity</h2>
+                            <a href="{% url 'payment_history' %}" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                View All <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="p-6">
+                        {% if recent_payments %}
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+                                        <th class="py-3 text-left text-sm font-semibold text-gray-700">Description</th>
+                                        <th class="py-3 text-left text-sm font-semibold text-gray-700">Amount</th>
+                                        <th class="py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    {% for payment in recent_payments|slice:":5" %}
+                                    <tr class="hover:bg-gray-50 transition-colors">
+                                        <td class="py-4">
+                                            <div class="text-gray-900 font-medium">{{ payment.created_at|date:"M d, Y" }}</div>
+                                            <div class="text-gray-500 text-sm">{{ payment.created_at|time:"h:i A" }}</div>
+                                        </td>
+                                        <td class="py-4">
+                                            <div class="font-medium text-gray-900">{{ payment.plan.name|default:"Plan Payment" }}</div>
+                                            <div class="text-gray-500 text-sm">{{ payment.payment_method|title }}</div>
+                                        </td>
+                                        <td class="py-4">
+                                            <div class="text-lg font-bold text-gray-900">Ksh {{ payment.amount }}</div>
+                                        </td>
+                                        <td class="py-4">
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                                {% if payment.status == 'completed' %}bg-green-100 text-green-800
+                                                {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                                <span class="w-2 h-2 rounded-full mr-2
+                                                    {% if payment.status == 'completed' %}bg-green-500
+                                                    {% elif payment.status == 'pending' %}bg-yellow-500
+                                                    {% else %}bg-red-500{% endif %}"></span>
+                                                {{ payment.get_status_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-12">
+                            <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-receipt text-gray-400 text-2xl"></i>
+                            </div>
+                            <p class="text-gray-500 mb-2">No recent activity yet</p>
+                            <a href="{% url 'plan_selection' %}" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                Make your first payment to get started
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <!-- Total Spent -->
+                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-100 text-sm font-medium mb-1">Total Spent</p>
+                                <p class="text-2xl font-bold">Ksh {{ total_spent|floatformat:2|intcomma|default:"0.00" }}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-wallet text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Support -->
+                    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-emerald-100 text-sm font-medium mb-1">Support</p>
+                                <p class="text-2xl font-bold">24/7</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-headset text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-emerald-100 text-sm">
+                            Available anytime
+                        </div>
+                    </div>
+                    
+                    <!-- Satisfaction -->
+                    <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-amber-100 text-sm font-medium mb-1">Satisfaction</p>
+                                <p class="text-2xl font-bold">98%</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-heart text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-amber-100 text-sm">
+                            Customer rating
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button -->
+<div class="fixed bottom-6 right-6 z-50">
+    <div class="relative group">
+        <button class="w-14 h-14 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg hover:shadow-xl flex items-center justify-center transition-all transform hover:scale-110">
+            <i class="fas fa-plus text-white text-xl"></i>
+        </button>
+        
+        <div class="absolute bottom-full right-0 mb-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+            <div class="bg-white rounded-xl shadow-2xl border border-gray-200 p-2 min-w-48">
+                <a href="{% url 'plan_selection' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition">
+                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-plus text-blue-600"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium">New Subscription</div>
+                        <div class="text-xs text-gray-500">Get a new plan</div>
+                    </div>
+                </a>
+                <a href="#" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition">
+                    <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                        <i class="fas fa-ticket-alt text-green-600"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium">Support Ticket</div>
+                        <div class="text-xs text-gray-500">Get help</div>
+                    </div>
+                </a>
+                <a href="{% url 'payment_history' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition">
+                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <i class="fas fa-file-invoice-dollar text-purple-600"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium">Invoice</div>
+                        <div class="text-xs text-gray-500">View bills</div>
+                    </div>
+                </a>
+
+                <a href="{% url 'customer_map' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition">
+                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <i class="fas fa-map-marker-alt text-purple-600"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium">Set My Location</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Copy to clipboard function (if needed from payment history)
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+        toast.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas fa-check-circle"></i>
+                <span>Copied to clipboard!</span>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+}
+
+// Real-time data updates
+function updateRealTimeData() {
+    // Update connection status indicator
+    const statusIndicator = document.querySelector('.w-2.h-2.rounded-full');
+    if (statusIndicator) {
+        // Simulate occasional blips
+        if (Math.random() > 0.95) {
+            statusIndicator.classList.toggle('bg-red-500');
+            statusIndicator.classList.toggle('bg-green-500');
+            statusIndicator.classList.toggle('animate-pulse');
+        }
+    }
+}
+
+// Update every 10 seconds
+setInterval(updateRealTimeData, 10000);
+
+// Add hover effects
+document.querySelectorAll('a[href], button').forEach(element => {
+    element.addEventListener('mouseenter', function() {
+        if (!this.classList.contains('bg-gradient-to-r')) {
+            this.style.transform = 'translateY(-2px)';
+        }
+    });
+    
+    element.addEventListener('mouseleave', function() {
+        if (!this.classList.contains('bg-gradient-to-r')) {
+            this.style.transform = 'translateY(0)';
+        }
+    });
+});
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Alt + P for payments
+    if (e.altKey && e.key === 'p') {
+        e.preventDefault();
+        window.location.href = '{% url "payment_history" %}';
+    }
+    // Alt + S for subscription
+    if (e.altKey && e.key === 's') {
+        e.preventDefault();
+        window.location.href = '{% url "plan_selection" %}';
+    }
+    // Alt + D for dashboard
+    if (e.altKey && e.key === 'd') {
+        e.preventDefault();
+        window.location.href = '/dashboard/';
+    }
+});
+
+// Add animation styles
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    /* Smooth transitions */
+    button, a {
+        transition: all 0.2s ease;
+    }
+    
+    /* Modern border radius */
+    .rounded-xl {
+        border-radius: 1rem;
+    }
+    
+    .rounded-2xl {
+        border-radius: 1.5rem;
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+<script>
+// Live Chat unread badge check (client-side using localStorage conversation id)
+(function(){
+    const storageKey = 'support_conv_id';
+    const badge = document.getElementById('chat-unread-badge');
+    if (!badge) return;
+
+    function messagesUrlFor(id){
+        // template URL with placeholder 0 -> will be replaced
+        const tpl = '{% url "isp_support_chat_messages" 0 %}';
+        return tpl.replace('/0/messages/', '/'+id+'/messages/');
+    }
+
+    async function checkUnread(){
+        try{
+            const convId = localStorage.getItem(storageKey);
+            if (!convId) { badge.classList.add('hidden'); return; }
+            const lastSeenKey = 'support_last_seen_' + convId;
+            const lastSeen = parseInt(localStorage.getItem(lastSeenKey) || '0', 10);
+
+            const resp = await fetch(messagesUrlFor(convId), {credentials: 'same-origin'});
+            if (!resp.ok) { badge.classList.add('hidden'); return; }
+            const data = await resp.json();
+            if (!data.success) { badge.classList.add('hidden'); return; }
+
+            // Find latest message id from operator/bot
+            let latestOpId = 0;
+            data.messages.forEach(m => {
+                if (m.sender_type !== 'user') {
+                    if (m.id && m.id > latestOpId) latestOpId = m.id;
+                }
+            });
+
+            if (latestOpId > 0 && latestOpId > lastSeen) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }catch(e){
+            console.error('Chat unread check failed', e);
+            badge.classList.add('hidden');
+        }
+    }
+
+    // check on load and periodically
+    checkUnread();
+    setInterval(checkUnread, 10000);
+})();
+</script>
+
+<style>
+/* Custom gradient backgrounds */
+.bg-gradient-blue {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+}
+
+.bg-gradient-green {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.bg-gradient-orange {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+/* Enhanced shadow effects */
+.shadow-soft {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-hover {
+    transition: box-shadow 0.3s ease;
+}
+
+.shadow-hover:hover {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus styles */
+.focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+</style>
+{% endblock %}

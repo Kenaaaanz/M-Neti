@@ -1,0 +1,639 @@
+<!-- templates/admin/superadmin_tenant_analytics.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}ISP Analytics - {{ tenant.name }} - M-Neti{% endblock %}
+
+{% block page_title %}ISP Analytics: {{ tenant.name }}{% endblock %}
+{% block page_subtitle %}Performance metrics and insights for {{ tenant.company_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'superadmin_tenant_detail' tenant.id %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+        <i class="fas fa-arrow-left mr-2"></i> Back to ISP Details
+    </a>
+</div>
+
+<!-- Date Range Selector -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between">
+        <div>
+            <h3 class="text-lg font-medium text-gray-900">Analytics Period</h3>
+            <p class="text-sm text-gray-500">Select date range for analytics</p>
+        </div>
+        <div class="flex space-x-3 mt-3 md:mt-0">
+            <form method="get" class="flex items-center space-x-3">
+                <select name="days" onchange="this.form.submit()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 days</option>
+                    <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option>
+                    <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
+                    <option value="180" {% if days == 180 %}selected{% endif %}>Last 6 months</option>
+                    <option value="365" {% if days == 365 %}selected{% endif %}>Last year</option>
+                </select>
+                <button type="button" onclick="exportAnalytics('{{ tenant.id }}')" 
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg">
+                    <i class="fas fa-download mr-2"></i> Export
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- Total Revenue -->
+    <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-5 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-green-100 text-sm mb-1">Total Revenue</p>
+                <p class="text-2xl font-bold">KSh {{ total_revenue|floatformat:0|intcomma }}</p>
+                <p class="text-green-100 text-xs mt-1">Last {{ days }} days</p>
+            </div>
+            <i class="fas fa-credit-card text-xl opacity-80"></i>
+        </div>
+        <div class="mt-3 pt-3 border-t border-green-400 border-opacity-30">
+            <div class="flex justify-between text-xs">
+                <span>This Period</span>
+                <span>KSh {{ period_revenue|floatformat:0|intcomma }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Customers -->
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-blue-100 text-sm mb-1">Active Customers</p>
+                <p class="text-2xl font-bold">{{ active_customers }}</p>
+                <p class="text-blue-100 text-xs mt-1">{{ customer_stats.active }}% active rate</p>
+            </div>
+            <i class="fas fa-users text-xl opacity-80"></i>
+        </div>
+        <div class="mt-3 pt-3 border-t border-blue-400 border-opacity-30">
+            <div class="flex justify-between text-xs">
+                <span>New ({{ days }}d)</span>
+                <span>{{ new_customers }} customers</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Success Rate -->
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-purple-100 text-sm mb-1">Payment Success</p>
+                <p class="text-2xl font-bold">{{ payment_stats.success_rate }}%</p>
+                <p class="text-purple-100 text-xs mt-1">{{ payment_stats.total }} payments</p>
+            </div>
+            <i class="fas fa-percentage text-xl opacity-80"></i>
+        </div>
+        <div class="mt-3 pt-3 border-t border-purple-400 border-opacity-30">
+            <div class="flex justify-between text-xs">
+                <span>Failed</span>
+                <span>{{ payment_stats.failed }} payments</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Average Revenue per Customer -->
+    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-5 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-orange-100 text-sm mb-1">Avg. Revenue/Customer</p>
+                <p class="text-2xl font-bold">KSh {{ avg_revenue_per_customer|floatformat:0|intcomma }}</p>
+                <p class="text-orange-100 text-xs mt-1">Monthly average</p>
+            </div>
+            <i class="fas fa-chart-line text-xl opacity-80"></i>
+        </div>
+        <div class="mt-3 pt-3 border-t border-orange-400 border-opacity-30">
+            <div class="flex justify-between text-xs">
+                <span>Growth</span>
+                <span>{{ revenue_growth }}%</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Revenue Trend Chart -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Revenue Trend</h3>
+                <p class="text-sm text-gray-500">Daily revenue over time</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                <span class="text-sm text-gray-600">Revenue</span>
+            </div>
+        </div>
+        <div class="h-80">
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Customer Growth Chart -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Customer Growth</h3>
+                <p class="text-sm text-gray-500">Total customers over time</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+                <span class="text-sm text-gray-600">Customers</span>
+            </div>
+        </div>
+        <div class="h-80">
+            <canvas id="customerChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Plan Performance -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">Plan Performance</h3>
+            <p class="text-sm text-gray-500">Revenue by subscription plan</p>
+        </div>
+        <span class="text-sm text-gray-500">{{ top_plans|length }} plans</span>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+                <tr class="bg-gray-50">
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plan Name</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Revenue</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subscriptions</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg. Revenue</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Success Rate</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for plan in top_plans %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-wifi text-blue-600"></i>
+                            </div>
+                            <span class="font-medium text-gray-900">{{ plan.plan__name }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="font-bold text-gray-900">KSh {{ plan.total_revenue|floatformat:0|intcomma }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-gray-900">{{ plan.subscription_count }}</span>
+                        <span class="text-xs text-gray-500 block">subscriptions</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-gray-900">KSh {{ plan.avg_revenue|floatformat:0|intcomma }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: {{ plan.success_rate }}%"></div>
+                            </div>
+                            <span class="text-sm font-medium {% if plan.success_rate >= 90 %}text-green-600{% elif plan.success_rate >= 70 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                {{ plan.success_rate }}%
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="flex items-center text-sm {% if plan.trend >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if plan.trend >= 0 %}
+                            <i class="fas fa-arrow-up mr-1"></i>
+                            {% else %}
+                            <i class="fas fa-arrow-down mr-1"></i>
+                            {% endif %}
+                            {{ plan.trend|floatformat:1 }}%
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                        <i class="fas fa-chart-pie text-3xl mb-2 block"></i>
+                        No plan performance data available
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Payment Statistics -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Payment Status Distribution -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Payment Status</h3>
+                <p class="text-sm text-gray-500">Distribution of payment statuses</p>
+            </div>
+            <span class="text-sm text-gray-500">{{ payment_stats.total }} total</span>
+        </div>
+        <div class="h-64">
+            <canvas id="paymentStatusChart"></canvas>
+        </div>
+        <div class="grid grid-cols-3 gap-4 mt-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">{{ payment_stats.successful }}</div>
+                <div class="text-xs text-gray-500">Successful</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-yellow-600">{{ payment_stats.pending }}</div>
+                <div class="text-xs text-gray-500">Pending</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-red-600">{{ payment_stats.failed }}</div>
+                <div class="text-xs text-gray-500">Failed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Performance -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Monthly Performance</h3>
+                <p class="text-sm text-gray-500">Last 6 months comparison</p>
+            </div>
+        </div>
+        <div class="space-y-4">
+            {% for month in monthly_performance %}
+            <div>
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm font-medium text-gray-700">{{ month.month }}</span>
+                    <span class="text-sm font-bold text-gray-900">KSh {{ month.revenue|floatformat:0|intcomma }}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ month.percentage }}%"></div>
+                </div>
+                <div class="flex justify-between mt-1">
+                    <span class="text-xs text-gray-500">{{ month.customers }} customers</span>
+                    <span class="text-xs font-medium {% if month.growth >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if month.growth >= 0 %}+{% endif %}{{ month.growth }}%
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Customer Analytics -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">Customer Analytics</h3>
+            <p class="text-sm text-gray-500">Customer behavior and demographics</p>
+        </div>
+        <span class="text-sm text-gray-500">{{ customer_stats.total }} total customers</span>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Status Distribution -->
+        <div>
+            <h4 class="font-medium text-gray-700 mb-3">Customer Status</h4>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                        <span class="text-sm">Active</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-medium">{{ customer_stats.active }}</span>
+                        <span class="text-xs text-gray-500 ml-1">({{ customer_stats.active_percentage }}%)</span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                        <span class="text-sm">Pending</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-medium">{{ customer_stats.pending }}</span>
+                        <span class="text-xs text-gray-500 ml-1">({{ customer_stats.pending_percentage }}%)</span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                        <span class="text-sm">Inactive</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-medium">{{ customer_stats.inactive }}</span>
+                        <span class="text-xs text-gray-500 ml-1">({{ customer_stats.inactive_percentage }}%)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Registration Trend -->
+        <div>
+            <h4 class="font-medium text-gray-700 mb-3">Registration Trend</h4>
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Today</span>
+                    <span class="text-sm font-medium">{{ registration_trend.today }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">This Week</span>
+                    <span class="text-sm font-medium">{{ registration_trend.week }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">This Month</span>
+                    <span class="text-sm font-medium">{{ registration_trend.month }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">This Year</span>
+                    <span class="text-sm font-medium">{{ registration_trend.year }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Customer Value -->
+        <div>
+            <h4 class="font-medium text-gray-700 mb-3">Customer Value Metrics</h4>
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Avg. Lifetime</span>
+                    <span class="text-sm font-medium">{{ customer_value.avg_lifetime }} days</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Churn Rate</span>
+                    <span class="text-sm font-medium {% if customer_value.churn_rate < 10 %}text-green-600{% elif customer_value.churn_rate < 20 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                        {{ customer_value.churn_rate }}%
+                    </span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Retention Rate</span>
+                    <span class="text-sm font-medium text-green-600">{{ customer_value.retention_rate }}%</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Lifetime Value</span>
+                    <span class="text-sm font-medium">KSh {{ customer_value.ltv|floatformat:0|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export and Reports -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">Reports & Exports</h3>
+            <p class="text-sm text-gray-500">Generate detailed reports for this ISP</p>
+        </div>
+        <div class="flex flex-wrap gap-3 mt-4 md:mt-0">
+            <button onclick="exportRevenueReport('{{ tenant.id }}')" 
+                    class="px-4 py-2 bg-green-100 hover:bg-green-200 text-green-800 font-medium rounded-lg">
+                <i class="fas fa-file-invoice-dollar mr-2"></i> Revenue Report
+            </button>
+            <button onclick="exportCustomerReport('{{ tenant.id }}')" 
+                    class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium rounded-lg">
+                <i class="fas fa-users mr-2"></i> Customer Report
+            </button>
+            <button onclick="exportPaymentReport('{{ tenant.id }}')" 
+                    class="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 font-medium rounded-lg">
+                <i class="fas fa-credit-card mr-2"></i> Payment Report
+            </button>
+            <button onclick="printAnalytics()" 
+                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium rounded-lg">
+                <i class="fas fa-print mr-2"></i> Print Analytics
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Revenue Chart
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    const revenueData = {{ revenue_data|safe }};
+    
+    const revenueChart = new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: revenueData.map(d => d.date),
+            datasets: [{
+                label: 'Revenue',
+                data: revenueData.map(d => d.revenue),
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#10b981',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return 'KSh ' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: {
+                        callback: function(value) {
+                            return 'KSh ' + (value / 1000).toFixed(0) + 'K';
+                        }
+                    }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        maxTicksLimit: 10
+                    }
+                }
+            }
+        }
+    });
+
+    // Customer Growth Chart
+    const customerCtx = document.getElementById('customerChart').getContext('2d');
+    const customerData = {{ customer_data|safe }};
+    
+    const customerChart = new Chart(customerCtx, {
+        type: 'line',
+        data: {
+            labels: customerData.map(d => d.date),
+            datasets: [{
+                label: 'Total Customers',
+                data: customerData.map(d => d.customers),
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#3b82f6',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y + ' customers';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        maxTicksLimit: 10
+                    }
+                }
+            }
+        }
+    });
+
+    // Payment Status Chart
+    const paymentCtx = document.getElementById('paymentStatusChart').getContext('2d');
+    const paymentChart = new Chart(paymentCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Successful', 'Pending', 'Failed'],
+            datasets: [{
+                data: [{{ payment_stats.successful }}, {{ payment_stats.pending }}, {{ payment_stats.failed }}],
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                    }
+                }
+            }
+        }
+    });
+
+    // Export Functions
+    function exportAnalytics(tenantId) {
+        const days = document.querySelector('select[name="days"]').value;
+        window.location.href = `/superadmin/tenant/${tenantId}/analytics/export/?days=${days}`;
+    }
+
+    function exportRevenueReport(tenantId) {
+        window.location.href = `/superadmin/tenant/${tenantId}/analytics/revenue-report/`;
+    }
+
+    function exportCustomerReport(tenantId) {
+        window.location.href = `/superadmin/tenant/${tenantId}/analytics/customer-report/`;
+    }
+
+    function exportPaymentReport(tenantId) {
+        window.location.href = `/superadmin/tenant/${tenantId}/analytics/payment-report/`;
+    }
+
+    function printAnalytics() {
+        const printContent = document.documentElement.innerHTML;
+        const originalContent = document.body.innerHTML;
+        
+        const analyticsContent = document.querySelector('.content').innerHTML;
+        const printWindow = window.open('', '_blank');
+        
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Analytics Report - {{ tenant.name }}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    h1 { color: #1f2937; margin-bottom: 10px; }
+                    h2 { color: #374151; margin-top: 20px; }
+                    .print-header { margin-bottom: 30px; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; }
+                    .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+                    .metric-card { background: #f9fafb; padding: 15px; border-radius: 8px; }
+                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f3f4f6; }
+                    .chart-placeholder { height: 200px; background: #f9fafb; margin: 20px 0; display: flex; align-items: center; justify-content: center; color: #6b7280; }
+                    @media print {
+                        .no-print { display: none; }
+                        body { margin: 0; }
+                    }
+                    .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <div class="print-header">
+                    <h1>Analytics Report - {{ tenant.name }}</h1>
+                    <p><strong>Company:</strong> {{ tenant.company_name }}</p>
+                    <p><strong>Period:</strong> Last {{ days }} days</p>
+                    <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+                </div>
+                ${analyticsContent}
+                <div class="footer">
+                    <p>Report generated by M-Neti Platform</p>
+                    <p>Confidential - For internal use only</p>
+                </div>
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+    }
+
+    // Auto-refresh analytics every 5 minutes
+    setInterval(() => {
+        const currentUrl = window.location.href;
+        if (!currentUrl.includes('export') && !currentUrl.includes('print')) {
+            window.location.reload();
+        }
+    }, 300000); // 5 minutes
+</script>
+{% endblock %}

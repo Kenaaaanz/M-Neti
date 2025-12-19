@@ -1,0 +1,241 @@
+<!-- accounts/templates/accounts/isp_add_customer.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Add Customer - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-xl font-semibold text-gray-900">New Customer Details</h3>
+            <p class="text-sm text-gray-500 mt-1">Fill in the details to create a new customer account</p>
+        </div>
+        
+        <form method="POST" action="{% url 'isp_add_customer' %}" class="p-6">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <!-- Account Information -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Account Information</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Username <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="username" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="e.g., john_doe">
+                            <p class="mt-1 text-xs text-gray-500">Unique username for login</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Password <span class="text-red-500">*</span>
+                            </label>
+                            <input type="password" name="password" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="••••••••">
+                            <p class="mt-1 text-xs text-gray-500">At least 8 characters</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Information -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Personal Information</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                First Name
+                            </label>
+                            <input type="text" name="first_name"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="John">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Last Name
+                            </label>
+                            <input type="text" name="last_name"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Doe">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Email Address
+                            </label>
+                            <input type="email" name="email"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="john@example.com">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Phone Number
+                            </label>
+                            <input type="tel" name="phone"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="0712 345 678">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Address Information -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Address Information</h4>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Address
+                        </label>
+                        <textarea name="address" rows="3"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="Physical address for installation"></textarea>
+                    </div>
+                </div>
+
+                <!-- Account Settings -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Account Settings</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Company Account Number
+                            </label>
+                            <input type="text" name="company_account_number"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Leave blank to auto-generate">
+                            <p class="mt-1 text-xs text-gray-500">Unique identifier for billing</p>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" name="is_active" id="is_active" checked
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="is_active" class="ml-2 block text-sm text-gray-700">
+                                Activate account immediately
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plan Assignment -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Plan Assignment</h4>
+                    <div class="bg-gray-50 rounded-xl p-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Select Plan (Optional)
+                            </label>
+                            <select name="plan_id" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">-- No plan / assign later --</option>
+                                {% for plan in available_plans %}
+                                <option value="{{ plan.id }}">
+                                    {{ plan.name }} - Ksh{{ plan.price }} ({{ plan.bandwidth }} Mbps)
+                                    {% if plan.data_cap %}- {{ plan.data_cap }} GB Cap{% else %}- Unlimited{% endif %}
+                                </option>
+                                {% empty %}
+                                <option value="" disabled>No plans available</option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-2 text-sm text-gray-600">
+                                <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                                You can assign a plan now or later from the customer's detail page.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Information Box -->
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                        <div class="text-sm text-blue-700">
+                            <p class="font-medium">Customer Account Creation</p>
+                            <p class="mt-1">The customer will receive an email notification (if email is provided) with their login credentials and next steps.</p>
+                            <ul class="mt-2 list-disc pl-5 space-y-1">
+                                <li>Username and password are required</li>
+                                <li>Account number can be auto-generated</li>
+                                <li>Plan assignment is optional at this stage</li>
+                                <li>Customer can be activated immediately or later</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <div class="flex justify-between">
+                    <a href="{% url 'isp_customers' %}" 
+                       class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-colors cursor-pointer">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium transition-colors flex items-center cursor-pointer">
+                        <i class="fas fa-user-plus mr-2"></i> Create Customer Account
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+input, select, textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    transition: all 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+textarea {
+    resize: vertical;
+}
+</style>
+{% endblock %}

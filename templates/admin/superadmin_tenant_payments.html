@@ -1,0 +1,1157 @@
+<!-- templates/admin/superadmin_tenant_payments.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}ISP Payments - {{ tenant.name }} - M-Neti{% endblock %}
+
+{% block page_title %}ISP Payments: {{ tenant.name }}{% endblock %}
+{% block page_subtitle %}Manage and monitor payments for {{ tenant.company_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'superadmin_tenant_detail' tenant.id %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+        <i class="fas fa-arrow-left mr-2"></i> Back to ISP Details
+    </a>
+</div>
+
+<!-- Payment Statistics -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-credit-card text-green-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Total Revenue</p>
+                <p class="text-xl font-bold text-gray-900">KSh {{ total_revenue|floatformat:0|intcomma }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-check-circle text-blue-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Successful</p>
+                <p class="text-xl font-bold text-gray-900">{{ payment_stats.successful }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-clock text-yellow-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Pending</p>
+                <p class="text-xl font-bold text-gray-900">{{ payment_stats.pending }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-times-circle text-red-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Failed</p>
+                <p class="text-xl font-bold text-gray-900">{{ payment_stats.failed }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <input type="text" id="searchInput" placeholder="Customer, reference, plan..." 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="all">All Status</option>
+                <option value="completed">Successful</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+            <select id="dateFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Amount Range</label>
+            <select id="amountFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="all">All Amounts</option>
+                <option value="0-1000">Under KSh 1,000</option>
+                <option value="1000-5000">KSh 1,000 - 5,000</option>
+                <option value="5000-10000">KSh 5,000 - 10,000</option>
+                <option value="10000+">Over KSh 10,000</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Payments Table -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-900">Payment History</h3>
+            <div class="flex items-center space-x-3">
+                <button onclick="exportPayments('{{ tenant.id }}')" 
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg text-sm">
+                    <i class="fas fa-download mr-2"></i> Export
+                </button>
+                <button onclick="refreshPayments()" 
+                        class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium rounded-lg text-sm">
+                    <i class="fas fa-sync-alt mr-2"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Payment Details
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200" id="paymentsTable">
+                {% for payment in payments %}
+                <tr class="hover:bg-gray-50 payment-row"
+                    data-id="{{ payment.id }}" 
+                    data-status="{{ payment.status }}"
+                    data-amount="{{ payment.amount }}"
+                    data-date="{{ payment.created_at|date:'U' }}"
+                    data-customer="{{ payment.user.get_full_name|lower }}"
+                    data-reference="{{ payment.reference|lower }}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">{{ payment.reference }}</div>
+                        <div class="text-sm text-gray-500">{{ payment.plan.name }}</div>
+                        <div class="text-xs text-gray-400">
+                            <i class="fas fa-hashtag mr-1"></i>{{ payment.id|truncatechars:10 }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-8 w-8">
+                                <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                    <span class="text-white text-xs font-bold">
+                                        {{ payment.user.first_name|first|upper }}{{ payment.user.last_name|first|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <div class="text-sm font-medium text-gray-900">{{ payment.user.get_full_name }}</div>
+                                <div class="text-xs text-gray-500">{{ payment.user.company_account_number }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-lg font-bold text-gray-900">KSh {{ payment.amount|floatformat:0|intcomma }}</div>
+                        <div class="text-xs text-gray-500">
+                            {% if payment.paystack_reference %}
+                            <i class="fas fa-external-link-alt mr-1"></i>{{ payment.paystack_reference|truncatechars:12 }}
+                            {% else %}Local payment{% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if payment.status == 'completed' %}bg-green-100 text-green-800
+                            {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if payment.status == 'completed' %}
+                            <i class="fas fa-check-circle mr-1"></i> Completed
+                            {% elif payment.status == 'pending' %}
+                            <i class="fas fa-clock mr-1"></i> Pending
+                            {% else %}
+                            <i class="fas fa-times-circle mr-1"></i> Failed
+                            {% endif %}
+                        </span>
+                        {% if payment.metadata %}
+                        <div class="mt-1 text-xs text-gray-500 cursor-pointer" 
+                             onclick="showPaymentDetails('{{ payment.id }}')">
+                            <i class="fas fa-info-circle mr-1"></i> Details
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{ payment.created_at|date:"M d, Y" }}</div>
+                        <div class="text-xs text-gray-500">{{ payment.created_at|time:"H:i" }}</div>
+                        <div class="text-xs text-gray-400 mt-1">{{ payment.created_at|timesince }} ago</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center space-x-2">
+                            {% if payment.status == 'pending' %}
+                            <button onclick="markAsCompleted('{{ payment.id }}')" 
+                                    class="text-green-600 hover:text-green-900"
+                                    title="Mark as Completed">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            {% endif %}
+                            
+                            {% if payment.status == 'completed' %}
+                            <button onclick="refundPayment('{{ payment.id }}')" 
+                                    class="text-yellow-600 hover:text-yellow-900"
+                                    title="Refund Payment">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            {% endif %}
+                            
+                            <button onclick="resendReceipt('{{ payment.id }}')" 
+                                    class="text-blue-600 hover:text-blue-900"
+                                    title="Resend Receipt">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                            
+                            <button onclick="viewPaymentLogs('{{ payment.id }}')" 
+                                    class="text-purple-600 hover:text-purple-900"
+                                    title="View Logs">
+                                <i class="fas fa-history"></i>
+                            </button>
+                            
+                            <button onclick="deletePayment('{{ payment.id }}')" 
+                                    class="text-red-600 hover:text-red-900"
+                                    title="Delete Payment">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center">
+                        <div class="text-gray-400">
+                            <i class="fas fa-credit-card text-4xl mb-3"></i>
+                            <p class="text-lg font-medium">No payments found</p>
+                            <p class="text-sm mt-1">This ISP has no payment history yet</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if payments.has_other_pages %}
+    <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div class="flex items-center justify-between">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if payments.has_previous %}
+                <a href="?page={{ payments.previous_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Previous
+                </a>
+                {% endif %}
+                {% if payments.has_next %}
+                <a href="?page={{ payments.next_page_number }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ payments.start_index }}</span> to 
+                        <span class="font-medium">{{ payments.end_index }}</span> of 
+                        <span class="font-medium">{{ payments.paginator.count }}</span> payments
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if payments.has_previous %}
+                        <a href="?page={{ payments.previous_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Previous</span>
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                        
+                        {% for num in payments.paginator.page_range %}
+                            {% if payments.number == num %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600">
+                                {{ num }}
+                            </span>
+                            {% elif num > payments.number|add:'-3' and num < payments.number|add:'3' %}
+                            <a href="?page={{ num }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ num }}
+                            </a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if payments.has_next %}
+                        <a href="?page={{ payments.next_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Next</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Payment Summary -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Monthly Revenue -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Monthly Revenue</h3>
+        <div class="space-y-3">
+            {% for month in monthly_revenue %}
+            <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">{{ month.month }}</span>
+                <div class="text-right">
+                    <span class="font-medium text-gray-900">KSh {{ month.revenue|floatformat:0|intcomma }}</span>
+                    <div class="text-xs text-gray-500">{{ month.count }} payments</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Payment Methods -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Methods</h3>
+        <div class="space-y-3">
+            {% for method in payment_methods %}
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                        {% if method.method == 'paystack' %}
+                        <i class="fab fa-cc-stripe text-blue-600"></i>
+                        {% elif method.method == 'mpesa' %}
+                        <i class="fas fa-mobile-alt text-green-600"></i>
+                        {% else %}
+                        <i class="fas fa-credit-card text-gray-600"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-900">{{ method.method|title }}</p>
+                        <p class="text-xs text-gray-500">{{ method.count }} payments</p>
+                    </div>
+                </div>
+                <span class="font-bold text-gray-900">KSh {{ method.amount|floatformat:0|intcomma }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Recent Failed Payments -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Recent Failed Payments</h3>
+            <span class="text-sm text-red-600">{{ failed_payments_count }} failed</span>
+        </div>
+        <div class="space-y-3">
+            {% for payment in failed_payments %}
+            <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-sm font-medium text-red-800">{{ payment.user.get_full_name }}</p>
+                        <p class="text-xs text-red-600">{{ payment.plan.name }}</p>
+                    </div>
+                    <span class="text-sm font-bold text-red-800">KSh {{ payment.amount|floatformat:0 }}</span>
+                </div>
+                <div class="mt-2 text-xs text-red-600">
+                    <i class="fas fa-clock mr-1"></i>{{ payment.created_at|timesince }} ago
+                    <button onclick="retryPayment('{{ payment.id }}')" class="ml-3 text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-redo mr-1"></i>Retry
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-center py-4">No failed payments in the last 7 days</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Payment Actions -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Management Actions</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <button onclick="bulkMarkCompleted()" 
+                class="p-4 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg text-center">
+            <i class="fas fa-check-circle text-green-600 text-xl mb-2"></i>
+            <p class="font-medium text-green-800">Mark as Completed</p>
+            <p class="text-xs text-green-600">Bulk status update</p>
+        </button>
+        
+        <button onclick="generateRevenueReport()" 
+                class="p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-center">
+            <i class="fas fa-file-invoice-dollar text-blue-600 text-xl mb-2"></i>
+            <p class="font-medium text-blue-800">Revenue Report</p>
+            <p class="text-xs text-blue-600">Generate PDF report</p>
+        </button>
+        
+        <button onclick="reconcilePayments()" 
+                class="p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-center">
+            <i class="fas fa-balance-scale text-purple-600 text-xl mb-2"></i>
+            <p class="font-medium text-purple-800">Reconcile</p>
+            <p class="text-xs text-purple-600">Match with bank statements</p>
+        </button>
+        
+        <button onclick="sendPaymentReminders()" 
+                class="p-4 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg text-center">
+            <i class="fas fa-bell text-yellow-600 text-xl mb-2"></i>
+            <p class="font-medium text-yellow-800">Send Reminders</p>
+            <p class="text-xs text-yellow-600">To customers with pending</p>
+        </button>
+    </div>
+</div>
+
+<!-- Payment Details Modal -->
+<div id="paymentDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900" id="paymentDetailsTitle">Payment Details</h3>
+            <button onclick="closePaymentDetails()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="mt-3" id="paymentDetailsContent">
+            <!-- Dynamic content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================
+// CONFIGURATION & UTILITIES
+// ============================================
+const TENANT_ID = '{{ tenant.id }}';
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+// URL Helper Functions
+function getPaymentUrl(paymentId, action) {
+    // Use the tenant-specific URL pattern from accounts/urls.py
+    return `/accounts/superadmin/tenants/${TENANT_ID}/payments/api/payments/${paymentId}/${action}/`;
+}
+
+// Alternative: For backward compatibility with /api/payments/ pattern
+function getLegacyPaymentUrl(paymentId, action) {
+    return `/api/payments/${paymentId}/${action}/`;
+}
+
+function getExportUrl() {
+    return `/accounts/superadmin/tenants/${TENANT_ID}/payments/export/`;
+}
+
+function getReportUrl() {
+    return `/accounts/superadmin/tenants/${TENANT_ID}/payments/report/`;
+}
+
+function getIspApiUrl(action) {
+    return `/api/isp/${TENANT_ID}/${action}/`;
+}
+
+// Enhanced API call function
+async function apiCall(url, options = {}) {
+    const defaultOptions = {
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN,
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    };
+    
+    const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...options.headers
+        }
+    };
+    
+    try {
+        console.log('API Call:', url, mergedOptions.method || 'GET');
+        
+        const response = await fetch(url, mergedOptions);
+        
+        // Handle non-JSON responses
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const errorText = await response.text();
+            console.error('Non-JSON Response:', errorText.substring(0, 200));
+            
+            if (response.status === 404) {
+                // Try the legacy endpoint as fallback
+                if (url.includes('/payments/api/')) {
+                    const legacyUrl = url.replace('/accounts/superadmin/tenants/', '/api/payments/')
+                                        .replace('/payments/api/payments/', '/');
+                    console.log('Trying legacy URL:', legacyUrl);
+                    
+                    const legacyResponse = await fetch(legacyUrl, mergedOptions);
+                    if (legacyResponse.ok && legacyResponse.headers.get('content-type')?.includes('application/json')) {
+                        return await legacyResponse.json();
+                    }
+                }
+                throw new Error(`Endpoint not found (404): ${url}`);
+            }
+            throw new Error(`Server returned ${contentType || 'non-JSON'} response. Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || `HTTP ${response.status}: ${data.detail || 'Unknown error'}`);
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('API Call Error:', error);
+        throw error;
+    }
+}
+
+// Notification system
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existing = document.querySelectorAll('.custom-notification');
+    existing.forEach(n => n.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `custom-notification fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 
+        ${type === 'success' ? 'bg-green-50 border-green-500 text-green-800' :
+         type === 'error' ? 'bg-red-50 border-red-500 text-red-800' :
+         type === 'warning' ? 'bg-yellow-50 border-yellow-500 text-yellow-800' :
+         'bg-blue-50 border-blue-500 text-blue-800'}`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas 
+                ${type === 'success' ? 'fa-check-circle' :
+                 type === 'error' ? 'fa-exclamation-circle' :
+                 type === 'warning' ? 'fa-exclamation-triangle' :
+                 'fa-info-circle'} 
+                mr-2"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 5000);
+}
+
+// Loading button helper
+function setButtonLoading(button, isLoading) {
+    if (!button) return;
+    
+    if (isLoading) {
+        button.dataset.originalHtml = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
+    } else {
+        if (button.dataset.originalHtml) {
+            button.innerHTML = button.dataset.originalHtml;
+            delete button.dataset.originalHtml;
+        }
+        button.disabled = false;
+    }
+}
+
+// ============================================
+// FILTER & SEARCH FUNCTIONALITY
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize filters
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const amountFilter = document.getElementById('amountFilter');
+    const paymentRows = document.querySelectorAll('.payment-row');
+    
+    function filterPayments() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const statusValue = statusFilter.value;
+        const dateValue = dateFilter.value;
+        const amountValue = amountFilter.value;
+        
+        const now = new Date();
+        let dateThreshold = new Date(0);
+        
+        // Calculate date threshold
+        if (dateValue === 'today') {
+            dateThreshold = new Date(now.setHours(0, 0, 0, 0));
+        } else if (dateValue === 'week') {
+            dateThreshold = new Date(now.setDate(now.getDate() - 7));
+        } else if (dateValue === 'month') {
+            dateThreshold = new Date(now.setMonth(now.getMonth() - 1));
+        } else if (dateValue === 'year') {
+            dateThreshold = new Date(now.setFullYear(now.getFullYear() - 1));
+        }
+        
+        // Filter rows
+        paymentRows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowAmount = parseFloat(row.getAttribute('data-amount'));
+            const rowDate = parseInt(row.getAttribute('data-date')) * 1000;
+            const rowCustomer = row.getAttribute('data-customer');
+            const rowReference = row.getAttribute('data-reference');
+            
+            // Apply filters
+            const matchesSearch = searchTerm === '' || 
+                rowCustomer.includes(searchTerm) || 
+                rowReference.includes(searchTerm);
+            
+            const matchesStatus = statusValue === 'all' || rowStatus === statusValue;
+            const matchesDate = dateValue === 'all' || new Date(rowDate) >= dateThreshold;
+            
+            let matchesAmount = true;
+            if (amountValue !== 'all') {
+                const amountRange = amountValue.split('-');
+                let min = 0, max = Infinity;
+                
+                if (amountValue.endsWith('+')) {
+                    min = parseFloat(amountRange[0]);
+                } else {
+                    min = parseFloat(amountRange[0]);
+                    max = parseFloat(amountRange[1]);
+                }
+                
+                matchesAmount = rowAmount >= min && rowAmount <= max;
+            }
+            
+            // Show/hide row
+            row.style.display = (matchesSearch && matchesStatus && matchesDate && matchesAmount) ? '' : 'none';
+        });
+    }
+    
+    // Add event listeners
+    if (searchInput) searchInput.addEventListener('input', filterPayments);
+    if (statusFilter) statusFilter.addEventListener('change', filterPayments);
+    if (dateFilter) dateFilter.addEventListener('change', filterPayments);
+    if (amountFilter) amountFilter.addEventListener('change', filterPayments);
+    
+    // Initial filter
+    filterPayments();
+});
+
+// ============================================
+// PAYMENT ACTIONS
+// ============================================
+async function markAsCompleted(paymentId) {
+    if (!confirm('Mark this payment as completed?')) return;
+    
+    const button = document.querySelector(`[onclick="markAsCompleted('${paymentId}')"]`);
+    setButtonLoading(button, true);
+    
+    try {
+        const url = getPaymentUrl(paymentId, 'mark-completed');
+        const data = await apiCall(url, {
+            method: 'POST',
+            body: JSON.stringify({ tenant_id: TENANT_ID })
+        });
+        
+        showNotification('✅ Payment marked as completed successfully!', 'success');
+        
+        // Update UI without reload
+        const row = document.querySelector(`[data-id="${paymentId}"]`);
+        if (row) {
+            row.setAttribute('data-status', 'completed');
+            const statusBadge = row.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.className = 'status-badge status-completed';
+                statusBadge.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Completed';
+            }
+        }
+        
+        // Reload after delay to update stats
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (error) {
+        showNotification(`❌ ${error.message || 'Failed to update payment'}`, 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function refundPayment(paymentId) {
+    if (!confirm('Refund this payment? This will reverse the transaction.')) return;
+    
+    const reason = prompt('Refund reason (optional):', 'Refund requested by admin');
+    if (reason === null) return;
+    
+    const button = document.querySelector(`[onclick="refundPayment('${paymentId}')"]`);
+    setButtonLoading(button, true);
+    
+    try {
+        const url = getPaymentUrl(paymentId, 'refund');
+        const data = await apiCall(url, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                reason: reason || 'Refund requested by admin',
+                tenant_id: TENANT_ID 
+            })
+        });
+        
+        showNotification('✅ Payment refund initiated successfully!', 'success');
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (error) {
+        showNotification(`❌ ${error.message || 'Failed to process refund'}`, 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function resendReceipt(paymentId) {
+    if (!confirm('Resend payment receipt to customer?')) return;
+    
+    const button = document.querySelector(`[onclick="resendReceipt('${paymentId}')"]`);
+    setButtonLoading(button, true);
+    
+    try {
+        const url = getPaymentUrl(paymentId, 'resend-receipt');
+        const data = await apiCall(url, {
+            method: 'POST',
+            body: JSON.stringify({ tenant_id: TENANT_ID })
+        });
+        
+        showNotification('✅ Receipt sent successfully!', 'success');
+    } catch (error) {
+        showNotification(`❌ ${error.message || 'Failed to send receipt'}`, 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function viewPaymentLogs(paymentId) {
+    try {
+        const url = getPaymentUrl(paymentId, 'logs');
+        const data = await apiCall(url);
+        
+        if (data.success) {
+            let logsHTML = '<div class="space-y-4">';
+            logsHTML += `
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold mb-2">Payment Information</h4>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div><span class="text-gray-600">Reference:</span> ${data.payment.reference}</div>
+                        <div><span class="text-gray-600">Amount:</span> KSh ${parseFloat(data.payment.amount).toLocaleString()}</div>
+                        <div><span class="text-gray-600">Status:</span> ${data.payment.status}</div>
+                        <div><span class="text-gray-600">Created:</span> ${new Date(data.payment.created_at).toLocaleString()}</div>
+                    </div>
+                </div>
+            `;
+            
+            if (data.logs && data.logs.length > 0) {
+                logsHTML += '<div><h4 class="font-semibold mb-2">Activity Logs</h4>';
+                logsHTML += '<div class="space-y-2 max-h-60 overflow-y-auto">';
+                
+                data.logs.forEach(log => {
+                    logsHTML += `
+                        <div class="border-l-4 border-blue-500 pl-3 py-2 bg-gray-50">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium">${log.action}</span>
+                                <span class="text-xs text-gray-500">${log.timestamp}</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mt-1">${log.description}</div>
+                            <div class="text-xs text-gray-500 mt-1">By: ${log.admin}</div>
+                        </div>
+                    `;
+                });
+                
+                logsHTML += '</div></div>';
+            } else {
+                logsHTML += '<p class="text-gray-500 text-center py-4">No activity logs found</p>';
+            }
+            
+            logsHTML += '</div>';
+            
+            document.getElementById('paymentDetailsTitle').textContent = `Payment Logs: ${data.payment.reference}`;
+            document.getElementById('paymentDetailsContent').innerHTML = logsHTML;
+            document.getElementById('paymentDetailsModal').classList.remove('hidden');
+        } else {
+            showNotification(`❌ ${data.message || 'Failed to load logs'}`, 'error');
+        }
+    } catch (error) {
+        showNotification(`❌ ${error.message || 'Error loading payment logs'}`, 'error');
+    }
+}
+
+async function deletePayment(paymentId) {
+    if (!confirm('Delete this payment record? This action cannot be undone.')) return;
+    
+    const button = document.querySelector(`[onclick="deletePayment('${paymentId}')"]`);
+    setButtonLoading(button, true);
+    
+    try {
+        const url = getPaymentUrl(paymentId, 'delete');
+        const data = await apiCall(url, {
+            method: 'DELETE',
+            body: JSON.stringify({ tenant_id: TENANT_ID })
+        });
+        
+        showNotification('✅ Payment deleted successfully!', 'success');
+        
+        // Remove the row
+        const row = document.querySelector(`[data-id="${paymentId}"]`);
+        if (row) {
+            row.style.transition = 'opacity 0.3s ease';
+            row.style.opacity = '0';
+            setTimeout(() => row.remove(), 300);
+        }
+    } catch (error) {
+        showNotification(`❌ ${error.message || 'Failed to delete payment'}`, 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function retryPayment(paymentId) {
+    if (!confirm('Retry this failed payment?')) return;
+    
+    const button = document.querySelector(`[onclick="retryPayment('${paymentId}')"]`);
+    setButtonLoading(button, true);
+    
+    try {
+        const url = getPaymentUrl(paymentId, 'retry');
+        const data = await apiCall(url, {
+            method: 'POST',
+            body: JSON.stringify({ tenant_id: TENANT_ID })
+        });
+        
+        showNotification(`✅ Payment retry initiated! New reference: ${data.new_reference}`, 'success');
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (error) {
+        showNotification(`❌ ${error.message || 'Failed to retry payment'}`, 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+async function showPaymentDetails(paymentId) {
+    try {
+        const url = getPaymentUrl(paymentId, 'details');
+        const data = await apiCall(url);
+        
+        if (data.success) {
+            document.getElementById('paymentDetailsTitle').textContent = `Payment Details: ${data.payment.reference}`;
+            
+            let metadata = 'No metadata available';
+            try {
+                if (data.payment.metadata && typeof data.payment.metadata === 'object') {
+                    metadata = JSON.stringify(data.payment.metadata, null, 2);
+                } else if (data.payment.metadata) {
+                    metadata = data.payment.metadata;
+                }
+            } catch (e) {
+                metadata = 'Unable to parse metadata';
+            }
+            
+            document.getElementById('paymentDetailsContent').innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Customer</p>
+                            <p class="font-medium">${data.payment.customer_name}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Plan</p>
+                            <p class="font-medium">${data.payment.plan_name}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Amount</p>
+                            <p class="font-bold text-lg">KSh ${parseFloat(data.payment.amount).toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Status</p>
+                            <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                ${data.payment.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                                  data.payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                  'bg-red-100 text-red-800'}">
+                                ${data.payment.status.charAt(0).toUpperCase() + data.payment.status.slice(1)}
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">Payment Reference</p>
+                        <p class="font-mono text-sm bg-gray-50 p-2 rounded">${data.payment.reference}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">PayStack Reference</p>
+                        <p class="font-mono text-sm bg-gray-50 p-2 rounded">${data.payment.paystack_reference || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">Metadata</p>
+                        <pre class="bg-gray-50 p-3 rounded text-xs overflow-auto max-h-40 font-mono">${metadata}</pre>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Created</p>
+                            <p class="text-sm">${new Date(data.payment.created_at).toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Last Updated</p>
+                            <p class="text-sm">${new Date(data.payment.updated_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('paymentDetailsModal').classList.remove('hidden');
+        } else {
+            showNotification(`❌ ${data.message || 'Failed to load payment details'}`, 'error');
+        }
+    } catch (error) {
+        showNotification(`❌ ${error.message || 'Error loading payment details'}`, 'error');
+    }
+}
+
+function closePaymentDetails() {
+    document.getElementById('paymentDetailsModal').classList.add('hidden');
+}
+
+// ============================================
+// BULK OPERATIONS
+// ============================================
+async function bulkMarkCompleted() {
+    const selectedRows = Array.from(document.querySelectorAll('.payment-row:not([style*="display: none"])'));
+    const pendingRows = selectedRows.filter(row => row.getAttribute('data-status') === 'pending');
+    
+    if (pendingRows.length === 0) {
+        showNotification('ℹ️ No pending payments in current view', 'info');
+        return;
+    }
+    
+    if (!confirm(`Mark ${pendingRows.length} pending payments as completed?`)) return;
+    
+    const paymentIds = pendingRows.map(row => {
+        return row.getAttribute('data-id');
+    }).filter(id => id);
+    
+    if (paymentIds.length === 0) {
+        showNotification('❌ No valid payment IDs found', 'error');
+        return;
+    }
+    
+    const button = document.querySelector('[onclick="bulkMarkCompleted()"]');
+    setButtonLoading(button, true);
+    
+    try {
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const paymentId of paymentIds) {
+            try {
+                const url = getPaymentUrl(paymentId, 'mark-completed');
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        tenant_id: TENANT_ID,
+                        bulk_action: true 
+                    })
+                });
+                
+                if (response.ok) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                errorCount++;
+            }
+        }
+        
+        showNotification(`✅ Bulk update completed: ${successCount} successful, ${errorCount} failed`, 
+                        successCount > 0 ? 'success' : 'warning');
+        
+        if (successCount > 0) {
+            setTimeout(() => window.location.reload(), 2000);
+        }
+    } catch (error) {
+        showNotification('❌ Error in bulk update', 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+// ============================================
+// EXPORT & REPORT FUNCTIONS
+// ============================================
+function exportPayments() {
+    const status = document.getElementById('statusFilter').value;
+    const date = document.getElementById('dateFilter').value;
+    
+    const button = document.querySelector('[onclick*="exportPayments"]');
+    setButtonLoading(button, true);
+    
+    const url = `${getExportUrl()}?status=${status}&date=${date}`;
+    
+    // Create invisible download link
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `payments_export_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => {
+        setButtonLoading(button, false);
+        showNotification('✅ Export started! Check your downloads.', 'success');
+    }, 1000);
+}
+
+function generateRevenueReport() {
+    const button = document.querySelector('[onclick="generateRevenueReport()"]');
+    setButtonLoading(button, true);
+    
+    const url = `${getReportUrl()}?format=pdf`;
+    window.open(url, '_blank');
+    
+    setTimeout(() => {
+        setButtonLoading(button, false);
+        showNotification('✅ Report generation started!', 'success');
+    }, 1000);
+}
+
+function refreshPayments() {
+    const button = document.querySelector('[onclick="refreshPayments()"]');
+    setButtonLoading(button, true);
+    
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+}
+
+// ============================================
+// OTHER ACTIONS
+// ============================================
+function reconcilePayments() {
+    showNotification('🔄 Payment reconciliation feature is under development', 'info');
+}
+
+async function sendPaymentReminders() {
+    if (!confirm('Send payment reminders to customers with pending payments?')) return;
+    
+    const button = document.querySelector('[onclick="sendPaymentReminders()"]');
+    setButtonLoading(button, true);
+    
+    try {
+        const url = getIspApiUrl('send-reminders');
+        const data = await apiCall(url, {
+            method: 'POST',
+            body: JSON.stringify({ tenant_id: TENANT_ID })
+        });
+        
+        showNotification(`✅ Reminders sent to ${data.count || 0} customers!`, 'success');
+    } catch (error) {
+        showNotification(`❌ ${error.message || 'Failed to send reminders'}`, 'error');
+    } finally {
+        setButtonLoading(button, false);
+    }
+}
+
+// ============================================
+// MODAL HANDLING
+// ============================================
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('paymentDetailsModal');
+    if (event.target === modal) {
+        closePaymentDetails();
+    }
+});
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closePaymentDetails();
+    }
+});
+
+// ============================================
+// INITIALIZATION
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Add CSS for notifications
+    const style = document.createElement('style');
+    style.textContent = `
+    .custom-notification {
+        animation: slideInRight 0.3s ease;
+        min-width: 300px;
+        max-width: 400px;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .payment-row {
+        transition: opacity 0.3s ease;
+    }
+    
+    .payment-row.updated {
+        animation: highlightRow 1s ease;
+    }
+    
+    @keyframes highlightRow {
+        0%, 100% { background-color: transparent; }
+        50% { background-color: rgba(34, 197, 94, 0.1); }
+    }
+    `;
+    document.head.appendChild(style);
+    
+    // Debug: Log available URLs
+    console.log('Payment Management Initialized');
+    console.log('Tenant ID:', TENANT_ID);
+    console.log('Sample Delete URL:', getPaymentUrl('test-id', 'delete'));
+    console.log('Sample Export URL:', getExportUrl());
+});
+</script>
+{% endblock %}

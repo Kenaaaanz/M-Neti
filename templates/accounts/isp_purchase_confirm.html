@@ -1,0 +1,571 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Confirm Purchase - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Confirm Purchase{% endblock %}
+{% block page_subtitle %}Review and confirm your package purchase{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Add specific styles for this page */
+    .payment-btn {
+        position: relative;
+        z-index: 10;
+    }
+    
+    #paymentModal {
+        z-index: 9999 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <!-- Package Information -->
+        <div class="flex items-center mb-6 pb-6 border-b border-gray-200">
+            <div class="w-16 h-16 rounded-lg flex items-center justify-center mr-4
+                {% if package_type == 'data' %}bg-blue-100 text-blue-600
+                {% else %}bg-indigo-100 text-indigo-600{% endif %}">
+                {% if package_type == 'data' %}
+                <i class="fas fa-database text-2xl"></i>
+                {% else %}
+                <i class="fas fa-network-wired text-2xl"></i>
+                {% endif %}
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">{{ package.name }}</h2>
+                <p class="text-gray-600">
+                    {% if package_type == 'data' %}
+                    {{ package.vendor.name|default:"Platform" }} • {{ package.validity_days }} days validity
+                    {% else %}
+                    {{ package.vendor.name }} • {{ package.get_package_type_display }} • {{ package.validity_days }} days
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Purchase Details -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Left Column: Package Details -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium text-gray-900">Package Details</h3>
+                
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Package Type:</span>
+                            <span class="font-medium">
+                                {% if package_type == 'data' %}Data Package{% else %}Bandwidth Package{% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">
+                                {% if package_type == 'data' %}Data Amount:{% else %}Bandwidth Amount:{% endif %}
+                            </span>
+                            <span class="font-medium">
+                                {% if package_type == 'data' %}
+                                {{ package.data_amount }} GB
+                                {% else %}
+                                {{ package.bandwidth_amount }} {{ package.unit|upper }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Validity Period:</span>
+                            <span class="font-medium">{{ package.validity_days }} days</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Vendor:</span>
+                            <span class="font-medium">{{ package.vendor.name|default:"Platform" }}</span>
+                        </div>
+                        
+                        {% if package_type == 'bandwidth' %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Connection Type:</span>
+                            <span class="font-medium">{{ package.get_package_type_display }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if package.description %}
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900 mb-2">Description</h4>
+                    <p class="text-gray-600 text-sm">{{ package.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Right Column: Pricing & Quantity -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium text-gray-900">Pricing</h3>
+                
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Unit Price:</span>
+                            <span class="font-medium">KSh {{ package.selling_price|floatformat:2 }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Platform Commission:</span>
+                            <span class="font-medium">{{ package.commission_rate }}%</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Vendor Commission:</span>
+                            <span class="font-medium">{{ package.vendor.commission_rate|default:"5.0" }}%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quantity Selector -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                    <div class="flex items-center">
+                        <button type="button" id="decrease-qty" 
+                                class="w-10 h-10 border border-gray-300 rounded-l-lg flex items-center justify-center hover:bg-gray-50">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" id="quantity" name="quantity" value="1" min="1" max="100"
+                               class="w-20 h-10 text-center border-t border-b border-gray-300">
+                        <button type="button" id="increase-qty" 
+                                class="w-10 h-10 border border-gray-300 rounded-r-lg flex items-center justify-center hover:bg-gray-50">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Total Price Display -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-700">Total Amount:</span>
+                        <span class="text-2xl font-bold text-blue-600" id="total-price">
+                            KSh {{ package.selling_price|floatformat:2 }}
+                        </span>
+                    </div>
+                    
+                    <div class="text-sm text-gray-600">
+                        <div class="flex justify-between">
+                            <span>Platform Commission:</span>
+                            <span id="commission-amount">
+                                KSh {% with commission=package.selling_price|floatformat:2 %}{% widthratio commission 100 package.commission_rate %}{% endwith %}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Your Net Cost:</span>
+                            <span class="font-medium" id="net-amount">
+                                KSh {{ package.selling_price|floatformat:2 }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Wallet Balance Display (for data packages) -->
+                {% if package_type == 'data' %}
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-green-700">Wallet Balance:</span>
+                        <span class="font-bold text-green-900">{{ wallet_balance|floatformat:2 }} GB</span>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="use-wallet" name="use_wallet" class="mr-2">
+                        <label for="use-wallet" class="text-sm text-green-700">
+                            Use wallet balance for this purchase
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payment Options -->
+        <div class="mb-8">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Payment Method</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% if package_type == 'data' %}
+                <div>
+                    <input type="radio" id="pay-wallet" name="payment_method" value="wallet" class="hidden peer">
+                    <label for="pay-wallet" 
+                           class="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-green-500 peer-checked:border-green-500 peer-checked:bg-green-50">
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-wallet text-green-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">Wallet Balance</h4>
+                            <p class="text-sm text-gray-500">Use available data wallet balance</p>
+                        </div>
+                    </label>
+                </div>
+                {% endif %}
+                
+                <div>
+                    <input type="radio" id="pay-paystack" name="payment_method" value="paystack" 
+                           class="hidden peer" {% if package_type == 'bandwidth' %}checked{% endif %}>
+                    <label for="pay-paystack" 
+                           class="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                            <i class="fas fa-credit-card text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">Pay with PayStack</h4>
+                            <p class="text-sm text-gray-500">Credit/Debit card, mobile money</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terms and Conditions -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                <div class="text-sm text-yellow-800">
+                    <p class="font-medium mb-1">Important Information</p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li>A {{ package.commission_rate }}% platform commission will be deducted from your payment</li>
+                        {% if package_type == 'data' %}
+                        <li>Data will be automatically added to your wallet upon successful payment</li>
+                        <li>You can distribute purchased data to your customers from your data wallet</li>
+                        {% else %}
+                        <li>Bandwidth will be provisioned within 24 hours of payment confirmation</li>
+                        <li>You can allocate bandwidth to specific customers after purchase</li>
+                        {% endif %}
+                        <li>All purchases are final and non-refundable</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+            <a href="{% url 'isp_vendor_marketplace' %}" 
+               class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Marketplace
+            </a>
+            
+            <!-- Payment Form -->
+            <form id="paymentForm" method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="quantity" id="hidden-quantity" value="1">
+                <input type="hidden" name="use_wallet" id="hidden-use-wallet" value="false">
+                <input type="hidden" name="payment_method" id="hidden-payment-method" value="paystack">
+                
+                <button type="button" id="proceedPayment"
+                        class="px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200 payment-btn">
+                    <i class="fas fa-shopping-cart mr-2"></i>
+                    Proceed to Payment
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Processing Modal -->
+<div id="paymentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                <i class="fas fa-spinner fa-spin text-blue-600 text-xl"></i>
+            </div>
+            
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Processing Payment</h3>
+            
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <p class="text-sm text-gray-600 mb-2">You are purchasing:</p>
+                <p class="font-medium" id="modal-package">{{ package.name }}</p>
+                <p class="text-gray-500 text-sm" id="modal-quantity">Quantity: 1</p>
+                <p class="text-xl font-bold text-blue-600 mt-2" id="modal-total">KSh {{ package.selling_price|floatformat:2 }}</p>
+            </div>
+            
+            <p class="text-sm text-gray-500 mb-6">
+                Please wait while we process your payment...
+            </p>
+            
+            <div class="flex justify-center">
+                <button type="button" id="cancelPayment"
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Namespace all functions to avoid conflicts
+(function() {
+    'use strict';
+    
+    // Configuration
+    const CONFIG = {
+        unitPrice: parseFloat("{{ package.selling_price }}"),
+        commissionRate: parseFloat("{{ package.commission_rate }}"),
+        packageType: "{{ package_type }}",
+        walletBalance: parseFloat("{{ wallet_balance|default:0 }}"),
+        packageDataAmount: parseFloat("{{ package.data_amount|default:0 }}")
+    };
+    
+    // State
+    let currentQuantity = 1;
+    let paymentInProgress = false;
+    
+    // DOM Elements
+    const elements = {
+        quantity: document.getElementById('quantity'),
+        decreaseBtn: document.getElementById('decrease-qty'),
+        increaseBtn: document.getElementById('increase-qty'),
+        totalPrice: document.getElementById('total-price'),
+        commissionAmount: document.getElementById('commission-amount'),
+        netAmount: document.getElementById('net-amount'),
+        modalQuantity: document.getElementById('modal-quantity'),
+        modalTotal: document.getElementById('modal-total'),
+        hiddenQuantity: document.getElementById('hidden-quantity'),
+        hiddenUseWallet: document.getElementById('hidden-use-wallet'),
+        hiddenPaymentMethod: document.getElementById('hidden-payment-method'),
+        proceedBtn: document.getElementById('proceedPayment'),
+        cancelBtn: document.getElementById('cancelPayment'),
+        paymentModal: document.getElementById('paymentModal'),
+        paymentForm: document.getElementById('paymentForm'),
+        useWallet: document.getElementById('use-wallet'),
+        payWallet: document.getElementById('pay-wallet'),
+        payPaystack: document.getElementById('pay-paystack')
+    };
+    
+    // Helper functions
+    const helpers = {
+        calculateCommission: function(amount, rate) {
+            return (amount * rate) / 100;
+        },
+        
+        formatCurrency: function(amount) {
+            return amount.toLocaleString('en-KE', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+    };
+    
+    // Update quantity
+    const updateQuantity = function(change) {
+        if (paymentInProgress) return;
+        
+        let newQuantity = parseInt(elements.quantity.value) + change;
+        
+        if (newQuantity < 1) newQuantity = 1;
+        if (newQuantity > 100) newQuantity = 100;
+        
+        elements.quantity.value = newQuantity;
+        currentQuantity = newQuantity;
+        elements.hiddenQuantity.value = newQuantity;
+        calculateTotal();
+    };
+    
+    // Calculate total
+    const calculateTotal = function() {
+        const quantity = currentQuantity;
+        const total = CONFIG.unitPrice * quantity;
+        const commission = helpers.calculateCommission(total, CONFIG.commissionRate);
+        const net = total - commission;
+        
+        // Update display
+        elements.totalPrice.textContent = `KSh ${helpers.formatCurrency(total)}`;
+        elements.commissionAmount.textContent = `KSh ${helpers.formatCurrency(commission)}`;
+        elements.netAmount.textContent = `KSh ${helpers.formatCurrency(net)}`;
+        
+        // Update modal
+        elements.modalQuantity.textContent = `Quantity: ${quantity}`;
+        elements.modalTotal.textContent = `KSh ${helpers.formatCurrency(total)}`;
+    };
+    
+    // Show payment modal
+    const showPaymentModal = function() {
+        elements.paymentModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    };
+    
+    // Close payment modal
+    const closePaymentModal = function() {
+        elements.paymentModal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        paymentInProgress = false;
+    };
+    
+    // Process payment
+    const processPayment = function() {
+        if (paymentInProgress) return;
+        
+        // Get selected payment method
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+        if (!paymentMethod) {
+            alert('Please select a payment method');
+            return;
+        }
+        
+        // Validate payment method
+        if (CONFIG.packageType === 'bandwidth' && paymentMethod.value !== 'paystack') {
+            alert('Bandwidth packages can only be paid via PayStack');
+            return;
+        }
+        
+        // For wallet payment
+        if (paymentMethod.value === 'wallet') {
+            const requiredBalance = CONFIG.packageDataAmount * currentQuantity;
+            
+            if (CONFIG.walletBalance < requiredBalance) {
+                alert(`Insufficient wallet balance. Required: ${requiredBalance} GB, Available: ${CONFIG.walletBalance} GB`);
+                return;
+            }
+            
+            // Set use_wallet to true
+            elements.hiddenUseWallet.value = 'true';
+            elements.hiddenPaymentMethod.value = 'wallet';
+            
+            // Show processing modal
+            showPaymentModal();
+            paymentInProgress = true;
+            
+            // Submit form for wallet payment
+            setTimeout(() => {
+                elements.paymentForm.submit();
+            }, 1000);
+            return;
+        }
+        
+        // For PayStack payment
+        if (paymentMethod.value === 'paystack') {
+            elements.hiddenPaymentMethod.value = 'paystack';
+            
+            // Calculate final amount to pay
+            const total = CONFIG.unitPrice * currentQuantity;
+            const commission = helpers.calculateCommission(total, CONFIG.commissionRate);
+            const finalAmount = total - commission;
+            
+            // Add final amount as hidden field
+            let finalAmountInput = document.getElementById('final-amount');
+            if (!finalAmountInput) {
+                finalAmountInput = document.createElement('input');
+                finalAmountInput.type = 'hidden';
+                finalAmountInput.id = 'final-amount';
+                finalAmountInput.name = 'final_amount';
+                elements.paymentForm.appendChild(finalAmountInput);
+            }
+            finalAmountInput.value = finalAmount;
+            
+            // Show processing modal
+            showPaymentModal();
+            paymentInProgress = true;
+            
+            // Submit form for PayStack payment
+            setTimeout(() => {
+                elements.paymentForm.submit();
+            }, 1000);
+            return;
+        }
+    };
+    
+    // Initialize
+    const initialize = function() {
+        // Set default payment method
+        if (CONFIG.packageType === 'bandwidth' && elements.payPaystack) {
+            elements.payPaystack.checked = true;
+        }
+        
+        // Initial calculation
+        calculateTotal();
+        
+        // Event listeners
+        if (elements.decreaseBtn) {
+            elements.decreaseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                updateQuantity(-1);
+            });
+        }
+        
+        if (elements.increaseBtn) {
+            elements.increaseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                updateQuantity(1);
+            });
+        }
+        
+        if (elements.quantity) {
+            elements.quantity.addEventListener('input', function() {
+                let value = parseInt(this.value);
+                if (isNaN(value) || value < 1) value = 1;
+                if (value > 100) value = 100;
+                this.value = value;
+                currentQuantity = value;
+                elements.hiddenQuantity.value = value;
+                calculateTotal();
+            });
+        }
+        
+        if (elements.useWallet) {
+            elements.useWallet.addEventListener('change', function() {
+                if (this.checked && elements.payWallet) {
+                    elements.payWallet.checked = true;
+                }
+            });
+        }
+        
+        if (elements.proceedBtn) {
+            elements.proceedBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                processPayment();
+            });
+        }
+        
+        if (elements.cancelBtn) {
+            elements.cancelBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                closePaymentModal();
+            });
+        }
+        
+        // Payment method change listener
+        document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (elements.hiddenPaymentMethod) {
+                    elements.hiddenPaymentMethod.value = this.value;
+                }
+            });
+        });
+        
+        // Prevent form submission on Enter key
+        if (elements.paymentForm) {
+            elements.paymentForm.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    processPayment();
+                }
+            });
+        }
+    };
+    
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initialize);
+    } else {
+        initialize();
+    }
+    
+    // Expose to global scope if needed (carefully)
+    window.purchaseApp = {
+        updateQuantity: updateQuantity,
+        calculateTotal: calculateTotal,
+        processPayment: processPayment,
+        closePaymentModal: closePaymentModal
+    };
+})();
+</script>
+{% endblock %}

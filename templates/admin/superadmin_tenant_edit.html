@@ -1,0 +1,591 @@
+<!-- templates/admin/superadmin_tenant_edit.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Edit ISP - {{ tenant.name }} - M-Neti{% endblock %}
+
+{% block page_title %}Edit ISP: {{ tenant.name }}{% endblock %}
+{% block page_subtitle %}Update ISP details and configuration{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'superadmin_tenant_detail' tenant.id %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+        <i class="fas fa-arrow-left mr-2"></i> Back to ISP Details
+    </a>
+</div>
+
+<!-- Edit Form -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div class="mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                Basic Information
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- ISP Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        ISP Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="name" value="{{ tenant.name }}" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">The display name for the ISP</p>
+                </div>
+                
+                <!-- Company Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Company Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="company_name" value="{{ tenant.company_name }}" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Legal business name</p>
+                </div>
+                
+                <!-- Subdomain -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Subdomain <span class="text-red-500">*</span>
+                    </label>
+                    <div class="flex">
+                        <span class="inline-flex items-center px-3 py-2 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 rounded-l-lg">
+                            https://
+                        </span>
+                        <input type="text" name="subdomain" value="{{ tenant.subdomain }}" required
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <span class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 rounded-r-lg">
+                            .M-Neti.app
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Unique subdomain for the ISP portal</p>
+                </div>
+                
+                <!-- Custom Domain -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Custom Domain
+                    </label>
+                    <input type="text" name="custom_domain" value="{{ tenant.custom_domain|default:'' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="e.g., portal.yourisp.com">
+                    <p class="text-xs text-gray-500 mt-1">Optional custom domain (requires DNS setup)</p>
+                </div>
+            </div>
+            
+            <!-- Description -->
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea name="description" rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ tenant.description|default:'' }}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Brief description of the ISP's services</p>
+            </div>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="mb-8 pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-address-book text-green-600 mr-2"></i>
+                Contact Information
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Contact Email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Contact Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" name="contact_email" value="{{ tenant.contact_email }}" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Primary contact email</p>
+                </div>
+                
+                <!-- Contact Phone -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Contact Phone
+                    </label>
+                    <input type="tel" name="contact_phone" value="{{ tenant.contact_phone|default:'' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Primary contact phone number</p>
+                </div>
+                
+                <!-- Address -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <input type="text" name="address" value="{{ tenant.address|default:'' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Physical business address</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Branding -->
+        <div class="mb-8 pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-palette text-purple-600 mr-2"></i>
+                Branding
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Logo -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+                    <div class="flex items-center space-x-4">
+                        {% if tenant.logo %}
+                        <div class="w-20 h-20 border border-gray-300 rounded-lg overflow-hidden">
+                            <img src="{{ tenant.logo.url }}" alt="{{ tenant.name }}" class="w-full h-full object-contain">
+                        </div>
+                        {% endif %}
+                        <div class="flex-1">
+                            <input type="file" name="logo" accept="image/*"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">Recommended: 200x200px PNG or JPG</p>
+                            {% if tenant.logo %}
+                            <label class="flex items-center mt-2 text-sm text-gray-600">
+                                <input type="checkbox" name="remove_logo" class="mr-2">
+                                Remove current logo
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Favicon -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Favicon</label>
+                    <div class="flex items-center space-x-4">
+                        {% if tenant.favicon %}
+                        <div class="w-10 h-10 border border-gray-300 rounded-lg overflow-hidden">
+                            <img src="{{ tenant.favicon.url }}" alt="Favicon" class="w-full h-full object-contain">
+                        </div>
+                        {% endif %}
+                        <div class="flex-1">
+                            <input type="file" name="favicon" accept="image/*"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">Recommended: 32x32px ICO or PNG</p>
+                            {% if tenant.favicon %}
+                            <label class="flex items-center mt-2 text-sm text-gray-600">
+                                <input type="checkbox" name="remove_favicon" class="mr-2">
+                                Remove current favicon
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Primary Color -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="color" name="primary_color" value="{{ tenant.primary_color|default:'#4361ee' }}"
+                               class="w-12 h-12 border border-gray-300 rounded-lg cursor-pointer">
+                        <input type="text" name="primary_color_text" value="{{ tenant.primary_color|default:'#4361ee' }}"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Main brand color</p>
+                </div>
+                
+                <!-- Secondary Color -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Secondary Color</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="color" name="secondary_color" value="{{ tenant.secondary_color|default:'#3a0ca3' }}"
+                               class="w-12 h-12 border border-gray-300 rounded-lg cursor-pointer">
+                        <input type="text" name="secondary_color_text" value="{{ tenant.secondary_color|default:'#3a0ca3' }}"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Secondary brand color</p>
+                </div>
+            </div>
+            
+            <!-- Color Preview -->
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                <h4 class="font-medium text-gray-700 mb-3">Color Preview</h4>
+                <div class="flex space-x-2 mb-3">
+                    <div class="w-10 h-10 rounded" style="background-color: {{ tenant.primary_color|default:'#4361ee' }}" title="Primary Color"></div>
+                    <div class="w-10 h-10 rounded" style="background-color: {{ tenant.secondary_color|default:'#3a0ca3' }}" title="Secondary Color"></div>
+                    <div class="w-10 h-10 rounded" style="background-color: {{ tenant.accent_color|default:'#f59e0b' }}" title="Accent Color"></div>
+                    <div class="w-10 h-10 rounded" style="background-color: {{ tenant.light_color|default:'#f8fafc' }}" title="Light Color"></div>
+                    <div class="w-10 h-10 rounded" style="background-color: {{ tenant.dark_color|default:'#1e293b' }}" title="Dark Color"></div>
+                </div>
+                <div class="p-4 rounded-lg text-center" 
+                     style="background: linear-gradient(135deg, {{ tenant.primary_color|default:'#4361ee' }}, {{ tenant.secondary_color|default:'#3a0ca3' }}); color: white;">
+                    Brand Gradient Preview
+                </div>
+            </div>
+        </div>
+        
+        <!-- Subscription & Billing -->
+        <div class="mb-8 pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-credit-card text-orange-600 mr-2"></i>
+                Subscription & Billing
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Subscription Plan -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Subscription Plan <span class="text-red-500">*</span>
+                    </label>
+                    <select name="subscription_plan" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="starter" {% if tenant.subscription_plan == 'starter' %}selected{% endif %}>Starter</option>
+                        <option value="professional" {% if tenant.subscription_plan == 'professional' %}selected{% endif %}>Professional</option>
+                        <option value="enterprise" {% if tenant.subscription_plan == 'enterprise' %}selected{% endif %}>Enterprise</option>
+                        <option value="custom" {% if tenant.subscription_plan == 'custom' %}selected{% endif %}>Custom</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Platform subscription tier</p>
+                </div>
+                
+                <!-- Monthly Rate -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Monthly Rate (KSh)
+                    </label>
+                    <input type="number" name="monthly_rate" value="{{ tenant.monthly_rate|default:'0' }}" step="0.01" min="0"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Monthly platform fee</p>
+                </div>
+                
+                <!-- Subscription End Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Subscription End Date
+                    </label>
+                    <input type="date" name="subscription_end" 
+                           value="{{ tenant.subscription_end|date:'Y-m-d'|default:'' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">When the current subscription expires</p>
+                </div>
+                
+                <!-- Auto Renew -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Auto Renew</label>
+                    <div class="flex items-center mt-2">
+                        <input type="checkbox" name="auto_renew" id="auto_renew" 
+                               {% if tenant.auto_renew %}checked{% endif %}
+                               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="auto_renew" class="ml-2 text-sm text-gray-700">
+                            Automatically renew subscription
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Automatically charge for renewal</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ISP Settings -->
+        <div class="mb-8 pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-cog text-gray-600 mr-2"></i>
+                ISP Settings
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Bandwidth Limit -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Bandwidth Limit (Mbps)</label>
+                    <input type="number" name="bandwidth_limit" value="{{ tenant.bandwidth_limit|default:'1000' }}" min="0"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Maximum bandwidth allocation (0 for unlimited)</p>
+                </div>
+                
+                <!-- Client Limit -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Client Limit</label>
+                    <input type="number" name="client_limit" value="{{ tenant.client_limit|default:'1000' }}" min="0"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Maximum number of clients (0 for unlimited)</p>
+                </div>
+                
+                <!-- Auto Disconnect -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Auto Disconnect Settings</label>
+                    <div class="flex items-center mt-2 space-x-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" name="auto_disconnect_enabled" id="auto_disconnect_enabled"
+                                   {% if tenant.auto_disconnect_enabled %}checked{% endif %}
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="auto_disconnect_enabled" class="ml-2 text-sm text-gray-700">
+                                Enable auto-disconnect
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <label for="auto_disconnect_threshold" class="text-sm text-gray-600 mr-2">Threshold:</label>
+                            <input type="number" name="auto_disconnect_threshold" 
+                                   value="{{ tenant.auto_disconnect_threshold|default:'80' }}" min="0" max="100"
+                                   class="w-20 px-2 py-1 border border-gray-300 rounded">
+                            <span class="ml-2 text-sm text-gray-600">%</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Automatically disconnect idle clients</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status & Verification -->
+        <div class="mb-8 pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-shield-alt text-red-600 mr-2"></i>
+                Status & Verification
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Account Status -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Account Status</label>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center">
+                            <input type="radio" name="is_active" id="status_active" value="true"
+                                   {% if tenant.is_active %}checked{% endif %}
+                                   class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <label for="status_active" class="ml-2 text-sm text-gray-700">
+                                Active
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" name="is_active" id="status_inactive" value="false"
+                                   {% if not tenant.is_active %}checked{% endif %}
+                                   class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <label for="status_inactive" class="ml-2 text-sm text-gray-700">
+                                Inactive
+                            </label>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Active ISPs can access the platform</p>
+                </div>
+                
+                <!-- Verification Status -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Verification Status</label>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" name="is_verified" id="is_verified"
+                                   {% if tenant.is_verified %}checked{% endif %}
+                                   class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                            <label for="is_verified" class="ml-2 text-sm text-gray-700">
+                                Verified ISP
+                            </label>
+                        </div>
+                        {% if tenant.verification_date %}
+                        <span class="text-xs text-gray-500">
+                            Verified on {{ tenant.verification_date|date:"M d, Y" }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Verified ISPs have completed compliance checks</p>
+                </div>
+                
+                <!-- Verification Notes -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Verification Notes</label>
+                    <textarea name="verification_notes" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ tenant.verification_notes|default:'' }}</textarea>
+                    <p class="text-xs text-gray-500 mt-1">Notes about verification status or requirements</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Danger Zone -->
+        <div class="pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                Danger Zone
+            </h3>
+            
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-red-800">Reset ISP Configuration</h4>
+                        <p class="text-sm text-red-700">Reset all settings to defaults</p>
+                    </div>
+                    <button type="button" onclick="resetConfiguration()"
+                            class="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 font-medium rounded-lg">
+                        Reset Config
+                    </button>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-red-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-medium text-red-800">Delete ISP</h4>
+                            <p class="text-sm text-red-700">Permanently delete this ISP and all data</p>
+                        </div>
+                        <a href="{% url 'superadmin_tenant_delete' tenant.id %}" 
+                           class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg"
+                           onclick="return confirm('Are you sure? This cannot be undone!')">
+                            Delete ISP
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <div class="flex justify-end space-x-3">
+                <a href="{% url 'superadmin_tenant_detail' tenant.id %}" 
+                   class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Configuration Preview -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Configuration Preview</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <h4 class="font-medium text-gray-700 mb-2">Current Configuration</h4>
+            <pre class="bg-gray-50 p-4 rounded-lg text-sm overflow-auto max-h-60">
+                Name: {{ tenant.name }}
+                Company: {{ tenant.company_name }}
+                Domain: {{ tenant.primary_domain }}
+                Status: {% if tenant.is_active %}Active{% else %}Inactive{% endif %}
+                Plan: {{ tenant.get_subscription_plan_display }}
+                Created: {{ tenant.created_at|date:"Y-m-d H:i" }}
+                Last Updated: {{ tenant.updated_at|date:"Y-m-d H:i" }}
+            </pre>
+        </div>
+        <div>
+            <h4 class="font-medium text-gray-700 mb-2">System Information</h4>
+            <pre class="bg-gray-50 p-4 rounded-lg text-sm overflow-auto max-h-60">
+                Customer Count: {{ customer_count }}
+                Staff Count: {{ staff_count }}
+                Total Revenue: KSh {{ total_revenue|floatformat:0|intcomma }}
+                Active Since: {{ tenant.created_at|timesince }}
+                Last Payment: {{ last_payment_date|default:"No payments" }}
+            </pre>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Color picker synchronization
+    document.addEventListener('DOMContentLoaded', function() {
+        const colorInputs = document.querySelectorAll('input[type="color"]');
+        const textInputs = document.querySelectorAll('input[type="text"][name$="_color_text"]');
+        
+        // Sync color picker with text input
+        colorInputs.forEach(colorInput => {
+            const textInput = document.querySelector(`input[name="${colorInput.name}_text"]`);
+            
+            colorInput.addEventListener('input', function() {
+                textInput.value = this.value;
+            });
+            
+            textInput.addEventListener('input', function() {
+                if (this.value.match(/^#[0-9A-F]{6}$/i)) {
+                    colorInput.value = this.value;
+                }
+            });
+        });
+        
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            const name = document.querySelector('input[name="name"]').value.trim();
+            const companyName = document.querySelector('input[name="company_name"]').value.trim();
+            const subdomain = document.querySelector('input[name="subdomain"]').value.trim();
+            const email = document.querySelector('input[name="contact_email"]').value.trim();
+            
+            if (!name || !companyName || !subdomain || !email) {
+                event.preventDefault();
+                alert('Please fill in all required fields (marked with *)');
+                return;
+            }
+            
+            // Validate subdomain format
+            const subdomainRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+            if (!subdomainRegex.test(subdomain)) {
+                event.preventDefault();
+                alert('Subdomain can only contain lowercase letters, numbers, and hyphens');
+                return;
+            }
+            
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                event.preventDefault();
+                alert('Please enter a valid email address');
+                return;
+            }
+            
+            // Confirm save
+            if (!confirm('Save changes to this ISP?')) {
+                event.preventDefault();
+            }
+        });
+    });
+    
+    // Reset configuration
+    function resetConfiguration() {
+        if (confirm('Reset all ISP settings to defaults? This cannot be undone.')) {
+            fetch(`/api/isp/{{ tenant.id }}/reset-config/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Configuration reset successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error resetting configuration');
+            });
+        }
+    }
+    
+    // Preview changes
+    function previewChanges() {
+        const formData = new FormData(document.querySelector('form'));
+        const previewModal = document.createElement('div');
+        previewModal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        previewModal.innerHTML = `
+            <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Preview Changes</h3>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                    <pre class="text-sm">${JSON.stringify(Object.fromEntries(formData), null, 2)}</pre>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg mr-3">
+                        Close
+                    </button>
+                    <button onclick="document.querySelector('form').submit()" 
+                            class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg">
+                        Confirm Save
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(previewModal);
+    }
+</script>
+{% endblock %}

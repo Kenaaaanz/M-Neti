@@ -1,0 +1,52 @@
+<!-- templates/accounts/tenant_preview.html -->
+{% extends 'accounts/isp_base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Branding Preview</h1>
+    
+    <!-- Color Palette -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="p-4 rounded-lg" style="background-color: {{ brand_primary }}">
+            <p class="text-white font-semibold">Primary</p>
+            <p class="text-white text-sm">{{ brand_primary }}</p>
+        </div>
+        <div class="p-4 rounded-lg" style="background-color: {{ brand_secondary }}">
+            <p class="text-white font-semibold">Secondary</p>
+            <p class="text-white text-sm">{{ brand_secondary }}</p>
+        </div>
+        <div class="p-4 rounded-lg" style="background-color: {{ brand_accent }}">
+            <p class="text-white font-semibold">Accent</p>
+            <p class="text-white text-sm">{{ brand_accent }}</p>
+        </div>
+        <div class="p-4 rounded-lg" style="background-color: {{ brand_dark }}">
+            <p class="text-white font-semibold">Dark</p>
+            <p class="text-white text-sm">{{ brand_dark }}</p>
+        </div>
+    </div>
+    
+    <!-- Preview Components -->
+    <div class="space-y-6">
+        <div class="p-6 bg-white rounded-lg shadow">
+            <h2 class="text-lg font-semibold mb-4">Button Preview</h2>
+            <div class="flex space-x-4">
+                <button class="px-4 py-2 rounded btn-brand-primary">Primary Button</button>
+                <button class="px-4 py-2 rounded btn-brand-secondary">Secondary Button</button>
+                <button class="px-4 py-2 rounded border border-brand-primary text-brand-primary">Outline</button>
+            </div>
+        </div>
+        
+        <div class="p-6 bg-white rounded-lg shadow">
+            <h2 class="text-lg font-semibold mb-4">Alert Preview</h2>
+            <div class="space-y-3">
+                <div class="p-4 rounded bg-green-50 border border-green-200">
+                    <p class="text-green-800">Success message with brand colors</p>
+                </div>
+                <div class="p-4 rounded bg-red-50 border border-red-200">
+                    <p class="text-red-800">Error message with brand colors</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

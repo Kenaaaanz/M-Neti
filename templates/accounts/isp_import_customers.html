@@ -1,0 +1,428 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Import Customers - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Import Customers</h2>
+                <p class="text-gray-600">Import customers from CSV, Excel, or manual input</p>
+            </div>
+            <div>
+                <a href="{% url 'download_import_template' %}" 
+                   class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 flex items-center">
+                    <i class="fas fa-download mr-2"></i> Download Template
+                </a>
+            </div>
+        </div>
+
+        <!-- Import Methods Tabs -->
+        <div class="mb-8">
+            <div class="border-b border-gray-200">
+                <nav class="flex -mb-px" id="importTabs">
+                    <button class="tab-import active py-3 px-6 text-sm font-medium border-b-2 border-blue-500 text-blue-600 cursor-pointer" data-tab="file-upload">
+                        <i class="fas fa-file-upload mr-2"></i> File Upload
+                    </button>
+                    <button class="tab-import py-3 px-6 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 cursor-pointer" data-tab="manual-input">
+                        <i class="fas fa-keyboard mr-2"></i> Manual Input
+                    </button>
+                    <button class="tab-import py-3 px-6 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 cursor-pointer" data-tab="bulk-create">
+                        <i class="fas fa-users mr-2"></i> Bulk Create
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- File Upload Tab -->
+        <div id="content-file-upload" class="tab-content-import active">
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+                <div class="flex items-start mb-4">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-info-circle text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-1">File Upload Instructions</h3>
+                        <p class="text-sm text-gray-600">
+                            Upload a CSV or Excel file with customer data. Required columns: <strong>username</strong>. 
+                            Optional columns: email, phone, first_name, last_name, address.
+                            <a href="{% url 'download_import_template' %}" class="text-blue-600 hover:text-blue-800 ml-1">Download template</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" action="{% url 'isp_import_customers' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="upload_file">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select File Type</label>
+                        <select name="file_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="csv">CSV (.csv)</option>
+                            <option value="xlsx">Excel (.xlsx, .xls)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Upload File</label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition duration-150">
+                            <div class="space-y-1 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="customer_file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                                        <span>Upload a file</span>
+                                        <input id="customer_file" name="customer_file" type="file" class="sr-only" accept=".csv,.xlsx,.xls" required>
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">CSV, Excel up to 10MB</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <a href="{% url 'isp_customers' %}" class="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg flex items-center">
+                        <i class="fas fa-upload mr-2"></i> Upload & Preview
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Manual Input Tab -->
+        <div id="content-manual-input" class="tab-content-import hidden">
+            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-6">
+                <div class="flex items-start mb-4">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Manual Input Format</h3>
+                        <p class="text-sm text-gray-600">
+                            Enter customer data separated by commas or tabs. Each line represents one customer.
+                            Format: <code>username, email, phone, first_name, last_name, address</code>
+                        </p>
+                        <div class="mt-2 text-sm text-gray-500">
+                            Example:<br>
+                            <code class="block bg-gray-100 p-2 rounded mt-1">john.doe, john@example.com, +254712345678, John, Doe, 123 Main St</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" action="{% url 'isp_import_customers' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="import_direct">
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Customer Data</label>
+                    <textarea name="customers_text" rows="10" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                              placeholder="Enter customer data here, one per line. Use commas or tabs to separate fields."></textarea>
+                    <p class="text-sm text-gray-500 mt-2">
+                        Tip: You can copy-paste from Excel or Google Sheets
+                    </p>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="switchTab('file-upload')" class="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50">
+                        Back
+                    </button>
+                    <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg flex items-center">
+                        <i class="fas fa-check mr-2"></i> Validate & Preview
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Bulk Create Tab -->
+        <div id="content-bulk-create" class="tab-content-import hidden">
+            <div class="bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
+                <div class="flex items-start mb-4">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-bolt text-green-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Bulk Customer Creation</h3>
+                        <p class="text-sm text-gray-600">
+                            Generate multiple customers with sequential usernames. Useful for creating test data or batch customer setup.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="bulkCreateForm" method="POST" action="{% url 'api_bulk_create_customers' %}">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Username Prefix</label>
+                        <input type="text" name="username_prefix" value="customer" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="text-sm text-gray-500 mt-1">e.g., "customer" will create customer001, customer002, etc.</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Number of Customers</label>
+                        <input type="number" name="count" value="10" min="1" max="1000" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Start Number</label>
+                        <input type="number" name="start_number" value="1" min="1" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Domain</label>
+                        <input type="text" name="email_domain" value="@{{ tenant.name|slugify }}.com" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Default Plan</label>
+                    <select name="plan_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">No plan (create without subscription)</option>
+                        {% for plan in available_plans %}
+                        <option value="{{ plan.id }}">{{ plan.name }} - Ksh {{ plan.price }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex items-center space-x-6 mb-6">
+                    <div class="flex items-center">
+                        <input type="checkbox" name="auto_activate" id="auto_activate" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="auto_activate" class="ml-2 block text-sm text-gray-700">
+                            Auto-activate accounts
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" name="generate_passwords" id="generate_passwords" checked class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="generate_passwords" class="ml-2 block text-sm text-gray-700">
+                            Generate random passwords
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="switchTab('file-upload')" class="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50">
+                        Back
+                    </button>
+                    <button type="submit" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center">
+                        <i class="fas fa-users mr-2"></i> Generate Customers
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Tab Management
+document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('.tab-import');
+    const tabContents = document.querySelectorAll('.tab-content-import');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const target = this.dataset.tab;
+            
+            // Update buttons
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            this.classList.add('active', 'border-blue-500', 'text-blue-600');
+            this.classList.remove('border-transparent', 'text-gray-500');
+            
+            // Update contents
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+                content.classList.remove('active');
+            });
+            document.getElementById(`content-${target}`).classList.remove('hidden');
+            document.getElementById(`content-${target}`).classList.add('active');
+        });
+    });
+    
+    // Bulk create form submission
+    const bulkCreateForm = document.getElementById('bulkCreateForm');
+    if (bulkCreateForm) {
+        bulkCreateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            formData.append('action', 'bulk_create');
+            
+            showLoading(true);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                showLoading(false);
+                
+                if (data.success) {
+                    showNotification('success', `Successfully created ${data.created_count} customers`);
+                    
+                    // Store results in session and redirect
+                    if (data.redirect_url) {
+                        setTimeout(() => {
+                            window.location.href = data.redirect_url;
+                        }, 2000);
+                    }
+                } else {
+                    showNotification('error', 'Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                showLoading(false);
+                showNotification('error', 'Network error: ' + error);
+            });
+        });
+    }
+});
+
+function switchTab(tabName) {
+    const tabButton = document.querySelector(`[data-tab="${tabName}"]`);
+    if (tabButton) {
+        tabButton.click();
+    }
+}
+
+function showNotification(type, message) {
+    // Remove existing notifications
+    const existing = document.querySelectorAll('.notification-toast');
+    existing.forEach(el => el.remove());
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification-toast fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg text-white z-[9999] ${
+        type === 'error' ? 'bg-red-500' : 
+        type === 'success' ? 'bg-green-500' : 
+        'bg-blue-500'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas ${
+                type === 'error' ? 'fa-exclamation-circle' : 
+                type === 'success' ? 'fa-check-circle' : 
+                'fa-info-circle'
+            } mr-2"></i>
+            <span class="text-sm">${message}</span>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.3s ease-out';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+function showLoading(show) {
+    let loadingOverlay = document.getElementById('loadingOverlay');
+    
+    if (show) {
+        if (!loadingOverlay) {
+            loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loadingOverlay';
+            loadingOverlay.className = 'fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50';
+            loadingOverlay.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
+                        <div>
+                            <p class="font-medium text-gray-900">Processing...</p>
+                            <p class="text-sm text-gray-600">Please wait</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(loadingOverlay);
+        }
+        loadingOverlay.classList.remove('hidden');
+    } else {
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

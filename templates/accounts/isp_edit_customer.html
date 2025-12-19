@@ -1,0 +1,176 @@
+<!-- accounts/templates/accounts/isp_edit_customer.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Edit {{ customer.username }} - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Edit Form Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-user-edit text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">{{ customer.username }}</h2>
+                    <p class="text-gray-600">Update customer information</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{% url 'isp_edit_customer' customer.id %}" class="p-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Personal Information -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Personal Information</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <input type="text" id="username" name="username" value="{{ customer.username }}" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   required>
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                            <input type="email" id="email" name="email" value="{{ customer.email }}" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                <input type="text" id="first_name" name="first_name" value="{{ customer.first_name }}" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                <input type="text" id="last_name" name="last_name" value="{{ customer.last_name }}" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input type="tel" id="phone" name="phone" value="{{ customer.phone }}" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                            <textarea id="address" name="address" rows="2" 
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">{{ customer.address }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Settings -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">Account Settings</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="company_account_number" class="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                            <input type="text" id="company_account_number" name="company_account_number" 
+                                   value="{{ customer.company_account_number }}" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 font-mono"
+                                   readonly>
+                            <p class="text-xs text-gray-500 mt-1">Account number cannot be changed</p>
+                        </div>
+                        
+                        <div>
+                            <label for="plan_id" class="block text-sm font-medium text-gray-700 mb-1">Subscription Plan</label>
+                            <select id="plan_id" name="plan_id" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">No Plan</option>
+                                {% for plan in available_plans %}
+                                <option value="{{ plan.id }}" {% if current_subscription and current_subscription.plan.id == plan.id %}selected{% endif %}>
+                                    {{ plan.name }} - Ksh {{ plan.price }}/month ({{ plan.bandwidth }} Mbps)
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if current_subscription %}
+                            <p class="text-sm text-gray-500 mt-1">Current: {{ current_subscription.plan.name }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="new_password" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                            <input type="password" id="new_password" name="new_password" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Leave blank to keep current">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty to keep current password</p>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" id="is_active_customer" name="is_active_customer" 
+                                   {% if customer.is_active_customer %}checked{% endif %}
+                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="is_active_customer" class="ml-2 text-sm text-gray-700">Active Customer Account</label>
+                        </div>
+                        
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-yellow-800">Important</h3>
+                                    <div class="mt-1 text-sm text-yellow-700">
+                                        <p>Changing account settings may affect customer access and billing.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <a href="{% url 'isp_customer_detail' customer.id %}" 
+                   class="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg flex items-center">
+                    <i class="fas fa-save mr-2"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

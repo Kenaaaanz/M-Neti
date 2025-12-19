@@ -1,0 +1,867 @@
+<!-- accounts/templates/accounts/isp_customer_payments.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Payments - {{ customer.username }} - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            {% for crumb in breadcrumbs %}
+            {% if crumb.url %}
+            <li class="inline-flex items-center">
+                <a href="{{ crumb.url }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% if forloop.first %}
+                    <i class="fas fa-home mr-2"></i>
+                    {% endif %}
+                    {{ crumb.name }}
+                </a>
+                {% if not forloop.last %}
+                <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                {% endif %}
+            </li>
+            {% else %}
+            <li aria-current="page">
+                <div class="flex items-center">
+                    {% if not forloop.first %}
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    {% endif %}
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ crumb.name }}</span>
+                </div>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <!-- Customer Header -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-credit-card text-green-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">{{ customer.username }}</h2>
+                    <p class="text-gray-600">Payment History & Transactions</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'isp_customer_detail' customer.id %}" 
+                   class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Profile
+                </a>
+                <button id="exportBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg flex items-center">
+                    <i class="fas fa-download mr-2"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium mb-1">Total Revenue</p>
+                    <p class="text-2xl font-bold">Ksh {{ payment_stats.total_revenue|floatformat:2 }}</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-money-bill-wave text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium mb-1">Successful</p>
+                    <p class="text-2xl font-bold">{{ payment_stats.successful_payments }}</p>
+                    <p class="text-blue-100 text-xs">{{ payment_stats.total_payments }} total</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-check-circle text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-red-100 text-sm font-medium mb-1">Failed</p>
+                    <p class="text-2xl font-bold">{{ payment_stats.failed_payments }}</p>
+                    <p class="text-red-100 text-xs">Requires attention</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-times-circle text-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium mb-1">Pending</p>
+                    <p class="text-2xl font-bold">{{ payment_stats.pending_payments }}</p>
+                    <p class="text-purple-100 text-xs">Awaiting confirmation</p>
+                </div>
+                <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-clock text-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 mb-8">
+        <div class="border-b border-gray-200">
+            <nav class="flex -mb-px">
+                <button id="tab-all" class="tab-button active py-4 px-6 text-sm font-medium border-b-2 border-blue-500 text-blue-600 cursor-pointer">
+                    All Payments ({{ payment_stats.total_payments }})
+                </button>
+                <button id="tab-completed" class="tab-button py-4 px-6 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 cursor-pointer">
+                    Completed ({{ payment_stats.successful_payments }})
+                </button>
+                <button id="tab-failed" class="tab-button py-4 px-6 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 cursor-pointer">
+                    Failed ({{ payment_stats.failed_payments }})
+                </button>
+                <button id="tab-pending" class="tab-button py-4 px-6 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 cursor-pointer">
+                    Pending ({{ payment_stats.pending_payments }})
+                </button>
+            </nav>
+        </div>
+
+        <!-- All Payments Tab -->
+        <div id="content-all" class="tab-content active">
+            <!-- Filters -->
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <input type="text" id="searchPayments" placeholder="Search payments..." 
+                                   class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        <select id="dateFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="year">This Year</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-600">
+                            Sort by:
+                        </span>
+                        <select id="sortBy" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="amount_high">Amount (High to Low)</option>
+                            <option value="amount_low">Amount (Low to High)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payments Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Date & Time</th>
+                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Amount</th>
+                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Plan</th>
+                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Status</th>
+                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Transaction ID</th>
+                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Method</th>
+                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                            <td class="py-4 px-6">
+                                <div class="text-sm font-medium text-gray-900">{{ payment.created_at|date:"M d, Y" }}</div>
+                                <div class="text-xs text-gray-500">{{ payment.created_at|date:"H:i" }}</div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="text-lg font-bold text-gray-900">Ksh {{ payment.amount }}</div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="text-sm text-gray-900">{{ payment.plan.name|default:"-" }}</div>
+                                <div class="text-xs text-gray-500">{{ payment.plan.bandwidth|default:"-" }} Mbps</div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="px-3 py-1 text-xs rounded-full 
+                                    {% if payment.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ payment.status|title }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="font-mono text-sm text-gray-900">{{ payment.transaction_id|truncatechars:15 }}</div>
+                                <button class="text-xs text-blue-600 hover:text-blue-800 mt-1" onclick="copyToClipboard('{{ payment.transaction_id }}')">
+                                    Copy
+                                </button>
+                            </td>
+                            <td class="py-4 px-6 text-sm text-gray-600">
+                                {{ payment.payment_method|default:"Paystack"|title }}
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="flex space-x-2">
+                                    <!-- View details button -->
+                                    <button class="text-blue-600 hover:text-blue-800 view-payment-details" 
+                                            data-payment-id="{{ payment.id }}" title="View details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    <!-- Approve button (for pending payments) -->
+                                    {% if payment.status == 'pending' and payment.payment_method == 'cash' or payment.payment_method == 'bank_transfer' or payment.payment_method == 'mobile_money' or payment.payment_method == 'manual' %}
+                                    <button class="text-green-600 hover:text-green-800 approve-payment-btn" 
+                                            data-payment-id="{{ payment.id }}" 
+                                            data-customer-id="{{ customer.id }}"
+                                            title="Approve payment and activate subscription">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                    <!-- Mark as completed button (for failed payments) -->
+                                    {% if payment.status == 'pending' %}
+                                    <button class="text-green-600 hover:text-green-800 mark-completed-btn" 
+                                            data-payment-id="{{ payment.id }}"
+                                            data-customer-id="{{ customer.id }}"
+                                            title="Mark as completed and activate subscription">
+                                        <i class="fas fa-check-circle"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <!-- Retry button (for failed payments) -->
+                                    {% if payment.status == 'failed' and payment.payment_method == 'paystack' %}
+                                    <button class="text-purple-600 hover:text-purple-800 retry-payment-btn" 
+                                            data-payment-id="{{ payment.id }}"
+                                            title="Retry payment">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    {% endif %}
+
+                                    <!-- Delete button (for pending payments) -->
+                                    {% if payment.status == 'pending' %}
+                                    <button class="text-red-600 hover:text-red-800 delete-payment-btn" 
+                                            data-payment-id="{{ payment.id }}"
+                                            data-customer-id="{{ customer.id }}"
+                                            title="Delete pending payment">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <!-- Download receipt button -->
+                                    <button class="text-gray-600 hover:text-gray-800 download-receipt-btn" 
+                                            data-payment-id="{{ payment.id }}"
+                                            title="Download receipt">
+                                        <i class="fas fa-receipt"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="py-12 text-center">
+                                <div class="text-gray-400 mb-3">
+                                    <i class="fas fa-credit-card text-4xl"></i>
+                                </div>
+                                <p class="text-gray-500 font-medium">No payment records found</p>
+                                <p class="text-sm text-gray-400 mt-1">Payment records will appear here when the customer makes payments</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary -->
+            <div class="bg-gray-50 border-t border-gray-200 p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white border border-gray-200 rounded-xl p-4">
+                        <div class="text-center">
+                            <p class="text-sm text-gray-600 mb-1">Average Payment</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                Ksh {% if completed_payments > 0 %}{{ total_revenue|floatformat:2 }}{% else %}0.00{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-xl p-4">
+                        <div class="text-center">
+                            <p class="text-sm text-gray-600 mb-1">Last Payment</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                {% if payments.first %}
+                                    {{ payments.first.created_at|date:"M d" }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-xl p-4">
+                        <div class="text-center">
+
+                            <p class="text-sm text-gray-600 mb-1">Success Rate</p>
+                            <p class="text-2xl font-bold text-gray-900">
+                                {% if payment_stats.total_payments > 0 %}
+                                    {{ payment_stats.successful_payments|floatformat:0|divisibleby:payment_stats.total_payments|default:0 }}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Other tabs would have similar structure -->
+    </div>
+
+    <!-- Manual Payment Section -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Manual Payment Entry</h3>
+                <p class="text-sm text-gray-600 mt-1">Record offline or cash payments</p>
+            </div>
+            <button id="showManualPayment" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center">
+                <i class="fas fa-plus mr-2"></i> Add Manual Payment
+            </button>
+        </div>
+
+        <!-- Manual Payment Form (hidden by default) -->
+        <div id="manualPaymentForm" class="hidden bg-gray-50 border border-gray-200 rounded-xl p-6">
+            <form method="POST" action="#">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-gray-500">Ksh</span>
+                            <input type="number" step="0.01" min="0" 
+                                   class="pl-12 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                        <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Plan</label>
+                        <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            {% for plan in available_plans %}
+                            <option value="{{ plan.id }}">{{ plan.name }} - Ksh {{ plan.price }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
+                        <input type="text" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="e.g., M-PESA Code, Receipt #">
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                    <textarea rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Any additional information about this payment..."></textarea>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" id="cancelManualPayment" class="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">
+                        Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Tab Management
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Customer Payments page loaded');
+    
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const target = this.id.replace('tab-', 'content-');
+            
+            // Update buttons
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            this.classList.add('active', 'border-blue-500', 'text-blue-600');
+            this.classList.remove('border-transparent', 'text-gray-500');
+            
+            // Update contents
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+                content.classList.remove('active');
+            });
+            document.getElementById(target).classList.remove('hidden');
+            document.getElementById(target).classList.add('active');
+        });
+    });
+
+    // Export button
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            const customerId = {{ customer.id }};
+            window.location.href = `{% url 'export_payments_csv' customer_id=customer.id %}`;
+        });
+    }
+    
+    // Manual payment form toggle
+    const showManualPaymentBtn = document.getElementById('showManualPayment');
+    const manualPaymentForm = document.getElementById('manualPaymentForm');
+    const cancelManualPaymentBtn = document.getElementById('cancelManualPayment');
+    
+    if (showManualPaymentBtn && manualPaymentForm) {
+        showManualPaymentBtn.addEventListener('click', function() {
+            manualPaymentForm.classList.remove('hidden');
+            showManualPaymentBtn.classList.add('hidden');
+        });
+        
+        cancelManualPaymentBtn.addEventListener('click', function() {
+            manualPaymentForm.classList.add('hidden');
+            showManualPaymentBtn.classList.remove('hidden');
+        });
+    }
+    
+    // Setup event listeners for payment actions
+    setupPaymentEventListeners();
+    
+    // Search functionality
+    const searchInput = document.getElementById('searchPayments');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+
+function setupPaymentEventListeners() {
+    console.log('Setting up payment event listeners');
+    
+    // Mark payment as completed
+    document.querySelectorAll('.mark-completed-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const paymentId = this.dataset.paymentId;
+            const customerId = {{ customer.id }};
+            
+            if (confirm('Are you sure you want to mark this payment as completed and activate subscription?')) {
+                markPaymentAsCompleted(paymentId, customerId);
+            }
+        });
+    });
+    
+    // View payment details
+    document.querySelectorAll('.view-payment-details').forEach(button => {
+        button.addEventListener('click', function() {
+            const paymentId = this.dataset.paymentId;
+            showPaymentDetails(paymentId);
+        });
+    });
+    
+    // Download receipt
+    document.querySelectorAll('.download-receipt-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const paymentId = this.dataset.paymentId;
+            const customerId = {{ customer.id }};
+            window.location.href = `/accounts/customers/${customerId}/payments/receipt/${paymentId}/`;
+        });
+    });
+    
+    // Delete pending payment
+    document.querySelectorAll('.delete-payment-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const paymentId = this.dataset.paymentId;
+            const customerId = {{ customer.id }};
+            
+            if (confirm('Are you sure you want to delete this pending payment? This action cannot be undone.')) {
+                deletePayment(paymentId, customerId);
+            }
+        });
+    });
+    
+    // Approve payment (for pending manual payments)
+    document.querySelectorAll('.approve-payment-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const paymentId = this.dataset.paymentId;
+            const customerId = {{ customer.id }};
+            
+            if (confirm('Approve this payment and activate subscription?')) {
+                markPaymentAsCompleted(paymentId, customerId);
+            }
+        });
+    });
+}
+
+function markPaymentAsCompleted(paymentId, customerId) {
+    console.log('Marking payment as completed:', paymentId);
+    
+    showLoading(true);
+    
+    // Use the correct URL pattern
+    const url = `/accounts/customers/${customerId}/payments/mark-completed/${paymentId}/`;
+    console.log('Making request to:', url);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({})  // Empty body since we don't need data
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        showLoading(false);
+        console.log('Response data:', data);
+        
+        if (data.success) {
+            showNotification('success', data.message);
+            // Reload page after 2 seconds
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showNotification('error', 'Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showLoading(false);
+        console.error('Fetch error:', error);
+        showNotification('error', 'Network error: ' + error.message);
+    });
+}
+
+function deletePayment(paymentId, customerId) {
+    console.log('Deleting payment:', paymentId);
+    
+    if (!confirm('Are you sure you want to delete this pending payment? This action cannot be undone.')) {
+        return;
+    }
+    
+    showLoading(true);
+    
+    // Use the correct URL pattern
+    const url = `/accounts/customers/${customerId}/payments/delete/${paymentId}/`;
+    console.log('Making request to:', url);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({})  // Empty body since we don't need data
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        showLoading(false);
+        console.log('Response data:', data);
+        
+        if (data.success) {
+            showNotification('success', data.message);
+            // Reload page after 2 seconds
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showNotification('error', 'Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showLoading(false);
+        console.error('Fetch error:', error);
+        showNotification('error', 'Network error: ' + error.message);
+    });
+}
+
+function showPaymentDetails(paymentId) {
+    console.log('Showing payment details for:', paymentId);
+    
+    // Get the current page URL and add query parameters
+    const url = `/accounts/customers/{{ customer.id }}/payments/?action=payment_details&payment_id=${paymentId}`;
+    
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Payment details response:', data);
+        
+        if (data.success) {
+            // Show payment details in a modal
+            showPaymentModal(data.payment);
+        } else {
+            showNotification('error', 'Error loading payment details: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching payment details:', error);
+        showNotification('error', 'Network error: ' + error.message);
+    });
+}
+
+function showPaymentModal(payment) {
+    console.log('Showing modal for payment:', payment);
+    
+    // Create modal HTML
+    const modalHTML = `
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-gray-900">Payment Details</h3>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Amount</p>
+                                <p class="font-bold text-lg">Ksh ${payment.amount}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Status</p>
+                                <span class="px-3 py-1 text-xs rounded-full 
+                                    ${payment.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                                      payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                      'bg-red-100 text-red-800'}">
+                                    ${payment.status_display}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-600">Transaction ID</p>
+                            <p class="font-medium">${payment.reference || 'N/A'}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-600">Payment Method</p>
+                            <p class="font-medium">${payment.method || 'N/A'}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-600">Plan</p>
+                            <p class="font-medium">${payment.plan || 'No plan'}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-600">Date & Time</p>
+                            <p class="font-medium">${payment.created_at || 'N/A'}</p>
+                        </div>
+                        
+                        ${payment.description ? `
+                        <div>
+                            <p class="text-sm text-gray-600">Description</p>
+                            <p class="font-medium">${payment.description}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                        <button onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50">
+                            Close
+                        </button>
+                        <a href="/accounts/customers/{{ customer.id }}/payments/receipt/${payment.id}/" 
+                           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">
+                            <i class="fas fa-download mr-2"></i> Download Receipt
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    const modal = document.createElement('div');
+    modal.id = 'paymentModal';
+    modal.innerHTML = modalHTML;
+    document.body.appendChild(modal);
+    
+    // Close on ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+    });
+}
+
+function closeModal() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function showNotification(type, message) {
+    console.log('Showing notification:', type, message);
+    
+    // Remove existing notifications
+    const existing = document.querySelectorAll('.notification-toast');
+    existing.forEach(el => el.remove());
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification-toast fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg text-white z-[9999] ${
+        type === 'error' ? 'bg-red-500' : 
+        type === 'success' ? 'bg-green-500' : 
+        'bg-blue-500'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas ${
+                type === 'error' ? 'fa-exclamation-circle' : 
+                type === 'success' ? 'fa-check-circle' : 
+                'fa-info-circle'
+            } mr-2"></i>
+            <span class="text-sm">${message}</span>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.3s ease-out';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+function showLoading(show) {
+    // Create a simple loading indicator if it doesn't exist
+    let loadingOverlay = document.getElementById('loadingOverlay');
+    
+    if (show) {
+        if (!loadingOverlay) {
+            loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loadingOverlay';
+            loadingOverlay.className = 'fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50';
+            loadingOverlay.innerHTML = `
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
+                        <div>
+                            <p class="font-medium text-gray-900">Processing...</p>
+                            <p class="text-sm text-gray-600">Please wait</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(loadingOverlay);
+        }
+        loadingOverlay.classList.remove('hidden');
+    } else {
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+}
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Add debug logging to check if buttons are being found
+console.log('Total .mark-completed-btn found:', document.querySelectorAll('.mark-completed-btn').length);
+console.log('Total .delete-payment-btn found:', document.querySelectorAll('.delete-payment-btn').length);
+console.log('Total .download-receipt-btn found:', document.querySelectorAll('.download-receipt-btn').length);
+console.log('Total .view-payment-details found:', document.querySelectorAll('.view-payment-details').length);
+
+// Copy to clipboard function
+window.copyToClipboard = function(text) {
+    console.log('Copying to clipboard:', text);
+    navigator.clipboard.writeText(text).then(function() {
+        showNotification('success', 'Transaction ID copied to clipboard!');
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        showNotification('error', 'Failed to copy to clipboard');
+    });
+};
+
+// Also add event listeners for dynamically added rows (if using AJAX)
+function refreshPaymentEventListeners() {
+    setupPaymentEventListeners();
+}
+
+// Export function for debugging
+window.debugPayments = {
+    markPayment: markPaymentAsCompleted,
+    deletePayment: deletePayment,
+    showDetails: showPaymentDetails,
+    getCookie: getCookie,
+    refreshListeners: refreshPaymentEventListeners
+};
+
+console.log('Payment functions loaded successfully');
+</script>
+{% endblock %}

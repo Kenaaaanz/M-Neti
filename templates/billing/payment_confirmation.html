@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Confirmation - M-Neti{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-credit-card text-green-600 text-2xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Complete Payment</h1>
+            <p class="text-gray-600">You're subscribing to: {{ payment.plan.name }}</p>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500">Plan Name</p>
+                    <p class="font-medium text-gray-900">{{ payment.plan.name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Amount</p>
+                    <p class="font-medium text-gray-900">KES {{ payment.amount }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Payment Reference</p>
+                    <p class="font-medium text-gray-900">{{ payment.reference|default:"Pending..." }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Status</p>
+                    <p class="font-medium">
+                        {% if payment.status == 'completed' %}
+                        <span class="text-green-600">Completed</span>
+                        {% elif payment.status == 'pending' %}
+                        <span class="text-yellow-600">Pending</span>
+                        {% elif payment.status == 'failed' %}
+                        <span class="text-red-600">Failed</span>
+                        {% else %}
+                        <span class="text-gray-600">{{ payment.status }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        {% if payment.status == 'pending' %}
+        <div class="text-center">
+            <p class="text-gray-600 mb-4">You will be redirected to PayStack to complete the payment.</p>
+            
+            <!-- In a real implementation, this would be a PayStack payment button -->
+            <!-- For now, we'll simulate it -->
+            <form method="POST" action="{% url 'simulate_payment' payment.id %}">
+                {% csrf_token %}
+                <button type="submit" 
+                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-8 rounded-lg transition inline-flex items-center">
+                    <i class="fas fa-lock mr-2"></i>
+                    Proceed to PayStack Payment
+                </button>
+            </form>
+            
+            <p class="text-sm text-gray-500 mt-4">
+                <i class="fas fa-lock text-gray-400 mr-1"></i>
+                Secure payment powered by PayStack
+            </p>
+        </div>
+        {% elif payment.status == 'completed' %}
+        <div class="text-center">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+                <h3 class="font-medium text-green-900">Payment Successful!</h3>
+                <p class="text-green-700">Your subscription has been activated.</p>
+            </div>
+            <a href="{% url 'dashboard' %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition inline-block">
+                Go to Dashboard
+            </a>
+        </div>
+        {% endif %}
+        
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h4 class="font-medium text-gray-900 mb-2">Need Help?</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+                <li><i class="fas fa-phone-alt text-gray-400 mr-2"></i> Support: +254 700 000 000</li>
+                <li><i class="fas fa-envelope text-gray-400 mr-2"></i> Email: billing@M-Neti.com</li>
+                <li><i class="fas fa-question-circle text-gray-400 mr-2"></i> Payment issues? Contact our support team</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

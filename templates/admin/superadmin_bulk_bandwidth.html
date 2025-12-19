@@ -1,0 +1,314 @@
+superadmin_bulk_bandwidth.html{% extends 'accounts/superadmin_base.html' %}
+
+{% load static %}
+
+{% block title %}Bulk Bandwidth Management - M-Neti{% endblock %}
+
+{% block page_title %}Bulk Bandwidth Management{% endblock %}
+{% block page_subtitle %}Manage bulk bandwidth packages and ISP purchases{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl p-6 shadow-lg">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-network-wired text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm opacity-90">Total Packages</p>
+                    <p class="text-2xl font-bold">{{ package_stats.total }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm opacity-90">Active Packages</p>
+                    <p class="text-2xl font-bold">{{ package_stats.active }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-lg">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm opacity-90">Total Purchases</p>
+                    <p class="text-2xl font-bold">{{ purchase_stats.total }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-xl p-6 shadow-lg">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-money-bill-wave text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm opacity-90">Total Revenue</p>
+                    <p class="text-2xl font-bold">KSh {{ purchase_stats.total_revenue|floatformat:0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-medium text-gray-900">Quick Actions</h3>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <a href="{% url 'superadmin_create_bandwidth_package' %}" 
+               class="bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-4 text-center transition-colors">
+                <i class="fas fa-plus-circle text-blue-600 text-2xl mb-2"></i>
+                <h4 class="font-medium text-blue-900 mb-1">Add Bandwidth Package</h4>
+                <p class="text-sm text-blue-700">Create new bandwidth package</p>
+            </a>
+            
+            <a href="{% url 'superadmin_bandwidth_report' %}" 
+               class="bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-4 text-center transition-colors">
+                <i class="fas fa-chart-bar text-green-600 text-2xl mb-2"></i>
+                <h4 class="font-medium text-green-900 mb-1">View Purchases Report</h4>
+                <p class="text-sm text-green-700">Bandwidth purchase analytics</p>
+            </a>
+            
+            <a href="{% url 'export_bandwidth_purchases' %}" 
+               class="bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg p-4 text-center transition-colors">
+                <i class="fas fa-file-export text-purple-600 text-2xl mb-2"></i>
+                <h4 class="font-medium text-purple-900 mb-1">Export Purchases</h4>
+                <p class="text-sm text-purple-700">Download CSV report</p>
+            </a>
+            
+            <a href="{% url 'superadmin_bulk_data' %}" 
+               class="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg p-4 text-center transition-colors">
+                <i class="fas fa-exchange-alt text-indigo-600 text-2xl mb-2"></i>
+                <h4 class="font-medium text-indigo-900 mb-1">Switch to Data</h4>
+                <p class="text-sm text-indigo-700">Manage bulk data packages</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Packages Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-medium text-gray-900">Bandwidth Packages</h3>
+                <span class="text-sm text-gray-500">{{ package_stats.total }} packages</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bandwidth</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for package in packages|slice:":5" %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ package.name }}</div>
+                                <div class="text-xs text-gray-500">{{ package.vendor.name }}</div>
+                                <div class="text-xs text-gray-400 mt-1">{{ package.get_package_type_display }}</div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                {{ package.bandwidth_amount }} {{ package.unit|upper }}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                KSh {{ package.selling_price|floatformat:0 }}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                {% if package.is_active %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                    Inactive
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                <button onclick="togglePackageStatus('{{ package.id }}')" 
+                                        class="text-blue-600 hover:text-blue-800 mr-3"
+                                        title="{% if package.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                    <i class="fas {% if package.is_active %}fa-toggle-on{% else %}fa-toggle-off{% endif %}"></i>
+                                </button>
+                                <a href="#" class="text-gray-600 hover:text-gray-800" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                No bandwidth packages created yet
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                {% if packages.count > 5 %}
+                <div class="mt-4 text-center">
+                    <a href="#" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        View All {{ package_stats.total }} Packages →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Purchases Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-medium text-gray-900">Recent Purchases</h3>
+                <span class="text-sm text-gray-500">{{ purchase_stats.total }} purchases</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ISP</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for purchase in purchases|slice:":5" %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ purchase.tenant.name }}</div>
+                                <div class="text-xs text-gray-500">{{ purchase.purchased_at|date:"M d, Y" }}</div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ purchase.bandwidth_package.name }}</div>
+                                <div class="text-xs text-gray-500">{{ purchase.total_bandwidth }} {{ purchase.bandwidth_package.unit|upper }}</div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                KSh {{ purchase.total_price|floatformat:0 }}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                {% if purchase.payment_status == 'active' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                                {% elif purchase.payment_status == 'completed' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                    Completed
+                                </span>
+                                {% elif purchase.payment_status == 'pending' %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                    Pending
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                    {{ purchase.payment_status|title }}
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                                No bandwidth purchases yet
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                {% if purchases.count > 5 %}
+                <div class="mt-4 text-center">
+                    <a href="{% url 'superadmin_bandwidth_report' %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        View All Purchases →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Package Type Distribution -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-6">Package Type Distribution</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-shield-alt text-blue-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-blue-900 font-medium">Dedicated Bandwidth</p>
+                        <p class="text-2xl font-bold text-blue-700">{{ package_stats.dedicated }} packages</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-green-50 border border-green-100 rounded-lg p-4">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-users text-green-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-green-900 font-medium">Shared Bandwidth</p>
+                        <p class="text-2xl font-bold text-green-700">{{ package_stats.shared }} packages</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-purple-50 border border-purple-100 rounded-lg p-4">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-bolt text-purple-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-purple-900 font-medium">Burst Bandwidth</p>
+                        <p class="text-2xl font-bold text-purple-700">{{ package_stats.burst }} packages</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePackageStatus(packageId) {
+    fetch(`/api/bandwidth-package/${packageId}/toggle/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    });
+}
+</script>
+{% endblock %}

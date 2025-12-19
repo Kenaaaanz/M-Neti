@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}Choose a Plan - M-Neti{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Choose Your Plan</h1>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+            Select the perfect plan for your internet needs. All plans include 24/7 support and reliable service.
+        </p>
+    </div>
+
+    <!-- Current Plan Alert -->
+    {% if current_subscription %}
+    <div class="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-center">
+            <i class="fas fa-info-circle text-blue-500 mr-3 text-xl"></i>
+            <div>
+                <p class="text-blue-800 font-medium">
+                    You're currently on the <strong>{{ current_subscription.plan.name }}</strong> plan
+                </p>
+                <p class="text-blue-600 text-sm mt-1">
+                    Expires in {{ current_subscription.days_remaining }} days
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Plans Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {% for plan in plans %}
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+            <!-- Popular Plan Badge -->
+            {% if forloop.counter == 2 %}
+            <div class="bg-blue-500 text-white text-center py-2">
+                <span class="font-semibold">MOST POPULAR</span>
+            </div>
+            {% endif %}
+            
+            <div class="p-8">
+                <!-- Plan Name -->
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ plan.name }}</h3>
+                
+                <!-- Description -->
+                {% if plan.description %}
+                <p class="text-gray-600 mb-6">{{ plan.description }}</p>
+                {% endif %}
+                
+                <!-- Price -->
+                <div class="mb-6">
+                    <span class="text-4xl font-bold text-gray-900">Ksh{{ plan.price }}</span>
+                    <span class="text-gray-600">/{{ plan.duration_days }} days</span>
+                </div>
+                
+                <!-- Features -->
+                <ul class="space-y-3 mb-8">
+                    <li class="flex items-center">
+                        <i class="fas fa-check text-green-500 mr-3"></i>
+                        <span class="text-gray-700">{{ plan.bandwidth }} Mbps Speed</span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-check text-green-500 mr-3"></i>
+                        <span class="text-gray-700">
+                            {% if plan.data_cap %}
+                            {{ plan.data_cap }} GB Data Cap
+                            {% else %}
+                            Unlimited Data
+                            {% endif %}
+                        </span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-check text-green-500 mr-3"></i>
+                        <span class="text-gray-700">24/7 Support</span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-check text-green-500 mr-3"></i>
+                        <span class="text-gray-700">Free Router Setup</span>
+                    </li>
+                </ul>
+                
+                <!-- Select Button with AJAX Paystack Integration -->
+                    <div class="mt-auto">
+                        {% if current_subscription and current_subscription.plan.id == plan.id %}
+                            <!-- Current Plan - Disabled State -->
+                            <button 
+                                class="w-full py-3 px-6 rounded-lg font-semibold text-white bg-gray-400 cursor-not-allowed"
+                                disabled
+                            >
+                                Current Plan
+                            </button>
+                        {% else %}
+                            <!-- Select Plan with AJAX Paystack -->
+                            <button 
+                                type="button"
+                                onclick="initiatePaystackPayment({{ plan.id }})"
+                                class="w-full py-3 px-6 rounded-lg font-semibold text-white bg-blue-500 hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center"
+                                id="paystack-btn-{{ plan.id }}"
+                            >
+                                <span id="btn-text-{{ plan.id }}">Select Plan - Ksh{{ plan.price }}</span>
+                                <div id="btn-spinner-{{ plan.id }}" class="hidden ml-2">
+                                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
+                            </button>
+                            
+                            <!-- Alternative: Traditional form submission (fallback) -->
+                            <form method="POST" class="hidden" id="fallback-form-{{ plan.id }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                            </form>
+                        {% endif %}
+                    </div>
+
+                    <!-- Payment Status Messages -->
+                    <div id="payment-messages" class="mt-2"></div>
+
+                    <script>
+                    function initiatePaystackPayment(planId) {
+                        const btn = document.getElementById(`paystack-btn-${planId}`);
+                        const btnText = document.getElementById(`btn-text-${planId}`);
+                        const btnSpinner = document.getElementById(`btn-spinner-${planId}`);
+                        const messagesDiv = document.getElementById('payment-messages');
+                        
+                        // Show loading state
+                        btn.disabled = true;
+                        btnText.textContent = 'Processing...';
+                        btnSpinner.classList.remove('hidden');
+                        btn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                        btn.classList.add('bg-blue-400');
+                        
+                        // Clear previous messages
+                        messagesDiv.innerHTML = '';
+                        
+                        // Get CSRF token
+                        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        
+                        // Make AJAX request to initiate Paystack payment
+                        fetch(`/accounts/paystack/initiate/${planId}/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': csrftoken,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({})
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.status === 'success') {
+                                // Success - redirect to Paystack payment page
+                                showMessage('Redirecting to Paystack...', 'success');
+                                setTimeout(() => {
+                                    window.location.href = data.payment_url;
+                                }, 1000);
+                            } else {
+                                // Show error message
+                                showMessage(data.message || 'Payment initialization failed', 'error');
+                                resetButton(planId);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showMessage('Network error. Please try again.', 'error');
+                            resetButton(planId);
+                            
+                            // Fallback to traditional form submission
+                            setTimeout(() => {
+                                document.getElementById(`fallback-form-${planId}`).submit();
+                            }, 2000);
+                        });
+                    }
+
+                    function resetButton(planId) {
+                        const btn = document.getElementById(`paystack-btn-${planId}`);
+                        const btnText = document.getElementById(`btn-text-${planId}`);
+                        const btnSpinner = document.getElementById(`btn-spinner-${planId}`);
+                        
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btnText.textContent = `Select Plan - Ksh{{ plan.price }}`;
+                            btnSpinner.classList.add('hidden');
+                            btn.classList.remove('bg-blue-400');
+                            btn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                        }, 3000);
+                    }
+
+                    function showMessage(message, type) {
+                        const messagesDiv = document.getElementById('payment-messages');
+                        const messageEl = document.createElement('div');
+                        messageEl.className = `p-3 rounded-lg text-sm font-medium ${
+                            type === 'success' 
+                                ? 'bg-green-100 text-green-800 border border-green-200' 
+                                : 'bg-red-100 text-red-800 border border-red-200'
+                        }`;
+                        messageEl.textContent = message;
+                        messagesDiv.appendChild(messageEl);
+                        
+                        // Auto-remove message after 5 seconds
+                        setTimeout(() => {
+                            if (messageEl.parentNode) {
+                                messageEl.remove();
+                            }
+                        }, 5000);
+                    }
+
+                    // Handle page visibility change (if user returns from Paystack)
+                    document.addEventListener('visibilitychange', function() {
+                        if (!document.hidden) {
+                            // Page became visible again - user might have returned from Paystack
+                            // You could check URL parameters for Paystack callback here
+                            const urlParams = new URLSearchParams(window.location.search);
+                            if (urlParams.has('reference') || urlParams.has('trxref')) {
+                                // User returned from Paystack - you might want to verify payment status
+                                console.log('User returned from Paystack payment');
+                            }
+                        }
+                    });
+                    </script>
+
+                    <style>
+                    .hidden {
+                        display: none;
+                    }
+
+                    /* Smooth transitions for button states */
+                    button {
+                        transition: all 0.3s ease;
+                    }
+
+                    /* Loading animation */
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+
+                    .animate-spin {
+                        animation: spin 1s linear infinite;
+                    }
+                    </style>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-3 text-center py-12">
+            <i class="fas fa-tachometer-alt text-gray-300 text-6xl mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No Plans Available</h3>
+            <p class="text-gray-600">Please check back later for available plans.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="max-w-4xl mx-auto mt-16">
+        <h2 class="text-2xl font-bold text-center text-gray-900 mb-8">Frequently Asked Questions</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h4 class="font-semibold text-gray-900 mb-2">Can I change my plan later?</h4>
+                <p class="text-gray-600">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h4 class="font-semibold text-gray-900 mb-2">Is there a setup fee?</h4>
+                <p class="text-gray-600">No setup fees for any of our plans. We provide free router installation and configuration.</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h4 class="font-semibold text-gray-900 mb-2">How do I make payments?</h4>
+                <p class="text-gray-600">We accept M-Pesa, credit/debit cards, and bank transfers. All payments are secure.</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h4 class="font-semibold text-gray-900 mb-2">What if I need help?</h4>
+                <p class="text-gray-600">Our support team is available 24/7 via phone, email, or live chat to assist you.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-blue-50 { background-color: #eff6ff; }
+    .text-blue-500 { color: #3b82f6; }
+    .text-blue-800 { color: #1e40af; }
+    .text-blue-600 { color: #2563eb; }
+    
+    .bg-green-500 { background-color: #10b981; }
+    .text-green-500 { color: #10b981; }
+</style>
+{% endblock %}

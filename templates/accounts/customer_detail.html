@@ -1,0 +1,63 @@
+<div class="w-full max-w-3xl">
+    <div class="flex justify-between items-start mb-4">
+        <div>
+            <h2 class="text-xl font-semibold">{{ customer.username }}</h2>
+            <div class="text-sm text-gray-600">Account #: {{ customer.company_account_number }}</div>
+            <div class="text-sm text-gray-600">Email: {{ customer.email }}</div>
+        </div>
+        <div class="text-right text-sm text-gray-500">Joined: {{ customer.date_joined|date:"M d, Y" }}</div>
+    </div>
+
+    <div class="mb-4">
+        <h3 class="text-lg font-medium mb-2">Subscriptions</h3>
+        {% if subscriptions %}
+        <div class="space-y-3">
+            {% for sub in subscriptions %}
+            <div class="p-3 border rounded">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="font-medium">{{ sub.plan.name }}</div>
+                        <div class="text-sm text-gray-500">{{ sub.plan.description }}</div>
+                    </div>
+                    <div class="text-sm text-gray-600 text-right">
+                        <div>{{ sub.start_date|date:'M d, Y' }} — {{ sub.end_date|date:'M d, Y' }}</div>
+                        <div class="mt-1">Status: {% if sub.is_active %}<span class="text-green-600">Active</span>{% else %}<span class="text-red-600">Expired</span>{% endif %}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-gray-500">No subscriptions found</div>
+        {% endif %}
+    </div>
+
+    <div>
+        <h3 class="text-lg font-medium mb-2">Recent Payments</h3>
+        <div class="overflow-y-auto max-h-64 border rounded p-2 bg-white">
+            {% if payments %}
+            <ul class="space-y-2">
+                {% for p in payments %}
+                <li class="flex justify-between items-center p-2 border rounded">
+                    <div>
+                        <div class="text-sm font-medium">Ksh{{ p.amount }}</div>
+                        <div class="text-xs text-gray-500">{{ p.created_at|date:'M d, Y H:i' }} — {{ p.reference }}</div>
+                    </div>
+                    <div class="text-sm">
+                        {% if p.status == 'completed' %}
+                        <span class="px-2 py-1 rounded bg-green-100 text-green-800">Completed</span>
+                        {% elif p.status == 'pending' %}
+                        <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-800">Pending</span>
+                        {% else %}
+                        <span class="px-2 py-1 rounded bg-red-100 text-red-800">{{ p.status|capfirst }}</span>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="text-gray-500">No payments found</div>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,308 @@
+<!-- templates/billing/bulk_data/detail.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Purchase Details - {{ bulk_purchase.package.name }}{% endblock %}
+
+{% block page_title %}Purchase Details{% endblock %}
+{% block page_subtitle %}View details of your bulk data purchase{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Purchase Header -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">{{ bulk_purchase.package.name }}</h3>
+                <p class="text-gray-600">Purchased on {{ bulk_purchase.purchased_at|date:"F d, Y H:i" }}</p>
+            </div>
+            
+            <div class="mt-4 md:mt-0">
+                <span class="px-3 py-1 text-xs font-medium rounded-full 
+                    {% if bulk_purchase.payment_status == 'completed' %}bg-green-100 text-green-800
+                    {% elif bulk_purchase.payment_status == 'paid' %}bg-blue-100 text-blue-800
+                    {% elif bulk_purchase.payment_status == 'processing' %}bg-yellow-100 text-yellow-800
+                    {% elif bulk_purchase.payment_status == 'failed' %}bg-red-100 text-red-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ bulk_purchase.get_payment_status_display }}
+                </span>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Total Amount</p>
+                <p class="text-2xl font-bold text-gray-900">KSh {{ bulk_purchase.total_price|floatformat:0 }}</p>
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Total Data</p>
+                <p class="text-2xl font-bold text-gray-900">{{ bulk_purchase.total_data|floatformat:2 }} GB</p>
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Platform Commission</p>
+                <p class="text-2xl font-bold text-red-600">KSh {{ bulk_purchase.platform_commission|floatformat:0 }}</p>
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Net for Data</p>
+                <p class="text-2xl font-bold text-green-600">KSh {{ bulk_purchase.isp_net_amount|floatformat:0 }}</p>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-3">
+            {% if bulk_purchase.payment_status == 'pending' %}
+            <a href="{% url 'process_bulk_data_payment' bulk_purchase.id %}" 
+               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">
+                <i class="fas fa-credit-card mr-2"></i>Complete Payment
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'bulk_purchase_history' %}" 
+               class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">
+                <i class="fas fa-history mr-2"></i>View All Purchases
+            </a>
+        </div>
+    </div>
+
+    <!-- Detailed Information -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <!-- Package Details -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h4 class="font-medium text-gray-900 mb-4">
+                <i class="fas fa-box mr-2"></i>Package Details
+            </h4>
+            
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Package Name:</span>
+                    <span class="font-medium">{{ bulk_purchase.package.name }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Source:</span>
+                    <span class="font-medium">{{ bulk_purchase.package.get_source_type_display }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Data per Package:</span>
+                    <span class="font-medium">{{ bulk_purchase.package.data_amount }} GB</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Validity:</span>
+                    <span class="font-medium">{{ bulk_purchase.package.validity_days }} days</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Commission Rate:</span>
+                    <span class="font-medium">{{ bulk_purchase.package.commission_rate }}%</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Details -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h4 class="font-medium text-gray-900 mb-4">
+                <i class="fas fa-money-bill-wave mr-2"></i>Payment Details
+            </h4>
+            
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Quantity:</span>
+                    <span class="font-medium">{{ bulk_purchase.quantity }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Unit Price:</span>
+                    <span class="font-medium">KSh {{ bulk_purchase.package.price|floatformat:0 }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Subtotal:</span>
+                    <span class="font-medium">KSh {{ bulk_purchase.total_price|floatformat:0 }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Commission Amount:</span>
+                    <span class="font-medium text-red-600">KSh {{ bulk_purchase.platform_commission|floatformat:0 }}</span>
+                </div>
+                
+                <div class="flex justify-between font-bold pt-3 border-t border-gray-200">
+                    <span class="text-gray-900">Net Amount:</span>
+                    <span class="text-green-600">KSh {{ bulk_purchase.isp_net_amount|floatformat:0 }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Distribution Details -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h4 class="font-medium text-gray-900 mb-4">
+                <i class="fas fa-users mr-2"></i>Distribution Details
+            </h4>
+            
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Auto Distribution:</span>
+                    <span class="font-medium">
+                        {% if bulk_purchase.auto_distribute %}
+                        <span class="text-green-600">Enabled</span>
+                        {% else %}
+                        <span class="text-yellow-600">Disabled</span>
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Distribute to:</span>
+                    <span class="font-medium">{{ bulk_purchase.get_distribute_to_display }}</span>
+                </div>
+                
+                {% if bulk_purchase.distribution_started_at %}
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Distribution Started:</span>
+                    <span class="font-medium">{{ bulk_purchase.distribution_started_at|date:"M d, Y H:i" }}</span>
+                </div>
+                {% endif %}
+                
+                {% if bulk_purchase.distribution_completed_at %}
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Distribution Completed:</span>
+                    <span class="font-medium">{{ bulk_purchase.distribution_completed_at|date:"M d, Y H:i" }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribution Logs -->
+    {% if distribution_logs %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-center justify-between mb-6">
+            <h4 class="font-medium text-gray-900">
+                <i class="fas fa-list-alt mr-2"></i>Distribution Logs
+            </h4>
+            <span class="text-sm text-gray-500">{{ distribution_logs.count }} records</span>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Amount</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for log in distribution_logs %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ log.customer.username }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {{ log.data_amount|floatformat:2 }} GB
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                {% if log.status == 'success' %}bg-green-100 text-green-800
+                                {% elif log.status == 'failed' %}bg-red-100 text-red-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ log.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                            {{ log.distribution_date|date:"M d, Y H:i" }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            {{ log.notes|truncatechars:50 }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if distribution_logs.count > 10 %}
+        <div class="mt-4 text-center">
+            <button onclick="loadMoreLogs()" 
+                    class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                Load More Logs
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Timeline -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h4 class="font-medium text-gray-900 mb-6">
+            <i class="fas fa-history mr-2"></i>Purchase Timeline
+        </h4>
+        
+        <div class="space-y-4">
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                    <i class="fas fa-shopping-cart text-green-600 text-sm"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="font-medium text-gray-900">Purchase Created</p>
+                    <p class="text-sm text-gray-500">{{ bulk_purchase.purchased_at|date:"F d, Y H:i" }}</p>
+                </div>
+            </div>
+            
+            {% if bulk_purchase.payment %}
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                    <i class="fas fa-credit-card text-blue-600 text-sm"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="font-medium text-gray-900">Payment {{ bulk_purchase.payment.status|title }}</p>
+                    <p class="text-sm text-gray-500">
+                        {% if bulk_purchase.payment.status == 'completed' %}
+                        Reference: {{ bulk_purchase.payment.reference }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if bulk_purchase.distribution_started_at %}
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mr-4">
+                    <i class="fas fa-play text-yellow-600 text-sm"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="font-medium text-gray-900">Distribution Started</p>
+                    <p class="text-sm text-gray-500">{{ bulk_purchase.distribution_started_at|date:"F d, Y H:i" }}</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if bulk_purchase.distribution_completed_at %}
+            <div class="flex items-start">
+                <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                    <i class="fas fa-check-circle text-purple-600 text-sm"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="font-medium text-gray-900">Distribution Completed</p>
+                    <p class="text-sm text-gray-500">{{ bulk_purchase.distribution_completed_at|date:"F d, Y H:i" }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function loadMoreLogs() {
+    // Implement AJAX loading for more logs
+    alert('Load more functionality would be implemented here.');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,334 @@
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}Commission Analytics - M-Neti{% endblock %}
+
+{% block page_title %}Commission Analytics{% endblock %}
+{% block page_subtitle %}Platform commission earnings report{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Summary Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-lg">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-money-bill-wave text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm opacity-90">Total Revenue</p>
+                    <p class="text-2xl font-bold">
+                        KES {{ total_summary.total_transactions|default:0|floatformat:2 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-percentage text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm opacity-90">Total Commission</p>
+                    <p class="text-2xl font-bold">
+                        KES {{ total_summary.total_commission|default:0|floatformat:2 }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-lg">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-exchange-alt text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm opacity-90">Total Transactions</p>
+                    <p class="text-2xl font-bold">{{ total_summary.total_count|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export & Actions -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Commission Reports</h3>
+                <p class="text-sm text-gray-500">Platform commission earnings across all services</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'superadmin_export_commissions' %}"
+                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center space-x-2">
+                    <i class="fas fa-download"></i>
+                    <span>Export CSV</span>
+                </a>
+                <button onclick="printReport()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center space-x-2">
+                    <i class="fas fa-print"></i>
+                    <span>Print Report</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Commission by Service Type -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-6">Commission by Service Type</h3>
+            
+            {% if by_service %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service Type</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Commission</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transactions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for service in by_service %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {% if service.commission__service_type == 'customer_subscription' %}
+                                    Customer Subscription
+                                    {% elif service.commission__service_type == 'bulk_data_purchase' %}
+                                    Bulk Data Purchase
+                                    {% elif service.commission__service_type == 'one_time_payment' %}
+                                    One-time Payment
+                                    {% elif service.commission__service_type == 'addon_service' %}
+                                    Add-on Service
+                                    {% elif service.commission__service_type == 'late_fee' %}
+                                    Late Payment Fee
+                                    {% else %}
+                                    {{ service.commission__service_type }}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    KES {{ service.total_amount|floatformat:2 }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm font-medium text-green-600">
+                                    KES {{ service.total_commission|floatformat:2 }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {{ service.transaction_count }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-chart-pie text-3xl text-gray-300 mb-2"></i>
+                <p>No commission data by service type</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Commission by ISP -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-6">Commission by ISP</h3>
+            
+            {% if by_isp %}
+            <div class="space-y-4">
+                {% for isp in by_isp %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-network-wired text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">{{ isp.tenant__name }}</h4>
+                            <p class="text-sm text-gray-500">{{ isp.transaction_count }} transactions</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium text-gray-900">
+                            KES {{ isp.total_commission|floatformat:2 }}
+                        </p>
+                        <p class="text-sm text-gray-500">
+                            Revenue: KES {{ isp.total_amount|floatformat:2 }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-building text-3xl text-gray-300 mb-2"></i>
+                <p>No commission data by ISP</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Monthly Commission Trend -->
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-6">Monthly Commission Trend</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                {% for month in monthly_commissions %}
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-center mb-2">
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ month.year }}-{{ month.month|stringformat:"02d" }}
+                        </div>
+                        <div class="text-xs text-gray-500">{{ month.count }} transactions</div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>Commission</span>
+                                <span>KES {{ month.commission|floatformat:2 }}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-600 h-2 rounded-full"
+                                     style="width: {% widthratio month.commission monthly_commissions.0.commission 100 %}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>Revenue</span>
+                                <span>KES {{ month.revenue|floatformat:2 }}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full"
+                                     style="width: {% widthratio month.revenue monthly_commissions.0.revenue 100 %}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-6 text-center py-8 text-gray-500">
+                    <i class="fas fa-chart-line text-3xl text-gray-300 mb-2"></i>
+                    <p>No monthly commission data available</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Commission Transactions -->
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-medium text-gray-900">Recent Commission Transactions</h3>
+                <a href="#" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    View All →
+                </a>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ISP</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Commission</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for txn in commission_transactions|slice:":10" %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                {{ txn.created_at|date:"M d, Y" }}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ txn.tenant.name }}</div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {% if txn.commission %}
+                                        {{ txn.commission.get_service_type_display }}
+                                    {% else %}
+                                        Bulk Data
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                KES {{ txn.transaction_amount|floatformat:2 }}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm font-medium text-green-600">
+                                    KES {{ txn.commission_amount|floatformat:2 }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                {% if txn.status == 'completed' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Completed
+                                </span>
+                                {% elif txn.status == 'pending' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Pending
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    {{ txn.status }}
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                <i class="fas fa-exchange-alt text-3xl text-gray-300 mb-2"></i>
+                                <p>No commission transactions found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function printReport() {
+    window.print();
+}
+
+// Add context for commission transactions (you'll need to pass this in your view)
+// For now, we'll hide this section if there's no data
+document.addEventListener('DOMContentLoaded', function() {
+    // You can add any initialization code here
+});
+</script>
+
+<style>
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+    }
+    
+    .bg-gradient-to-r, .shadow-lg, .shadow-sm, .hover\:bg-gray-50 {
+        box-shadow: none !important;
+        background: white !important;
+    }
+    
+    .text-white {
+        color: black !important;
+    }
+}
+</style>
+{% endblock %}

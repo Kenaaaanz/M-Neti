@@ -1,0 +1,284 @@
+{% extends 'accounts/superadmin_base.html' %}
+
+{% block title %}Create ISP - M-Neti{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Create New Internet Provider</h1>
+        <p class="text-gray-600">Add a new Internet Service Provider to the platform</p>
+    </div>
+
+    <!-- Create ISP Form -->
+    <div class="glass-card p-8">
+        <form method="POST" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="space-y-6">
+            <h3 class="text-xl font-semibold text-gray-900 border-b pb-3">Basic Information</h3>
+            
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">ISP Name *</label>
+                <input type="text" id="name" name="name" required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                    placeholder="e.g., Nairobi Internet Solutions">
+            </div>
+            
+            <div>
+                <label for="company_name" class="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+                <input type="text" id="company_name" name="company_name" required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                    placeholder="e.g., Nairobi Internet Solutions Ltd">
+            </div>
+
+            <!-- Service Limits -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="bandwidth_limit" class="block text-sm font-medium text-gray-700 mb-2">Bandwidth Limit (Mbps) *</label>
+                    <input type="number" id="bandwidth_limit" name="bandwidth_limit" value="1000" required min="100" max="10000"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                </div>
+                
+                <div>
+                    <label for="client_limit" class="block text-sm font-medium text-gray-700 mb-2">Client Limit *</label>
+                    <input type="number" id="client_limit" name="client_limit" value="1000" required min="10" max="100000"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                </div>
+            </div>
+        </div>
+
+        <!-- Domain & Contact -->
+        <div class="space-y-6">
+            <h3 class="text-xl font-semibold text-gray-900 border-b pb-3">Domain & Contact</h3>
+            
+            <div>
+                <label for="subdomain" class="block text-sm font-medium text-gray-700 mb-2">Subdomain *</label>
+                <div class="flex rounded-lg shadow-sm">
+                    <input type="text" id="subdomain" name="subdomain" required
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                        placeholder="nairobi">
+                    <span class="inline-flex items-center px-4 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 rounded-r-lg">
+                        .M-Neti.com
+                    </span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Lowercase letters, numbers, and hyphens only</p>
+            </div>
+            
+            <div>
+                <label for="contact_email" class="block text-sm font-medium text-gray-700 mb-2">Contact Email *</label>
+                <input type="email" id="contact_email" name="contact_email" required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                    placeholder="admin@company.com">
+            </div>
+
+            <div>
+                <label for="contact_phone" class="block text-sm font-medium text-gray-700 mb-2">Contact Phone *</label>
+                <input type="tel" id="contact_phone" name="contact_phone" required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                    placeholder="+254 700 000000">
+            </div>
+        </div>
+    </div>
+
+    <!-- Branding Section -->
+    <div class="border-t pt-8">
+        <h3 class="text-xl font-semibold text-gray-900 mb-6">Branding</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="primary_color" class="block text-sm font-medium text-gray-700 mb-2">Primary Color *</label>
+                <div class="flex items-center space-x-3">
+                    <input type="color" id="primary_color" name="primary_color" value="#4361ee" required
+                        class="w-12 h-12 rounded-lg border border-gray-300 cursor-pointer">
+                    <input type="text" id="primary_color_hex" name="primary_color_hex" value="#4361ee" required
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                        placeholder="#4361ee" pattern="^#[0-9A-Fa-f]{6}$">
+                </div>
+            </div>
+            
+            <div>
+                <label for="secondary_color" class="block text-sm font-medium text-gray-700 mb-2">Secondary Color *</label>
+                <div class="flex items-center space-x-3">
+                    <input type="color" id="secondary_color" name="secondary_color" value="#3a0ca3" required
+                        class="w-12 h-12 rounded-lg border border-gray-300 cursor-pointer">
+                    <input type="text" id="secondary_color_hex" name="secondary_color_hex" value="#3a0ca3" required
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                        placeholder="#3a0ca3" pattern="^#[0-9A-Fa-f]{6}$">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Settings -->
+    <div class="border-t pt-8">
+        <h3 class="text-xl font-semibold text-gray-900 mb-6">Service Settings</h3>
+        
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div>
+                <label for="auto_disconnect_enabled" class="font-medium text-gray-700">Auto Disconnect</label>
+                <p class="text-sm text-gray-500">Automatically disconnect overdue customers</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="auto_disconnect_enabled" name="auto_disconnect_enabled" checked class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+        </div>
+    </div>
+                    
+                    <div>
+                        <label for="contact_email" class="block text-sm font-medium text-gray-700 mb-2">Contact Email *</label>
+                        <input type="email" id="contact_email" name="contact_email" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="admin@company.com">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subscription Plan -->
+            <div class="border-t pt-8">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6">Subscription Plan</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="subscription_plan" value="starter" class="sr-only peer" checked>
+                        <div class="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition duration-200 peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <div class="font-semibold text-gray-900 text-lg">Starter</div>
+                                    <div class="text-gray-500 text-sm mt-1">Perfect for small ISPs</div>
+                                </div>
+                                <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 flex items-center justify-center">
+                                    <i class="fas fa-check text-white text-xs hidden peer-checked:block"></i>
+                                </div>
+                            </div>
+                            <div class="text-2xl font-bold text-blue-600 mb-2">$99<span class="text-sm font-normal text-gray-500">/mo</span></div>
+                            <ul class="text-sm text-gray-600 space-y-2">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+                                    Up to 500 customers
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+                                    Basic analytics
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+                                    Email support
+                                </li>
+                            </ul>
+                        </div>
+                    </label>
+                    
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="subscription_plan" value="professional" class="sr-only peer">
+                        <div class="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition duration-200 peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <div class="font-semibold text-gray-900 text-lg">Professional</div>
+                                    <div class="text-gray-500 text-sm mt-1">Growing ISPs</div>
+                                </div>
+                                <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 flex items-center justify-center">
+                                    <i class="fas fa-check text-white text-xs hidden peer-checked:block"></i>
+                                </div>
+                            </div>
+                            <div class="text-2xl font-bold text-blue-600 mb-2">$199<span class="text-sm font-normal text-gray-500">/mo</span></div>
+                            <ul class="text-sm text-gray-600 space-y-2">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+                                    Up to 2,000 customers
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+                                    Advanced analytics
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+                                    Priority support
+                                </li>
+                            </ul>
+                        </div>
+                    </label>
+                    
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="subscription_plan" value="enterprise" class="sr-only peer">
+                        <div class="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-500 transition duration-200 peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <div class="font-semibold text-gray-900 text-lg">Enterprise</div>
+                                    <div class="text-gray-500 text-sm mt-1">Large providers</div>
+                                </div>
+                                <div class="w-6 h-6 border-2 border-gray-300 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 flex items-center justify-center">
+                                    <i class="fas fa-check text-white text-xs hidden peer-checked:block"></i>
+                                </div>
+                            </div>
+                            <div class="text-2xl font-bold text-blue-600 mb-2">$299<span class="text-sm font-normal text-gray-500">/mo</span></div>
+                            <ul class="text-sm text-gray-600 space-y-2">
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+                                    Unlimited customers
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+                                    Full analytics suite
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-500 mr-2 text-xs"></i>
+                                    24/7 premium support
+                                </li>
+                            </ul>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center justify-between pt-8 border-t border-gray-200">
+                <a href="{% url 'superadmin_tenants' %}" class="text-gray-600 hover:text-gray-800 font-medium flex items-center space-x-2 transition duration-200">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to ISPs</span>
+                </a>
+                <button type="submit" class="btn-primary flex items-center space-x-2 px-8 py-3 rounded-lg font-semibold">
+                    <i class="fas fa-plus"></i>
+                    <span>Create ISP</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Sync color picker and hex input
+    document.addEventListener('DOMContentLoaded', function() {
+        const primaryColor = document.getElementById('primary_color');
+        const primaryHex = document.getElementById('primary_color_hex');
+        const secondaryColor = document.getElementById('secondary_color');
+        const secondaryHex = document.getElementById('secondary_color_hex');
+
+        // Primary color sync
+        primaryColor.addEventListener('input', function() {
+            primaryHex.value = this.value;
+        });
+        
+        primaryHex.addEventListener('input', function() {
+            if (this.value.match(/^#[0-9A-Fa-f]{6}$/)) {
+                primaryColor.value = this.value;
+            }
+        });
+
+        // Secondary color sync
+        secondaryColor.addEventListener('input', function() {
+            secondaryHex.value = this.value;
+        });
+        
+        secondaryHex.addEventListener('input', function() {
+            if (this.value.match(/^#[0-9A-Fa-f]{6}$/)) {
+                secondaryColor.value = this.value;
+            }
+        });
+    });
+    // Auto-select first radio button
+    document.querySelector('input[type="radio"]:checked').dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

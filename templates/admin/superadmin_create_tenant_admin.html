@@ -1,0 +1,770 @@
+<!-- templates/admin/superadmin_create_tenant_admin.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}Create ISP Admin - {{ tenant.name }} - M-Neti{% endblock %}
+
+{% block page_title %}Create ISP Admin for {{ tenant.name }}{% endblock %}
+{% block page_subtitle %}Set up a new administrator account for {{ tenant.company_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'superadmin_tenant_admins' tenant.id %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+            <i class="fas fa-arrow-left mr-2"></i> Back to ISP Admins
+        </a>
+    </div>
+    
+    <!-- ISP Info Banner -->
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white mb-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                {% if tenant.logo %}
+                <img src="{{ tenant.logo.url }}" alt="{{ tenant.name }}" class="w-16 h-16 rounded-lg object-cover mr-4">
+                {% else %}
+                <div class="w-16 h-16 rounded-lg bg-white bg-opacity-20 flex items-center justify-center mr-4">
+                    <i class="fas fa-building text-2xl"></i>
+                </div>
+                {% endif %}
+                <div>
+                    <h3 class="text-xl font-bold">{{ tenant.name }}</h3>
+                    <p class="text-blue-100">{{ tenant.company_name }}</p>
+                    <p class="text-sm text-blue-200 mt-1">
+                        <i class="fas fa-globe mr-1"></i>{{ tenant.primary_domain }}
+                    </p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-blue-100">Admin Count</p>
+                <p class="text-2xl font-bold">{{ current_admin_count }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create Admin Form -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <form method="post" id="createAdminForm">
+            {% csrf_token %}
+            
+            <!-- Admin Type Selection -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-user-tie text-blue-600 mr-2"></i>
+                    Admin Type
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="admin-type-option" data-type="isp_admin">
+                        <div class="p-4 border-2 border-blue-200 rounded-xl bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors">
+                            <div class="flex items-center mb-2">
+                                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-crown text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-900">ISP Administrator</h4>
+                                    <p class="text-xs text-blue-600">Full Access</p>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">Full access to all ISP management features</p>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-type-option" data-type="isp_staff">
+                        <div class="p-4 border-2 border-gray-200 rounded-xl bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                            <div class="flex items-center mb-2">
+                                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-user-gear text-gray-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-900">ISP Staff</h4>
+                                    <p class="text-xs text-gray-600">Limited Access</p>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">Limited access for support staff</p>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-type-option" data-type="support">
+                        <div class="p-4 border-2 border-gray-200 rounded-xl bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                            <div class="flex items-center mb-2">
+                                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mr-3">
+                                    <i class="fas fa-headset text-gray-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-900">Support Staff</h4>
+                                    <p class="text-xs text-gray-600">Customer Support Only</p>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-600">Customer support and ticket management</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="role" id="selectedRole" value="isp_admin" required>
+            </div>
+            
+            <!-- Personal Information -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-id-card text-green-600 mr-2"></i>
+                    Personal Information
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            First Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="first_name" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter first name">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Last Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="last_name" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter last name">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Username <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" name="username" id="username" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Choose username">
+                            <div id="usernameCheck" class="absolute right-3 top-3 hidden">
+                                <i id="usernameValidIcon" class="fas fa-check-circle text-green-500 hidden"></i>
+                                <i id="usernameInvalidIcon" class="fas fa-times-circle text-red-500 hidden"></i>
+                            </div>
+                        </div>
+                        <p id="usernameMessage" class="text-xs text-gray-500 mt-1"></p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Email Address <span class="text-red-500">*</span>
+                        </label>
+                        <input type="email" name="email" id="email" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="admin@{{ tenant.subdomain }}.com">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Phone Number
+                        </label>
+                        <input type="tel" name="phone"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="+254...">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Company Account Number
+                        </label>
+                        <input type="text" name="company_account_number"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Optional">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Security -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-shield-alt text-red-600 mr-2"></i>
+                    Account Security
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Password <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" name="password" id="password" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Create strong password">
+                            <button type="button" onclick="togglePassword('password')" 
+                                    class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs text-gray-500">Password Strength</span>
+                                <span id="strengthText" class="text-xs font-medium">Weak</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                <div id="strengthBar" class="h-1.5 rounded-full bg-red-500 w-1/4"></div>
+                            </div>
+                            <ul class="mt-2 space-y-1 text-xs text-gray-500">
+                                <li id="lengthReq" class="flex items-center">
+                                    <i class="fas fa-circle text-red-500 mr-2 text-xs"></i>
+                                    At least 8 characters
+                                </li>
+                                <li id="numberReq" class="flex items-center">
+                                    <i class="fas fa-circle text-red-500 mr-2 text-xs"></i>
+                                    Contains a number
+                                </li>
+                                <li id="letterReq" class="flex items-center">
+                                    <i class="fas fa-circle text-red-500 mr-2 text-xs"></i>
+                                    Contains a letter
+                                </li>
+                                <li id="specialReq" class="flex items-center">
+                                    <i class="fas fa-circle text-red-500 mr-2 text-xs"></i>
+                                    Special character
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Confirm Password <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" name="confirm_password" id="confirmPassword" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Confirm password">
+                            <button type="button" onclick="togglePassword('confirmPassword')" 
+                                    class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div id="passwordMatch" class="mt-2 hidden">
+                            <p class="text-sm text-red-600 flex items-center">
+                                <i class="fas fa-times-circle mr-2"></i>
+                                Passwords do not match
+                            </p>
+                        </div>
+                        <div id="passwordMatchSuccess" class="mt-2 hidden">
+                            <p class="text-sm text-green-600 flex items-center">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                Passwords match
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Permissions & Settings -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-cog text-purple-600 mr-2"></i>
+                    Permissions & Settings
+                </h3>
+                
+                <div class="space-y-4">
+                    <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                        <h4 class="font-medium text-purple-800 mb-2">Access Level</h4>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input type="checkbox" name="is_staff" id="is_staff" checked
+                                       class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                                <label for="is_staff" class="ml-2 text-sm text-gray-700">
+                                    Grant staff access (can access admin panel)
+                                </label>
+                            </div>
+                            <p class="text-xs text-purple-600">
+                                Staff access allows the admin to log into the Django admin interface
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 class="font-medium text-blue-800 mb-2">Account Settings</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input type="checkbox" name="send_welcome_email" id="send_welcome_email" checked
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="send_welcome_email" class="ml-2 text-sm text-gray-700">
+                                    Send welcome email with login instructions
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input type="checkbox" name="auto_approve" id="auto_approve" checked
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="auto_approve" class="ml-2 text-sm text-gray-700">
+                                    Auto-approve account (skip pending status)
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input type="checkbox" name="force_password_change" id="force_password_change"
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="force_password_change" class="ml-2 text-sm text-gray-700">
+                                    Force password change on first login
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Custom Permissions -->
+                    <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <h4 class="font-medium text-gray-800 mb-3">Custom Permissions</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="flex items-center">
+                                <input type="checkbox" name="can_manage_customers" id="can_manage_customers" checked
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="can_manage_customers" class="ml-2 text-sm text-gray-700">
+                                    Can manage customers
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input type="checkbox" name="can_manage_payments" id="can_manage_payments" checked
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="can_manage_payments" class="ml-2 text-sm text-gray-700">
+                                    Can manage payments
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input type="checkbox" name="can_manage_routers" id="can_manage_routers" checked
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="can_manage_routers" class="ml-2 text-sm text-gray-700">
+                                    Can manage routers
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input type="checkbox" name="can_view_reports" id="can_view_reports" checked
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="can_view_reports" class="ml-2 text-sm text-gray-700">
+                                    Can view reports
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input type="checkbox" name="can_manage_staff" id="can_manage_staff"
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="can_manage_staff" class="ml-2 text-sm text-gray-700">
+                                    Can manage other staff
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input type="checkbox" name="can_configure_settings" id="can_configure_settings"
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="can_configure_settings" class="ml-2 text-sm text-gray-700">
+                                    Can configure settings
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional Information -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-sticky-note text-yellow-600 mr-2"></i>
+                    Additional Information
+                </h3>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                    <textarea name="notes" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Add any notes about this admin appointment..."></textarea>
+                    <p class="text-xs text-gray-500 mt-1">
+                        These notes are for internal reference only and won't be shared with the admin
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Summary & Preview -->
+            <div class="mb-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Summary</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">ISP:</span>
+                        <span class="font-medium">{{ tenant.name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Admin Role:</span>
+                        <span id="summaryRole" class="font-medium text-blue-600">ISP Administrator</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Staff Access:</span>
+                        <span id="summaryStaff" class="font-medium text-green-600">Yes</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Welcome Email:</span>
+                        <span id="summaryEmail" class="font-medium text-green-600">Yes</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Auto-approve:</span>
+                        <span id="summaryApprove" class="font-medium text-green-600">Yes</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="pt-6 border-t border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                    <div>
+                        <p class="text-sm text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            All fields marked with <span class="text-red-500">*</span> are required
+                        </p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <a href="{% url 'superadmin_tenant_admins' tenant.id %}" 
+                           class="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">
+                            Cancel
+                        </a>
+                        <button type="submit" id="submitButton"
+                                class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled>
+                            <i class="fas fa-user-plus mr-2"></i> Create Admin Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Help Information -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <h3 class="text-lg font-semibold text-blue-900 mb-3 flex items-center">
+            <i class="fas fa-question-circle text-blue-600 mr-2"></i>
+            Help & Information
+        </h3>
+        <div class="space-y-3">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-lightbulb text-blue-500 mt-1"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-blue-800">
+                        <strong>ISP Administrator:</strong> Full access to all features including customer management, payments, router configuration, and reports.
+                    </p>
+                </div>
+            </div>
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-lightbulb text-blue-500 mt-1"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-blue-800">
+                        <strong>ISP Staff:</strong> Limited access suitable for support teams. Can view customers and manage basic operations.
+                    </p>
+                </div>
+            </div>
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-lightbulb text-blue-500 mt-1"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-blue-800">
+                        <strong>Support Staff:</strong> Customer support only. Can view customer information and manage support tickets.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Admin Type Selection
+    document.querySelectorAll('.admin-type-option').forEach(option => {
+        option.addEventListener('click', function() {
+            // Remove active class from all options
+            document.querySelectorAll('.admin-type-option').forEach(opt => {
+                opt.querySelector('div').classList.remove('border-blue-200', 'bg-blue-50');
+                opt.querySelector('div').classList.add('border-gray-200', 'bg-gray-50');
+            });
+            
+            // Add active class to selected option
+            this.querySelector('div').classList.remove('border-gray-200', 'bg-gray-50');
+            this.querySelector('div').classList.add('border-blue-200', 'bg-blue-50');
+            
+            // Update hidden input
+            const role = this.getAttribute('data-type');
+            document.getElementById('selectedRole').value = role;
+            
+            // Update summary
+            updateSummary();
+        });
+    });
+    
+    // Username Availability Check
+    const usernameInput = document.getElementById('username');
+    const usernameCheck = document.getElementById('usernameCheck');
+    const usernameValidIcon = document.getElementById('usernameValidIcon');
+    const usernameInvalidIcon = document.getElementById('usernameInvalidIcon');
+    const usernameMessage = document.getElementById('usernameMessage');
+    
+    let usernameTimeout;
+    
+    usernameInput.addEventListener('input', function() {
+        clearTimeout(usernameTimeout);
+        usernameTimeout = setTimeout(checkUsernameAvailability, 500);
+    });
+    
+    function checkUsernameAvailability() {
+        const username = usernameInput.value.trim();
+        
+        if (username.length < 3) {
+            usernameCheck.classList.add('hidden');
+            usernameMessage.textContent = 'Username must be at least 3 characters';
+            usernameMessage.className = 'text-xs text-red-500 mt-1';
+            return;
+        }
+        
+        fetch(`/api/username-availability/?username=${username}`)
+            .then(response => response.json())
+            .then(data => {
+                usernameCheck.classList.remove('hidden');
+                
+                if (data.available) {
+                    usernameValidIcon.classList.remove('hidden');
+                    usernameInvalidIcon.classList.add('hidden');
+                    usernameMessage.textContent = 'Username is available';
+                    usernameMessage.className = 'text-xs text-green-500 mt-1';
+                } else {
+                    usernameValidIcon.classList.add('hidden');
+                    usernameInvalidIcon.classList.remove('hidden');
+                    usernameMessage.textContent = 'Username is already taken';
+                    usernameMessage.className = 'text-xs text-red-500 mt-1';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+    
+    // Password Strength Check
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+    const passwordMatchDiv = document.getElementById('passwordMatch');
+    const passwordMatchSuccessDiv = document.getElementById('passwordMatchSuccess');
+    const submitButton = document.getElementById('submitButton');
+    
+    // Requirements elements
+    const lengthReq = document.getElementById('lengthReq');
+    const numberReq = document.getElementById('numberReq');
+    const letterReq = document.getElementById('letterReq');
+    const specialReq = document.getElementById('specialReq');
+    
+    passwordInput.addEventListener('input', validatePassword);
+    confirmPasswordInput.addEventListener('input', validatePassword);
+    
+    function validatePassword() {
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        
+        // Check requirements
+        const hasLength = password.length >= 8;
+        const hasNumber = /\d/.test(password);
+        const hasLetter = /[a-zA-Z]/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        
+        // Update requirement indicators
+        updateRequirement(lengthReq, hasLength);
+        updateRequirement(numberReq, hasNumber);
+        updateRequirement(letterReq, hasLetter);
+        updateRequirement(specialReq, hasSpecial);
+        
+        // Calculate strength
+        let strength = 0;
+        if (hasLength) strength++;
+        if (hasNumber) strength++;
+        if (hasLetter) strength++;
+        if (hasSpecial) strength++;
+        
+        // Update strength bar and text
+        const percentage = (strength / 4) * 100;
+        strengthBar.style.width = percentage + '%';
+        
+        if (strength === 0) {
+            strengthBar.className = 'h-1.5 rounded-full bg-red-500';
+            strengthText.textContent = 'Weak';
+            strengthText.className = 'text-xs font-medium text-red-500';
+        } else if (strength === 1) {
+            strengthBar.className = 'h-1.5 rounded-full bg-red-500';
+            strengthText.textContent = 'Weak';
+            strengthText.className = 'text-xs font-medium text-red-500';
+        } else if (strength === 2) {
+            strengthBar.className = 'h-1.5 rounded-full bg-yellow-500';
+            strengthText.textContent = 'Fair';
+            strengthText.className = 'text-xs font-medium text-yellow-500';
+        } else if (strength === 3) {
+            strengthBar.className = 'h-1.5 rounded-full bg-blue-500';
+            strengthText.textContent = 'Good';
+            strengthText.className = 'text-xs font-medium text-blue-500';
+        } else {
+            strengthBar.className = 'h-1.5 rounded-full bg-green-500';
+            strengthText.textContent = 'Strong';
+            strengthText.className = 'text-xs font-medium text-green-500';
+        }
+        
+        // Check password match
+        if (confirmPassword) {
+            if (password === confirmPassword) {
+                passwordMatchDiv.classList.add('hidden');
+                passwordMatchSuccessDiv.classList.remove('hidden');
+            } else {
+                passwordMatchDiv.classList.remove('hidden');
+                passwordMatchSuccessDiv.classList.add('hidden');
+            }
+        } else {
+            passwordMatchDiv.classList.add('hidden');
+            passwordMatchSuccessDiv.classList.add('hidden');
+        }
+        
+        // Enable/disable submit button
+        const allRequirementsMet = hasLength && hasNumber && hasLetter;
+        const passwordsMatch = password === confirmPassword;
+        const formValid = allRequirementsMet && passwordsMatch;
+        
+        submitButton.disabled = !formValid;
+    }
+    
+    function updateRequirement(element, met) {
+        const icon = element.querySelector('i');
+        if (met) {
+            icon.className = 'fas fa-check-circle text-green-500 mr-2 text-xs';
+        } else {
+            icon.className = 'fas fa-circle text-red-500 mr-2 text-xs';
+        }
+    }
+    
+    // Toggle password visibility
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const type = field.type === 'password' ? 'text' : 'password';
+        field.type = type;
+    }
+    
+    // Update summary based on form inputs
+    function updateSummary() {
+        const role = document.getElementById('selectedRole').value;
+        const isStaff = document.getElementById('is_staff').checked;
+        const sendEmail = document.getElementById('send_welcome_email').checked;
+        const autoApprove = document.getElementById('auto_approve').checked;
+        
+        // Update role in summary
+        let roleText = 'ISP Administrator';
+        if (role === 'isp_staff') roleText = 'ISP Staff';
+        if (role === 'support') roleText = 'Support Staff';
+        document.getElementById('summaryRole').textContent = roleText;
+        
+        // Update other fields
+        document.getElementById('summaryStaff').textContent = isStaff ? 'Yes' : 'No';
+        document.getElementById('summaryStaff').className = isStaff ? 'font-medium text-green-600' : 'font-medium text-red-600';
+        
+        document.getElementById('summaryEmail').textContent = sendEmail ? 'Yes' : 'No';
+        document.getElementById('summaryEmail').className = sendEmail ? 'font-medium text-green-600' : 'font-medium text-red-600';
+        
+        document.getElementById('summaryApprove').textContent = autoApprove ? 'Yes' : 'No';
+        document.getElementById('summaryApprove').className = autoApprove ? 'font-medium text-green-600' : 'font-medium text-red-600';
+    }
+    
+    // Listen for changes on checkboxes to update summary
+    document.getElementById('is_staff').addEventListener('change', updateSummary);
+    document.getElementById('send_welcome_email').addEventListener('change', updateSummary);
+    document.getElementById('auto_approve').addEventListener('change', updateSummary);
+    
+    // Form validation before submission
+    document.getElementById('createAdminForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        const submitButton = document.getElementById('submitButton');
+        const originalText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating Admin...';
+        
+        // Collect form data
+        const formData = new FormData(this);
+        
+        // Add tenant ID
+        formData.append('tenant_id', '{{ tenant.id }}');
+        
+        // Submit form
+        fetch('{% url "superadmin_create_tenant_admin" tenant.id %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert('Admin created successfully!');
+                
+                // Redirect to admin list
+                window.location.href = '{% url "superadmin_tenant_admins" tenant.id %}';
+            } else {
+                // Show error
+                alert('Error: ' + data.message);
+                
+                // Reset button
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+            
+            // Reset button
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        });
+    });
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set first admin type as active
+        document.querySelector('.admin-type-option').click();
+        
+        // Initial summary update
+        updateSummary();
+    });
+</script>
+
+<style>
+    .admin-type-option.active div {
+        border-color: #93c5fd;
+        background-color: #dbeafe;
+    }
+    
+    .requirement-met {
+        color: #10b981;
+    }
+    
+    .requirement-not-met {
+        color: #ef4444;
+    }
+    
+    .password-strength-weak {
+        background-color: #ef4444;
+    }
+    
+    .password-strength-fair {
+        background-color: #f59e0b;
+    }
+    
+    .password-strength-good {
+        background-color: #3b82f6;
+    }
+    
+    .password-strength-strong {
+        background-color: #10b981;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Purchase Details - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Purchase Details{% endblock %}
+{% block page_subtitle %}Purchase #{{ purchase.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Purchase #{{ purchase.id }}</h2>
+                    <p class="text-gray-600 text-sm">{{ purchase.purchased_at|date:"F d, Y H:i" }}</p>
+                </div>
+                
+                <span class="px-3 py-1 text-sm font-medium rounded-full
+                    {% if purchase.status == 'completed' %}bg-green-100 text-green-800
+                    {% elif purchase.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% elif purchase.status == 'processing' %}bg-blue-100 text-blue-800
+                    {% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ purchase.get_status_display }}
+                </span>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Left Column: Purchase Information -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900">Purchase Information</h3>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Package Type:</span>
+                            <span class="font-medium text-gray-900">{{ purchase.get_package_type_display|title }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Package Name:</span>
+                            <span class="font-medium text-gray-900">
+                                {% if purchase.bulk_package %}
+                                    {{ purchase.bulk_package.name }}
+                                {% else %}
+                                    {{ purchase.bulk_bandwidth_package.name }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Vendor:</span>
+                            <span class="font-medium text-gray-900">
+                                {% if purchase.bulk_package %}
+                                    {{ purchase.bulk_package.vendor.name|default:"Platform" }}
+                                {% else %}
+                                    {{ purchase.bulk_bandwidth_package.vendor.name|default:"Vendor" }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Quantity:</span>
+                            <span class="font-medium text-gray-900">{{ purchase.quantity }}</span>
+                        </div>
+                        
+                        {% if purchase.package_type == 'data' %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Total Data:</span>
+                            <span class="font-medium text-gray-900">{{ purchase.total_data_amount }} GB</span>
+                        </div>
+                        {% else %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Total Bandwidth:</span>
+                            <span class="font-medium text-gray-900">
+                                {{ purchase.total_bandwidth_amount }} 
+                                {{ purchase.bulk_bandwidth_package.unit|upper }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Right Column: Financial Information -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900">Financial Details</h3>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Unit Price:</span>
+                                <span class="font-medium">KSh {{ purchase.unit_price|floatformat:2 }}</span>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Total Price:</span>
+                                <span class="font-bold text-blue-600">KSh {{ purchase.total_price|floatformat:2 }}</span>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Platform Commission:</span>
+                                <span class="font-medium text-purple-600">KSh {{ purchase.platform_commission|floatformat:2 }}</span>
+                            </div>
+                            
+                            <div class="flex justify-between border-t pt-3">
+                                <span class="text-gray-900 font-medium">Your Net Cost:</span>
+                                <span class="font-bold text-green-600">KSh {{ purchase.isp_net_amount|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if purchase.payment_method %}
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Payment Method:</span>
+                            <span class="font-medium">{{ purchase.get_payment_method_display }}</span>
+                        </div>
+                        
+                        {% if purchase.payment_reference %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Reference:</span>
+                            <span class="font-mono text-sm">{{ purchase.payment_reference }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if purchase.completed_at %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Completed:</span>
+                            <span class="font-medium">{{ purchase.completed_at|date:"F d, Y H:i" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Notes -->
+            {% if purchase.notes %}
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Notes</h3>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-gray-700">{{ purchase.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Actions -->
+    <div class="flex justify-between">
+        <a href="{% url 'isp_purchase_history' %}" 
+           class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Purchase History
+        </a>
+        
+        <div class="space-x-3">
+            {% if purchase.status == 'completed' and purchase.package_type == 'bandwidth' %}
+            <a href="/accounts/marketplace/allocate-bandwidth/{{ purchase.id }}/" 
+            class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium rounded-lg">
+                <i class="fas fa-share-alt mr-2"></i>
+                Allocate Bandwidth
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'isp_vendor_marketplace' %}" 
+               class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">
+                <i class="fas fa-shopping-cart mr-2"></i>
+                Make Another Purchase
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

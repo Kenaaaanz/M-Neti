@@ -1,0 +1,273 @@
+<!-- templates/billing/plans.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}Internet Plans - {{ tenant_name|default:"M-Neti" }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Choose Your Internet Plan</h1>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+            Select the perfect plan for your needs from {{ tenant_name|default:"your ISP" }}
+        </p>
+    </div>
+
+    <!-- Current Plan Alert -->
+    {% if current_subscription %}
+    <div class="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-400 text-xl"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">
+                    Current Active Plan
+                </h3>
+                <div class="mt-2 text-sm text-blue-700">
+                    <p>
+                        You're currently subscribed to <strong>{{ current_subscription.plan.name }}</strong> 
+                        (Ksh {{ current_subscription.plan.price }}/month)
+                    </p>
+                    <p class="mt-1">
+                        Expires in {{ current_subscription.days_remaining }} days on {{ current_subscription.end_date|date:"M d, Y" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Plans Grid -->
+    {% if plans %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {% for plan in plans %}
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-xl 
+            {% if current_subscription and current_subscription.plan.id == plan.id %}ring-2 ring-blue-500 ring-opacity-50{% endif %}">
+            
+            <!-- Plan Header -->
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+                <h3 class="text-2xl font-bold text-center mb-2">{{ plan.name }}</h3>
+                <div class="text-center">
+                    <span class="text-4xl font-bold">Ksh {{ plan.price }}</span>
+                    <span class="text-blue-100">/{{ plan.duration_days }} days</span>
+                </div>
+            </div>
+
+            <!-- Plan Features -->
+            <div class="p-6">
+                <ul class="space-y-4 mb-6">
+                    <li class="flex items-center">
+                        <i class="fas fa-tachometer-alt text-green-500 mr-3 text-lg"></i>
+                        <div>
+                            <span class="font-semibold text-gray-900">{{ plan.bandwidth }} Mbps</span>
+                            <p class="text-sm text-gray-600">Internet Speed</p>
+                        </div>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-database text-blue-500 mr-3 text-lg"></i>
+                        <div>
+                            <span class="font-semibold text-gray-900">{{ plan.data_cap|default:"Unlimited" }} GB</span>
+                            <p class="text-sm text-gray-600">Data Cap</p>
+                        </div>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-calendar-day text-purple-500 mr-3 text-lg"></i>
+                        <div>
+                            <span class="font-semibold text-gray-900">{{ plan.duration_days }} Days</span>
+                            <p class="text-sm text-gray-600">Validity Period</p>
+                        </div>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-headset text-orange-500 mr-3 text-lg"></i>
+                        <div>
+                            <span class="font-semibold text-gray-900">24/7 Support</span>
+                            <p class="text-sm text-gray-600">Technical Assistance</p>
+                        </div>
+                    </li>
+                </ul>
+
+                <!-- Action Form -->
+                {% if current_subscription and current_subscription.plan.id == plan.id %}
+                <button class="w-full bg-gray-500 text-white py-3 px-6 rounded-lg font-semibold cursor-not-allowed">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Current Plan
+                </button>
+                {% else %}
+                <form method="POST" action="{% url 'paystack_subscribe_with_plan' plan.id %}" id="subscribe-form-{{ plan.id }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                    <input type="hidden" name="plan_name" value="{{ plan.name }}">
+                    <input type="hidden" name="plan_price" value="{{ plan.price }}">
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 px-6 rounded-lg font-semibold transition-all duration-300 hover:scale-105 flex items-center justify-center">
+                        <i class="fas fa-credit-card mr-2"></i>
+                        Subscribe Now - Ksh {{ plan.price }}
+                    </button>
+                </form>
+                
+                <!-- Loading indicator (hidden by default) -->
+                <div id="loading-{{ plan.id }}" class="hidden mt-4 text-center">
+                    <div class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Redirecting to Paystack...
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- No Plans Available -->
+    <div class="text-center py-12">
+        <div class="max-w-md mx-auto">
+            <i class="fas fa-wifi text-gray-300 text-6xl mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No Plans Available</h3>
+            <p class="text-gray-600 mb-6">
+                There are currently no subscription plans available from your ISP.
+            </p>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p class="text-yellow-800 text-sm">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Please contact {{ tenant_name|default:"your ISP" }} support for available plans.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Additional Information -->
+    <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div class="text-center">
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-shield-alt text-green-600 text-xl"></i>
+            </div>
+            <h4 class="font-semibold text-gray-900 mb-2">Secure Payment</h4>
+            <p class="text-gray-600 text-sm">All payments are processed securely through Paystack</p>
+        </div>
+        <div class="text-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-bolt text-blue-600 text-xl"></i>
+            </div>
+            <h4 class="font-semibold text-gray-900 mb-2">Instant Activation</h4>
+            <p class="text-gray-600 text-sm">Your plan is activated immediately after successful payment</p>
+        </div>
+        <div class="text-center">
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-sync-alt text-purple-600 text-xl"></i>
+            </div>
+            <h4 class="font-semibold text-gray-900 mb-2">Easy Upgrade</h4>
+            <p class="text-gray-600 text-sm">Upgrade or change your plan anytime</p>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Status Modal -->
+<div id="paymentStatusModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-2xl bg-white">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                <i class="fas fa-spinner fa-spin text-blue-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2" id="modalTitle">Processing Payment</h3>
+            <p class="text-gray-600 mb-6" id="modalMessage">Redirecting to Paystack...</p>
+            <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-sm text-gray-500">Please wait while we redirect you to the secure payment page.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle form submission with loading state
+    document.querySelectorAll('[id^="subscribe-form-"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formId = this.id;
+            const planId = formId.replace('subscribe-form-', '');
+            const submitButton = this.querySelector('button[type="submit"]');
+            const loadingDiv = document.getElementById('loading-' + planId);
+            const modal = document.getElementById('paymentStatusModal');
+            
+            // Disable button and show loading
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+                submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            
+            if (loadingDiv) {
+                loadingDiv.classList.remove('hidden');
+            }
+            
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+            
+            // Submit the form after a short delay to show loading state
+            setTimeout(() => {
+                this.submit();
+            }, 500);
+        });
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('paymentStatusModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+    });
+});
+
+// Show payment status function (for any inline JS)
+function showPaymentStatus(message, type) {
+    const modal = document.getElementById('paymentStatusModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    
+    if (modal && modalTitle && modalMessage) {
+        modalTitle.textContent = type === 'error' ? 'Payment Error' : 
+                                type === 'success' ? 'Payment Successful' : 
+                                'Processing Payment';
+        modalMessage.textContent = message;
+        
+        // Update icon based on type
+        const iconDiv = modal.querySelector('.mx-auto.flex');
+        if (iconDiv) {
+            iconDiv.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4 ' + 
+                (type === 'success' ? 'bg-green-100' : 
+                 type === 'error' ? 'bg-red-100' : 
+                 'bg-blue-100');
+            
+            const icon = iconDiv.querySelector('i');
+            if (icon) {
+                icon.className = type === 'success' ? 'fas fa-check text-green-600 text-xl' :
+                                type === 'error' ? 'fas fa-times text-red-600 text-xl' :
+                                'fas fa-spinner fa-spin text-blue-600 text-xl';
+            }
+        }
+        
+        modal.classList.remove('hidden');
+        
+        // Auto-hide success messages after 3 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 3000);
+        }
+    }
+}
+</script>
+{% endblock %}

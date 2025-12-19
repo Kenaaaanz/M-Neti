@@ -1,0 +1,896 @@
+<!-- templates/accounts/customer_map.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Location - M-Neti{% endblock %}
+
+{% block extrastyle %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<style>
+    /* OVERRIDE: Ensure Tailwind doesn't affect map */
+    #map * {
+        box-sizing: content-box !important;
+    }
+    
+    /* Map Container */
+    .map-container {
+        position: relative;
+        width: 100%;
+        height: 500px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #f8fafc;
+    }
+    
+    /* Fix Leaflet issues */
+    .leaflet-container {
+        width: 100% !important;
+        height: 100% !important;
+        font: inherit !important;
+    }
+    
+    /* CRITICAL: Ensure map tiles render */
+    .leaflet-tile {
+        image-rendering: pixelated !important;
+    }
+    
+    /* Button styling for location access */
+    .location-access-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    
+    .location-access-btn:hover {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    
+    .location-access-btn:active {
+        transform: translateY(0);
+    }
+    
+    .location-access-btn i {
+        font-size: 16px;
+    }
+    
+    /* Input styling */
+    .coordinate-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .input-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .input-group label {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 5px;
+        color: #374151;
+    }
+    
+    .input-group input {
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    
+    .input-group input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Button styling */
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        outline: none;
+    }
+    
+    .btn-primary {
+        background-color: #3b82f6;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2563eb;
+    }
+    
+    .btn-success {
+        background-color: #10b981;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background-color: #059669;
+    }
+    
+    .btn-secondary {
+        background-color: #6b7280;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #4b5563;
+    }
+    
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    /* Search box */
+    .search-container {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 12px 45px 12px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    
+    .search-button {
+        position: absolute;
+        right: 5px;
+        top: 5px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        cursor: pointer;
+    }
+    
+    /* Toast notifications */
+    .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    .toast-success { background-color: #10b981; }
+    .toast-error { background-color: #ef4444; }
+    .toast-warning { background-color: #f59e0b; }
+    .toast-info { background-color: #3b82f6; }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    /* Card styling */
+    .info-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+    }
+    
+    .benefits-card {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 20px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .map-container {
+            height: 400px;
+        }
+        
+        .coordinate-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Header with Button -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">My Location</h1>
+            <p class="text-gray-600 mt-1">Set your location for better service delivery and support</p>
+        </div>
+        
+        <!-- Button to Access This Page from Other Pages -->
+        <a href="{% url 'customer_map' %}" class="location-access-btn">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>Set My Location</span>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Map Column -->
+        <div class="lg:col-span-2">
+            <div class="info-card">
+                <!-- Instructions -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold">Set Your Location</h3>
+                    <p class="text-sm text-gray-500">Click on the map or search for your address</p>
+                </div>
+                
+                <!-- Search Bar -->
+                <div class="search-container">
+                    <input type="text" 
+                           id="address-search" 
+                           class="search-input"
+                           placeholder="Search for your address in Kenya...">
+                    <button id="search-btn" class="search-button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                
+                <!-- Map Container -->
+                <div class="map-container">
+                    <div id="map"></div>
+                </div>
+                
+                <!-- Coordinates -->
+                <div class="coordinate-grid">
+                    <div class="input-group">
+                        <label for="latitude">Latitude</label>
+                        <input type="number" 
+                               id="latitude" 
+                               step="0.000001"
+                               placeholder="-1.292000">
+                    </div>
+                    <div class="input-group">
+                        <label for="longitude">Longitude</label>
+                        <input type="number" 
+                               id="longitude" 
+                               step="0.000001"
+                               placeholder="36.821900">
+                    </div>
+                </div>
+                
+                <!-- Address Display -->
+                <div class="input-group">
+                    <label for="address-display">Address</label>
+                    <textarea id="address-display" 
+                              rows="2"
+                              class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              placeholder="Address will appear here after selecting a location..."></textarea>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button id="save-location" class="btn btn-primary">
+                        <i class="fas fa-save mr-2"></i>Save Location
+                    </button>
+                    <button id="use-current-location" class="btn btn-success">
+                        <i class="fas fa-location-crosshairs mr-2"></i>Use Current Location
+                    </button>
+                    <button id="clear-location" class="btn btn-secondary">
+                        <i class="fas fa-trash mr-2"></i>Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar Column -->
+        <div class="space-y-6">
+            <!-- Location Info Card -->
+            <div class="info-card">
+                <h3 class="text-lg font-semibold mb-3">Location Information</h3>
+                
+                {% if primary_location %}
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Status:</span>
+                        <span class="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1"></i>Saved
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Address:</span>
+                        <span class="text-right text-sm">{{ primary_location.address|truncatechars:30 }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Coordinates:</span>
+                        <span class="text-sm">{{ primary_location.latitude|floatformat:6 }}, {{ primary_location.longitude|floatformat:6 }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Set on:</span>
+                        <span class="text-sm">{{ primary_location.created_at|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-gray-500">
+                    <i class="fas fa-map-marker-alt text-3xl mb-2"></i>
+                    <p>No location set yet</p>
+                    <p class="text-sm mt-2">Click on the map to set your location</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Benefits Card -->
+            <div class="benefits-card">
+                <h3 class="text-lg font-semibold mb-3 text-blue-800">Why Set Your Location?</h3>
+                <ul class="space-y-2 text-sm text-blue-700">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-blue-500 mt-1 mr-2"></i>
+                        <span>Faster service installation</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-blue-500 mt-1 mr-2"></i>
+                        <span>Accurate service coverage information</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-blue-500 mt-1 mr-2"></i>
+                        <span>Quick technician dispatch</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-blue-500 mt-1 mr-2"></i>
+                        <span>Network optimization</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-blue-500 mt-1 mr-2"></i>
+                        <span>Better troubleshooting support</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="info-card">
+                <h3 class="text-lg font-semibold mb-3">Quick Actions</h3>
+                <div class="space-y-3">
+                    <button onclick="useCurrentLocation()" class="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition duration-200">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-location-crosshairs text-green-600"></i>
+                            </div>
+                            <div class="text-left">
+                                <p class="font-medium">Use My Current Location</p>
+                                <p class="text-xs text-gray-500">Detect automatically</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </button>
+                    
+                    <button onclick="searchAddress()" class="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition duration-200">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-search text-blue-600"></i>
+                            </div>
+                            <div class="text-left">
+                                <p class="font-medium">Search Address</p>
+                                <p class="text-xs text-gray-500">Find by street name</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </button>
+                    
+                    <a href="{% url 'support_chat' %}" class="block w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition duration-200">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-headset text-purple-600"></i>
+                            </div>
+                            <div class="text-left">
+                                <p class="font-medium">Need Help?</p>
+                                <p class="text-xs text-gray-500">Contact support</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+<script>
+// ============================================================================
+// CUSTOMER LOCATION MAP - SIMPLIFIED & FIXED VERSION
+// ============================================================================
+
+let map = null;
+let marker = null;
+let currentLatLng = null;
+
+// Default Kenya bounds
+const KENYA_BOUNDS = {
+    southWest: [-5.0, 33.5],
+    northEast: [5.0, 42.0]
+};
+
+const DEFAULT_LOCATION = {
+    lat: -1.2921,
+    lng: 36.8219,
+    zoom: 7
+};
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Initializing Customer Location Map...');
+    
+    try {
+        initMap();
+        bindEvents();
+        setupDefaultLocation();
+        console.log('✅ Map initialized successfully');
+    } catch (error) {
+        console.error('❌ Map initialization failed:', error);
+        showToast('Failed to load map. Please refresh the page.', 'error');
+    }
+});
+
+function initMap() {
+    console.log('🗺️ Creating map...');
+    
+    // Determine initial center
+    let center;
+    {% if primary_location %}
+    center = { 
+        lat: {{ primary_location.latitude }}, 
+        lng: {{ primary_location.longitude }}, 
+        zoom: 15 
+    };
+    {% else %}
+    center = DEFAULT_LOCATION;
+    {% endif %}
+    
+    // Create map with proper interaction
+    map = L.map('map', {
+        center: [center.lat, center.lng],
+        zoom: center.zoom,
+        zoomControl: true,
+        // ENABLE INTERACTION
+        dragging: true,
+        touchZoom: true,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
+        keyboard: true,
+        tap: true,
+        tapHold: false,
+        // Bounds for Kenya
+        maxBounds: [
+            [KENYA_BOUNDS.southWest[0], KENYA_BOUNDS.southWest[1]],
+            [KENYA_BOUNDS.northEast[0], KENYA_BOUNDS.northEast[1]]
+        ],
+        maxBoundsViscosity: 1.0
+    });
+    
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+        minZoom: 6
+    }).addTo(map);
+    
+    // Fix map size after creation
+    setTimeout(() => {
+        if (map) {
+            map.invalidateSize(true);
+        }
+    }, 100);
+}
+
+function setupDefaultLocation() {
+    {% if primary_location %}
+    // Use saved location
+    currentLatLng = [{{ primary_location.latitude }}, {{ primary_location.longitude }}];
+    marker = L.marker(currentLatLng, {
+        draggable: true,
+        title: 'Your Location'
+    }).addTo(map);
+    
+    marker.bindPopup('{{ primary_location.address|escapejs }}').openPopup();
+    
+    updateFormFields(
+        currentLatLng[0], 
+        currentLatLng[1], 
+        '{{ primary_location.address|escapejs }}'
+    );
+    
+    // Add drag event
+    marker.on('dragend', function(e) {
+        const pos = marker.getLatLng();
+        updateFormFields(pos.lat, pos.lng);
+        reverseGeocode(pos.lat, pos.lng);
+    });
+    {% else %}
+    // Set default Nairobi location
+    updateLocation(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng, "Nairobi, Kenya");
+    {% endif %}
+}
+
+function updateLocation(lat, lng, address = '') {
+    if (!map) return;
+    
+    // Validate Kenya bounds
+    if (!isInKenya(lat, lng)) {
+        showToast('Location must be within Kenya', 'warning');
+        return;
+    }
+    
+    // Remove existing marker
+    if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+    }
+    
+    // Create new marker
+    marker = L.marker([lat, lng], {
+        draggable: true,
+        title: 'Selected Location'
+    }).addTo(map);
+    
+    // Center map
+    map.setView([lat, lng], 15);
+    
+    // Update form
+    updateFormFields(lat, lng, address);
+    
+    // Store location
+    currentLatLng = [lat, lng];
+    
+    // Add drag event
+    marker.on('dragend', function(e) {
+        const pos = marker.getLatLng();
+        updateFormFields(pos.lat, pos.lng);
+        reverseGeocode(pos.lat, pos.lng);
+    });
+    
+    // Bind popup
+    if (address) {
+        marker.bindPopup(address).openPopup();
+    }
+}
+
+function updateFormFields(lat, lng, address = '') {
+    const latitudeInput = document.getElementById('latitude');
+    const longitudeInput = document.getElementById('longitude');
+    const addressDisplay = document.getElementById('address-display');
+    
+    if (latitudeInput) latitudeInput.value = lat.toFixed(6);
+    if (longitudeInput) longitudeInput.value = lng.toFixed(6);
+    if (addressDisplay && address) addressDisplay.value = address;
+}
+
+function isInKenya(lat, lng) {
+    return (
+        lat >= KENYA_BOUNDS.southWest[0] &&
+        lat <= KENYA_BOUNDS.northEast[0] &&
+        lng >= KENYA_BOUNDS.southWest[1] &&
+        lng <= KENYA_BOUNDS.northEast[1]
+    );
+}
+
+async function searchAddress() {
+    const addressSearch = document.getElementById('address-search');
+    const query = addressSearch?.value?.trim();
+    
+    if (!query) {
+        showToast('Please enter an address', 'warning');
+        return;
+    }
+    
+    const searchBtn = document.getElementById('search-btn');
+    setButtonLoading(searchBtn, true);
+    
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=ke&bounded=1`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.length > 0) {
+            const result = data[0];
+            updateLocation(
+                parseFloat(result.lat),
+                parseFloat(result.lon),
+                result.display_name
+            );
+            addressSearch.value = result.display_name;
+            showToast('Address found', 'success');
+        } else {
+            showToast('Address not found in Kenya', 'warning');
+        }
+    } catch (error) {
+        console.error('Search failed:', error);
+        showToast('Search failed. Please try again.', 'error');
+    } finally {
+        setButtonLoading(searchBtn, false);
+    }
+}
+
+async function reverseGeocode(lat, lng) {
+    if (marker) {
+        marker.bindPopup('<i class="fas fa-spinner fa-spin"></i> Loading address...').openPopup();
+    }
+    
+    try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&countrycodes=ke`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.display_name) {
+            const address = data.display_name;
+            document.getElementById('address-display').value = address;
+            if (marker) {
+                marker.bindPopup(address).openPopup();
+            }
+            return address;
+        }
+    } catch (error) {
+        console.warn('Reverse geocode failed:', error);
+        const fallback = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        document.getElementById('address-display').value = fallback;
+        if (marker) {
+            marker.bindPopup(fallback).openPopup();
+        }
+        return fallback;
+    }
+}
+
+function useCurrentLocation() {
+    if (!navigator.geolocation) {
+        showToast('Geolocation not supported', 'error');
+        return;
+    }
+    
+    const currentLocationBtn = document.getElementById('use-current-location');
+    setButtonLoading(currentLocationBtn, true);
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            if (isInKenya(lat, lng)) {
+                updateLocation(lat, lng);
+                reverseGeocode(lat, lng);
+                showToast('Location found', 'success');
+            } else {
+                showToast('Location outside Kenya', 'warning');
+            }
+            
+            setButtonLoading(currentLocationBtn, false);
+        },
+        (error) => {
+            let message = 'Unable to get location';
+            if (error.code === error.PERMISSION_DENIED) {
+                message = 'Location access denied. Please allow location access in browser settings.';
+            } else if (error.code === error.TIMEOUT) {
+                message = 'Location request timeout';
+            }
+            showToast(message, 'error');
+            setButtonLoading(currentLocationBtn, false);
+        },
+        { 
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+async function saveLocation() {
+    const latitudeInput = document.getElementById('latitude');
+    const longitudeInput = document.getElementById('longitude');
+    const addressDisplay = document.getElementById('address-display');
+    
+    const lat = parseFloat(latitudeInput?.value);
+    const lng = parseFloat(longitudeInput?.value);
+    const address = addressDisplay?.value || '';
+    
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        showToast('Please select a location first', 'warning');
+        return;
+    }
+    
+    if (!isInKenya(lat, lng)) {
+        showToast('Location must be within Kenya', 'error');
+        return;
+    }
+    
+    const saveBtn = document.getElementById('save-location');
+    setButtonLoading(saveBtn, true);
+    
+    try {
+        const csrfToken = getCSRFToken();
+        const response = await fetch('{% url "save_customer_location" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ 
+                latitude: lat, 
+                longitude: lng, 
+                address: address 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Location saved successfully!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            throw new Error(data.error || 'Save failed');
+        }
+    } catch (error) {
+        console.error('Save failed:', error);
+        showToast(`Save failed: ${error.message}`, 'error');
+    } finally {
+        setButtonLoading(saveBtn, false);
+    }
+}
+
+function clearLocation() {
+    if (!confirm('Clear location?')) return;
+    
+    if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+    }
+    
+    document.getElementById('latitude').value = '';
+    document.getElementById('longitude').value = '';
+    document.getElementById('address-display').value = '';
+    document.getElementById('address-search').value = '';
+    currentLatLng = null;
+    
+    map.setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], DEFAULT_LOCATION.zoom);
+    showToast('Location cleared', 'info');
+}
+
+function bindEvents() {
+    // Map click
+    map.on('click', function(e) {
+        updateLocation(e.latlng.lat, e.latlng.lng);
+        reverseGeocode(e.latlng.lat, e.latlng.lng);
+    });
+    
+    // Buttons
+    document.getElementById('save-location').addEventListener('click', saveLocation);
+    document.getElementById('use-current-location').addEventListener('click', useCurrentLocation);
+    document.getElementById('clear-location').addEventListener('click', clearLocation);
+    document.getElementById('search-btn').addEventListener('click', searchAddress);
+    
+    // Search enter key
+    document.getElementById('address-search').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchAddress();
+        }
+    });
+    
+    // Coordinate inputs
+    document.getElementById('latitude').addEventListener('change', function() {
+        const lat = parseFloat(this.value);
+        const lng = parseFloat(document.getElementById('longitude').value);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            updateLocation(lat, lng);
+            reverseGeocode(lat, lng);
+        }
+    });
+    
+    document.getElementById('longitude').addEventListener('change', function() {
+        const lat = parseFloat(document.getElementById('latitude').value);
+        const lng = parseFloat(this.value);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            updateLocation(lat, lng);
+            reverseGeocode(lat, lng);
+        }
+    });
+    
+    // Window resize
+    window.addEventListener('resize', function() {
+        setTimeout(() => {
+            if (map) map.invalidateSize(true);
+        }, 250);
+    });
+}
+
+function setButtonLoading(button, isLoading) {
+    if (!button) return;
+    const original = button.innerHTML;
+    button.disabled = isLoading;
+    button.innerHTML = isLoading ? 
+        '<i class="fas fa-spinner fa-spin"></i>' : 
+        original;
+    
+    // Store original for restoration
+    if (!isLoading && !button.hasAttribute('data-original')) {
+        button.setAttribute('data-original', original);
+    }
+}
+
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+           document.cookie.match(/csrftoken=([^;]+)/)?.[1];
+}
+
+function showToast(message, type = 'info') {
+    // Remove existing
+    document.querySelectorAll('.toast').forEach(toast => toast.remove());
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                         type === 'error' ? 'fa-exclamation-circle' : 
+                         type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Global functions for quick actions
+window.useCurrentLocation = useCurrentLocation;
+window.searchAddress = searchAddress;
+</script>
+{% endblock %}

@@ -1,0 +1,223 @@
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}Create Bulk Data Package - M-Neti{% endblock %}
+
+{% block page_title %}Create Bulk Data Package{% endblock %}
+{% block page_subtitle %}Add new bulk data package to marketplace{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Package Information -->
+                <div class="col-span-2">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Package Information</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                                Package Name *
+                            </label>
+                            <input type="text" id="name" name="name" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   placeholder="e.g., Corporate 100GB Bundle">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="data_amount" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Data Amount (GB) *
+                                </label>
+                                <input type="number" id="data_amount" name="data_amount" required step="0.1"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                       placeholder="e.g., 100">
+                                <p class="mt-1 text-sm text-gray-500">Total data in GB</p>
+                            </div>
+                            
+                            <div>
+                                <label for="validity_days" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Validity (Days) *
+                                </label>
+                                <input type="number" id="validity_days" name="validity_days" required
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                       value="30">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                                Description
+                            </label>
+                            <textarea id="description" name="description" rows="3"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                      placeholder="Package description and features"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pricing -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Pricing & Costs</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="base_cost" class="block text-sm font-medium text-gray-700 mb-1">
+                                Base Cost (KES) *
+                            </label>
+                            <input type="number" id="base_cost" name="base_cost" required step="0.01"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   placeholder="e.g., 5000">
+                        </div>
+                        
+                        <div>
+                            <label for="selling_price" class="block text-sm font-medium text-gray-700 mb-1">
+                                Selling Price (KES) *
+                            </label>
+                            <input type="number" id="selling_price" name="selling_price" required step="0.01"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   placeholder="e.g., 7000">
+                        </div>
+                        
+                        <div>
+                            <label for="commission_rate" class="block text-sm font-medium text-gray-700 mb-1">
+                                Platform Commission Rate (%) *
+                            </label>
+                            <input type="number" id="commission_rate" name="commission_rate" required step="0.1"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   value="7.5">
+                            <p class="mt-1 text-sm text-gray-500">Commission percentage from selling price</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Source & Vendor -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Source & Distribution</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="source_type" class="block text-sm font-medium text-gray-700 mb-1">
+                                Source Type *
+                            </label>
+                            <select id="source_type" name="source_type" required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                    onchange="toggleSourceFields()">
+                                <option value="platform">Platform Stock</option>
+                                <option value="vendor_direct">Vendor Direct</option>
+                                <option value="vendor_marketplace">Vendor Marketplace</option>
+                            </select>
+                        </div>
+                        
+                        <div id="vendor-field" class="hidden">
+                            <label for="vendor_id" class="block text-sm font-medium text-gray-700 mb-1">
+                                Data Vendor *
+                            </label>
+                            <select id="vendor_id" name="vendor_id"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="">Select Vendor</option>
+                                {% for vendor in vendors %}
+                                <option value="{{ vendor.id }}">{{ vendor.name }} - {{ vendor.company_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div id="platform-fields" class="space-y-4">
+                            <div>
+                                <label for="platform_stock" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Initial Stock (GB)
+                                </label>
+                                <input type="number" id="platform_stock" name="platform_stock" step="0.1"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                       value="0">
+                            </div>
+                            
+                            <div>
+                                <label for="platform_margin" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Platform Margin (%)
+                                </label>
+                                <input type="number" id="platform_margin" name="platform_margin" step="0.1"
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                       value="15">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Card -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 class="font-medium text-blue-900 mb-2">Price Summary</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <p class="text-sm text-blue-700">Base Cost</p>
+                        <p class="text-lg font-bold text-blue-900" id="base-cost-display">KES 0</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-blue-700">Selling Price</p>
+                        <p class="text-lg font-bold text-blue-900" id="selling-price-display">KES 0</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-blue-700">Platform Commission</p>
+                        <p class="text-lg font-bold text-blue-900" id="commission-display">KES 0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                     <a href="{% url 'superadmin_bulk_data' %}"
+                   class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Create Package
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleSourceFields() {
+    const sourceType = document.getElementById('source_type').value;
+    const vendorField = document.getElementById('vendor-field');
+    const platformFields = document.getElementById('platform-fields');
+    const vendorSelect = document.getElementById('vendor_id');
+    
+    if (sourceType === 'platform') {
+        vendorField.classList.add('hidden');
+        platformFields.classList.remove('hidden');
+        vendorSelect.required = false;
+    } else {
+        vendorField.classList.remove('hidden');
+        platformFields.classList.add('hidden');
+        vendorSelect.required = true;
+    }
+}
+
+function calculateSummary() {
+    const sellingPrice = parseFloat(document.getElementById('selling_price').value) || 0;
+    const commissionRate = parseFloat(document.getElementById('commission_rate').value) || 0;
+    const baseCost = parseFloat(document.getElementById('base_cost').value) || 0;
+    
+    const commission = sellingPrice * (commissionRate / 100);
+    
+    document.getElementById('base-cost-display').textContent = 'KES ' + baseCost.toFixed(2);
+    document.getElementById('selling-price-display').textContent = 'KES ' + sellingPrice.toFixed(2);
+    document.getElementById('commission-display').textContent = 'KES ' + commission.toFixed(2);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    toggleSourceFields();
+    calculateSummary();
+    
+    // Add event listeners for real-time calculation
+    document.getElementById('selling_price').addEventListener('input', calculateSummary);
+    document.getElementById('commission_rate').addEventListener('input', calculateSummary);
+    document.getElementById('base_cost').addEventListener('input', calculateSummary);
+});
+</script>
+{% endblock %}

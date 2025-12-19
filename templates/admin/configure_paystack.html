@@ -1,0 +1,660 @@
+{% extends 'accounts/superadmin_base.html' %}
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Configure Paystack - {{ tenant.name }}</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --border-color: #dee2e6;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .messages {
+            margin-bottom: 25px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            border-left: 4px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left-color: var(--success-color);
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left-color: var(--danger-color);
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left-color: var(--warning-color);
+        }
+
+        .alert::before {
+            font-size: 1.2rem;
+        }
+
+        .alert-success::before { content: "✅"; }
+        .alert-error::before { content: "❌"; }
+        .alert-warning::before { content: "⚠️"; }
+
+        .current-config {
+            background: var(--light-color);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .current-config h3 {
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .current-config h3::before {
+            content: "⚙️";
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .config-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .config-label {
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .config-value {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .form-section {
+            background: var(--light-color);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-bottom: 25px;
+        }
+
+        .form-section h3 {
+            color: var(--dark-color);
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-section h3::before {
+            content: "📝";
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+            background: white;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 30px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .debug-info {
+            background: var(--light-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-top: 30px;
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .debug-info h4 {
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .debug-info h4::before {
+            content: "🐛";
+        }
+
+        .debug-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .debug-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .debug-label {
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .debug-value {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            margin-top: 20px;
+            transition: var(--transition);
+        }
+
+        .back-link:hover {
+            color: var(--primary-hover);
+            transform: translateX(-5px);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                margin: 0;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .config-grid,
+            .debug-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .form-text {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        .is-valid {
+            border-color: var(--success-color) !important;
+        }
+
+        .is-invalid {
+            border-color: var(--danger-color) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Configure Paystack</h1>
+            <p>Set up payment gateway for {{ tenant.name }}</p>
+        </div>
+        
+        <div class="content">
+            <!-- Display messages -->
+            <div class="messages">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Current Configuration -->
+            {% if config or subaccount_info %}
+            <div class="current-config">
+                <h3>Current Configuration</h3>
+                <div class="config-grid">
+                    {% if config.subaccount_code %}
+                    <div class="config-item">
+                        <div class="config-label">Subaccount Code</div>
+                        <div class="config-value">{{ config.subaccount_code }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="config-item">
+                        <div class="config-label">Status</div>
+                        <div class="config-value">
+                            {% if config.is_active %}
+                            <span style="color: var(--success-color);">● Active</span>
+                            {% else %}
+                            <span style="color: var(--danger-color);">● Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if subaccount_info %}
+                    <div class="config-item">
+                        <div class="config-label">Account Name</div>
+                        <div class="config-value">{{ subaccount_info.account_name }}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">Account Number</div>
+                        <div class="config-value">{{ subaccount_info.account_number }}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">Bank Code</div>
+                        <div class="config-value">{{ subaccount_info.bank_code }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Configuration Form -->
+            <div class="form-section">
+                <h3>Bank Account Information</h3>
+                <form method="post" id="paystack-form">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="bank_code">Bank</label>
+                        <select name="bank_code" id="bank_code" required>
+                            <option value="">Select Bank</option>
+                            {% for bank in banks %}
+                                <option value="{{ bank.code }}" 
+                                    {% if subaccount_info and subaccount_info.bank_code == bank.code %}selected{% endif %}>
+                                    {{ bank.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Select your bank from the list</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="account_number">Account Number</label>
+                        <input type="text" 
+                               name="account_number" 
+                               id="account_number" 
+                               value="{{ subaccount_info.account_number|default_if_none:'' }}" 
+                               placeholder="Enter your bank account number"
+                               required
+                               pattern="[0-9]+"
+                               minlength="8"
+                               maxlength="20">
+                        <div class="form-text">Enter your bank account number (8-20 digits)</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="account_name">Account Name</label>
+                        <input type="text" 
+                               name="account_name" 
+                               id="account_name" 
+                               value="{{ subaccount_info.account_name|default_if_none:'' }}" 
+                               placeholder="Enter account holder name as it appears on bank records"
+                               required
+                               minlength="2"
+                               maxlength="255">
+                        <div class="form-text">This should match exactly with your bank records</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-block" id="submit-btn">
+                        <span id="btn-text">
+                            {% if config %}Update{% else %}Create{% endif %} Configuration
+                        </span>
+                        <div class="spinner" id="spinner" style="display: none;"></div>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Information Section -->
+            <div class="debug-info">
+                <h4>How It Works</h4>
+                <div class="debug-grid">
+                    <div class="debug-item">
+                        <div class="debug-label">Step 1</div>
+                        <div class="debug-value">Create Paystack subaccount</div>
+                    </div>
+                    <div class="debug-item">
+                        <div class="debug-label">Step 2</div>
+                        <div class="debug-value">Configure revenue sharing (7.5%)</div>
+                    </div>
+                    <div class="debug-item">
+                        <div class="debug-label">Step 3</div>
+                        <div class="debug-value">Automatic bank settlements</div>
+                    </div>
+                    <div class="debug-item">
+                        <div class="debug-label">Platform Fee</div>
+                        <div class="debug-value">7.5% per transaction</div>
+                    </div>
+                </div>
+            </div>
+            <a href="{% url 'admin:index' %}" class="back-link">
+                ← Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('paystack-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const btnText = document.getElementById('btn-text');
+            const spinner = document.getElementById('spinner');
+            const accountNumberInput = document.getElementById('account_number');
+            const accountNameInput = document.getElementById('account_name');
+            const bankSelect = document.getElementById('bank_code');
+
+            // Form submission handler
+            form.addEventListener('submit', function(e) {
+                // Basic validation
+                if (!bankSelect.value || !accountNumberInput.value || !accountNameInput.value) {
+                    e.preventDefault();
+                    showAlert('Please fill in all required fields.', 'error');
+                    return;
+                }
+
+                // Account number validation - more flexible
+                const accountNumber = accountNumberInput.value.trim();
+                if (accountNumber.length < 8 || accountNumber.length > 20) {
+                    e.preventDefault();
+                    showAlert('Account number must be between 8 and 20 digits.', 'error');
+                    return;
+                }
+
+                if (!/^\d+$/.test(accountNumber)) {
+                    e.preventDefault();
+                    showAlert('Account number can only contain numbers.', 'error');
+                    return;
+                }
+
+                // Show loading state
+                btnText.textContent = 'Processing...';
+                spinner.style.display = 'inline-block';
+                submitBtn.classList.add('loading');
+            });
+
+            // Account number validation - real-time
+            accountNumberInput.addEventListener('input', function() {
+                // Only allow numbers
+                this.value = this.value.replace(/[^0-9]/g, '');
+                
+                // Limit to 20 digits maximum (reasonable upper limit for account numbers)
+                if (this.value.length > 20) {
+                    this.value = this.value.slice(0, 20);
+                }
+                
+                // Visual feedback
+                validateAccountNumber(this.value);
+            });
+
+            function validateAccountNumber(accountNumber) {
+                const isValid = accountNumber.length >= 8 && accountNumber.length <= 20 && /^\d+$/.test(accountNumber);
+                
+                if (accountNumber.length === 0) {
+                    accountNumberInput.style.borderColor = 'var(--border-color)';
+                    accountNumberInput.classList.remove('is-valid', 'is-invalid');
+                } else if (isValid) {
+                    accountNumberInput.style.borderColor = 'var(--success-color)';
+                    accountNumberInput.classList.add('is-valid');
+                    accountNumberInput.classList.remove('is-invalid');
+                } else {
+                    accountNumberInput.style.borderColor = 'var(--danger-color)';
+                    accountNumberInput.classList.add('is-invalid');
+                    accountNumberInput.classList.remove('is-valid');
+                }
+                
+                return isValid;
+            }
+
+            // Account name validation
+            accountNameInput.addEventListener('input', function() {
+                if (this.value.length >= 2) {
+                    this.style.borderColor = 'var(--success-color)';
+                    this.classList.add('is-valid');
+                    this.classList.remove('is-invalid');
+                } else if (this.value.length === 0) {
+                    this.style.borderColor = 'var(--border-color)';
+                    this.classList.remove('is-valid', 'is-invalid');
+                } else {
+                    this.style.borderColor = 'var(--danger-color)';
+                    this.classList.add('is-invalid');
+                    this.classList.remove('is-valid');
+                }
+            });
+
+            // Bank selection validation
+            bankSelect.addEventListener('change', function() {
+                if (this.value) {
+                    this.style.borderColor = 'var(--success-color)';
+                    this.classList.add('is-valid');
+                    this.classList.remove('is-invalid');
+                } else {
+                    this.style.borderColor = 'var(--border-color)';
+                    this.classList.remove('is-valid', 'is-invalid');
+                }
+            });
+
+            // Auto-resolve account name (placeholder for future implementation)
+            accountNumberInput.addEventListener('blur', function() {
+                const accountNumber = this.value.trim();
+                const bankCode = bankSelect.value;
+                
+                if (accountNumber.length >= 8 && bankCode) {
+                    // Simulate API call to resolve account name
+                    console.log('Would resolve account:', accountNumber, 'for bank:', bankCode);
+                    
+                    // In production, you would call Paystack's resolve account API here
+                    // This is just a placeholder for future implementation
+                }
+            });
+
+            function showAlert(message, type) {
+                // Remove existing alerts
+                const existingAlerts = document.querySelectorAll('.alert');
+                existingAlerts.forEach(alert => {
+                    if (!alert.parentElement.classList.contains('messages')) {
+                        alert.remove();
+                    }
+                });
+
+                // Create new alert
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type}`;
+                alertDiv.textContent = message;
+                
+                // Insert after messages container
+                const messagesContainer = document.querySelector('.messages');
+                messagesContainer.appendChild(alertDiv);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (alertDiv.parentElement) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+            }
+
+            // Real-time validation for pre-filled values
+            if (bankSelect.value) {
+                bankSelect.style.borderColor = 'var(--success-color)';
+                bankSelect.classList.add('is-valid');
+            }
+            if (accountNumberInput.value) {
+                validateAccountNumber(accountNumberInput.value);
+            }
+            if (accountNameInput.value && accountNameInput.value.length >= 2) {
+                accountNameInput.style.borderColor = 'var(--success-color)';
+                accountNameInput.classList.add('is-valid');
+            }
+        });
+    </script>
+</body>
+</html>
+{% endblock %}

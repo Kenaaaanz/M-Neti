@@ -1,0 +1,61 @@
+/* static/admin/css/tenant_admin.css */
+.color-picker {
+    width: 100px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 4px !important;
+    cursor: pointer;
+}
+
+.color-palette-section {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+}
+
+.color-palette-section h2 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.color-swatch {
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    color: white;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.color-label {
+    font-size: 11px;
+    opacity: 0.9;
+    margin-top: 5px;
+}
+
+.customer-count {
+    font-weight: bold;
+    color: #28a745;
+    font-size: 1.2em;
+}
+
+/* Branding preview in list view */
+.field-primary_color_preview div {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}

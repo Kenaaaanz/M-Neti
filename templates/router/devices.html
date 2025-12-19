@@ -1,0 +1,127 @@
+<!-- templates/router/devices.html -->
+{% extends 'router/base_router.html' %}
+
+{% block router_content %}
+<div class="bg-white rounded-xl shadow-sm p-6">
+    <h2 class="text-2xl font-semibold mb-6 flex items-center">
+        <i class="fas fa-devices text-blue-500 mr-3"></i>
+        Connected Devices
+    </h2>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-wifi text-blue-500"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold">{{ devices.count }}</div>
+                    <div class="text-sm text-gray-600">Total Devices</div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-green-50 p-4 rounded-lg">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-signal text-green-500"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold">{{ online_devices_count }}</div>
+                    <div class="text-sm text-gray-600">Online Now</div>
+                </div>
+            </div>
+        </div>
+        <div class="bg-purple-50 p-4 rounded-lg">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-database text-purple-500"></i>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold">{{ total_data|filesizeformat }}</div>
+                    <div class="text-sm text-gray-600">Data Usage</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Devices Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50">
+                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Device</th>
+                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">IP Address</th>
+                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Type</th>
+                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Status</th>
+                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Data Usage</th>
+                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for device in devices %}
+                <tr>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas 
+                                    {% if device.device_type == 'computer' %}fa-laptop
+                                    {% elif device.device_type == 'phone' %}fa-mobile
+                                    {% elif device.device_type == 'tablet' %}fa-tablet
+                                    {% elif device.device_type == 'tv' %}fa-tv
+                                    {% else %}fa-network-wired{% endif %}
+                                text-gray-500"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium">{{ device.name|default:"Unknown Device" }}</div>
+                                <div class="text-sm text-gray-500">{{ device.mac_address }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4">{{ device.ip_address }}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs capitalize">
+                            {{ device.device_type }}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full {% if device.is_online %}bg-green-500{% else %}bg-gray-300{% endif %} mr-2"></div>
+                            <span class="text-sm">{% if device.is_online %}Online{% else %}Offline{% endif %}</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="text-sm">{{ device.data_usage_readable }}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        {% if device.blocked %}
+                        <a href="{% url 'unblock_device' device.id %}" class="text-green-600 hover:text-green-800 text-sm">
+                            <i class="fas fa-unlock mr-1"></i> Unblock
+                        </a>
+                        {% else %}
+                        <a href="{% url 'block_device' device.id %}" class="text-red-600 hover:text-red-800 text-sm">
+                            <i class="fas fa-ban mr-1"></i> Block
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-8 px-4 text-center text-gray-500">
+                        <i class="fas fa-inbox text-3xl mb-2"></i>
+                        <p>No devices connected yet</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Refresh Button -->
+    <div class="mt-6">
+        <button onclick="location.reload()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center">
+            <i class="fas fa-sync-alt mr-2"></i> Refresh List
+        </button>
+    </div>
+</div>
+{% endblock %}

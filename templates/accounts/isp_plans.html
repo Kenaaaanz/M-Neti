@@ -1,0 +1,416 @@
+<!-- templates/accounts/isp_plans.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block page_title %}Plan Management - {{ tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Subscription Plans</h1>
+                <p class="text-gray-600 mt-2">Manage your internet service plans and pricing</p>
+            </div>
+            <button onclick="showCreatePlanModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-plus mr-2"></i>
+                Create New Plan
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ plans.count }}</h3>
+                    <p class="text-gray-600 text-sm">Total Plans</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-list-alt text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-2xl font-bold text-gray-900">{{ plans|length }}</h3>
+            <p class="text-gray-600 text-sm">Total Plans</p>
+        </div>
+        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-list-alt text-green-600 text-xl"></i>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-2xl font-bold text-gray-900">
+                {% with active_plans=plans|dictsortreversed:"is_active" %}
+                    {% for plan in active_plans %}
+                        {% if plan.is_active %}
+                            {% if forloop.first %}{{ forloop.counter }}{% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endwith %}
+            </h3>
+            <p class="text-gray-600 text-sm">Active Plans</p>
+        </div>
+        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-check-circle text-blue-600 text-xl"></i>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-2xl font-bold text-gray-900">
+                {% with inactive_plans=plans|dictsort:"is_active" %}
+                    {% for plan in inactive_plans %}
+                        {% if not plan.is_active %}
+                            {% if forloop.first %}{{ forloop.counter }}{% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endwith %}
+            </h3>
+            <p class="text-gray-600 text-sm">Inactive Plans</p>
+        </div>
+        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-pause-circle text-orange-600 text-xl"></i>
+        </div>
+    </div>
+</div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">Ksh {{ total_revenue|default:0 }}</h3>
+                    <p class="text-gray-600 text-sm">Monthly Revenue</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plans Table -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan Details</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specifications</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscribers</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for plan in plans %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm mr-3">
+                                    {{ plan.name|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ plan.name }}</div>
+                                    <div class="text-sm text-gray-500">{{ plan.description|default:"No description" }}</div>
+                                    <div class="text-lg font-bold text-blue-600">Ksh {{ plan.price }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="space-y-1">
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-tachometer-alt mr-2 text-blue-500"></i>
+                                    <span>{{ plan.bandwidth }} Mbps</span>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-database mr-2 text-green-500"></i>
+                                    <span>{{ plan.data_cap|default:"Unlimited" }} GB</span>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-calendar-day mr-2 text-purple-500"></i>
+                                    <span>{{ plan.duration_days }} days</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                {% if plan.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                <i class="fas fa-{% if plan.is_active %}check{% else %}times{% endif %}-circle mr-1"></i>
+                                {% if plan.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Created: {{ plan.created_at|date:"M d, Y" }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                {% with active_subs=plan.subscription_set.filter.is_active|length %}
+                                {{ active_subs }} active
+                                {% endwith %}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                Total: {{ plan.subscription_set.count }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                <button onclick="editPlan('{{ plan.id }}')" 
+                                        class="text-blue-600 hover:text-blue-900" title="Edit Plan">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="togglePlanStatus('{{ plan.id }}', '{{ plan.is_active }}')" 
+                                        class="{% if plan.is_active %}text-orange-600 hover:text-orange-900{% else %}text-green-600 hover:text-green-900{% endif %}"
+                                        title="{% if plan.is_active %}Deactivate{% else %}Activate{% endif %} Plan">
+                                    <i class="fas fa-{% if plan.is_active %}pause{% else %}play{% endif %}"></i>
+                                </button>
+                                <button onclick="deletePlan('{{ plan.id }}', '{{ plan.name }}')" 
+                                        class="text-red-600 hover:text-red-900" title="Delete Plan">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                            <i class="fas fa-list-alt text-4xl text-gray-300 mb-2"></i>
+                            <p>No plans created yet</p>
+                            <button onclick="showCreatePlanModal()" class="mt-2 text-blue-600 hover:text-blue-700">
+                                Create your first plan
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Plan Modal -->
+<div id="planModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex justify-between items-center pb-4 border-b">
+                <h3 class="text-xl font-medium text-gray-900" id="planModalTitle">Create New Plan</h3>
+                <button onclick="closePlanModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="planForm" method="post" class="mt-4 space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="formAction" value="create_plan">
+                <input type="hidden" name="plan_id" id="planId">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Plan Name *</label>
+                        <input type="text" name="name" id="planName" required 
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Price (Ksh) *</label>
+                        <input type="number" name="price" id="planPrice" step="0.01" min="0" required 
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" id="planDescription" rows="2"
+                              class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Describe this plan..."></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Bandwidth (Mbps) *</label>
+                        <input type="number" name="bandwidth" id="planBandwidth" min="1" required 
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Data Cap (GB)</label>
+                        <input type="number" name="data_cap" id="planDataCap" min="1" 
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Leave empty for unlimited">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Duration (Days) *</label>
+                        <input type="number" name="duration_days" id="planDuration" min="1" value="30" required 
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" name="is_active" id="planIsActive" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <label for="planIsActive" class="ml-2 text-sm text-gray-700">Activate this plan immediately</label>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closePlanModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        <span id="submitButtonText">Create Plan</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex justify-between items-center pb-4 border-b">
+                <h3 class="text-xl font-medium text-gray-900">Delete Plan</h3>
+                <button onclick="closeDeleteModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mt-4">
+                <p id="deleteModalMessage">Are you sure you want to delete this plan?</p>
+                
+                <form id="deleteForm" method="post" class="mt-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_plan">
+                    <input type="hidden" name="plan_id" id="deletePlanId">
+                    
+                    <div class="flex justify-end space-x-3 pt-4 border-t mt-4">
+                        <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            Delete Plan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functions
+function showCreatePlanModal() {
+    document.getElementById('planModalTitle').textContent = 'Create New Plan';
+    document.getElementById('formAction').value = 'create_plan';
+    document.getElementById('submitButtonText').textContent = 'Create Plan';
+    document.getElementById('planForm').reset();
+    document.getElementById('planModal').classList.remove('hidden');
+}
+
+function editPlan(planId) {
+    // In a real implementation, you would fetch plan data via AJAX
+    // For now, we'll redirect to an edit page or show the modal with current data
+    document.getElementById('planModalTitle').textContent = 'Edit Plan';
+    document.getElementById('formAction').value = 'update_plan';
+    document.getElementById('planId').value = planId;
+    document.getElementById('submitButtonText').textContent = 'Update Plan';
+    
+    // Here you would populate the form with existing plan data
+    // For now, we'll just show the modal
+    document.getElementById('planModal').classList.remove('hidden');
+}
+
+function closePlanModal() {
+    document.getElementById('planModal').classList.add('hidden');
+}
+
+function deletePlan(planId, planName) {
+    document.getElementById('deleteModalMessage').textContent = `Are you sure you want to delete the plan "${planName}"? This action cannot be undone.`;
+    document.getElementById('deletePlanId').value = planId;
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+}
+
+function togglePlanStatus(planId, isActive) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '';
+    
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrfmiddlewaretoken';
+    csrf.value = '{{ csrf_token }}';
+    form.appendChild(csrf);
+    
+    const action = document.createElement('input');
+    action.type = 'hidden';
+    action.name = 'action';
+    action.value = 'toggle_plan_status';
+    form.appendChild(action);
+    
+    const planIdInput = document.createElement('input');
+    planIdInput.type = 'hidden';
+    planIdInput.name = 'plan_id';
+    planIdInput.value = planId;
+    form.appendChild(planIdInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Close modals when clicking outside
+document.getElementById('planModal').addEventListener('click', function(e) {
+    if (e.target.id === 'planModal') {
+        closePlanModal();
+    }
+});
+
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target.id === 'deleteModal') {
+        closeDeleteModal();
+    }
+});
+
+// Form validation
+document.getElementById('planForm').addEventListener('submit', function(e) {
+    const price = parseFloat(document.getElementById('planPrice').value);
+    const bandwidth = parseInt(document.getElementById('planBandwidth').value);
+    
+    if (price <= 0) {
+        e.preventDefault();
+        alert('Price must be greater than 0');
+        return;
+    }
+    
+    if (bandwidth <= 0) {
+        e.preventDefault();
+        alert('Bandwidth must be greater than 0');
+        return;
+    }
+});
+</script>
+
+<style>
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-orange-50 { background-color: #fff7ed; }
+.bg-purple-50 { background-color: #faf5ff; }
+.bg-red-50 { background-color: #fef2f2; }
+
+.text-blue-600 { color: #2563eb; }
+.text-green-600 { color: #16a34a; }
+.text-orange-600 { color: #ea580c; }
+.text-purple-600 { color: #9333ea; }
+.text-red-600 { color: #dc2626; }
+</style>
+{% endblock %}

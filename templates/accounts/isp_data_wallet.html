@@ -1,0 +1,830 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}{{ tenant.name }} Data Wallet - M-Neti{% endblock %}
+
+{% block page_title %}Data Wallet{% endblock %}
+{% block page_subtitle %}Manage ISP bulk data and bandwidth balance, and distribute to customers.{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold">Wallet Balance</h3>
+        <p class="text-sm text-gray-500 mt-1">Total resources available for distribution</p>
+        
+        <!-- Data Balance -->
+        <div class="mt-4">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-database text-2xl text-blue-600"></i>
+                <div class="text-3xl font-bold">{{ wallet.balance_gb }} GB</div>
+            </div>
+            <div class="text-sm text-gray-500 mt-1">Data Balance</div>
+        </div>
+        
+        <!-- Bandwidth Balance -->
+        <div class="mt-6">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-tachometer-alt text-2xl text-green-600"></i>
+                <div class="text-3xl font-bold text-green-600">{{ wallet.balance_bandwidth_mbps }} Mbps</div>
+            </div>
+            <div class="text-sm text-gray-500 mt-1">Bandwidth Balance</div>
+        </div>
+        
+        <div class="text-sm text-gray-500 mt-2">Last updated: {{ wallet.updated_at|date:'M d, Y H:i' }}</div>
+
+        <!-- Action Buttons -->
+        <div class="mt-6 space-y-2">
+            <button id="refreshWalletBtn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-sync-alt mr-2"></i>Refresh Balance
+            </button>
+            <a href="{% url 'bulk_data_marketplace' %}" class="block w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-center">
+                <i class="fas fa-shopping-cart mr-2"></i>Buy More Resources
+            </a>
+            <a href="{% url 'external_data_upload' %}" class="block w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-center">
+                <i class="fas fa-cloud-upload-alt mr-2"></i>Upload External Data
+            </a>
+            <a href="{% url 'sync_wallet_from_purchases' %}" class="block w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-center">
+                <i class="fas fa-sync mr-2"></i>Sync from Purchases
+            </a>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">Quick Stats</h4>
+            
+            <!-- Data Stats -->
+            <div class="mb-4">
+                <h5 class="text-xs font-medium text-gray-600 mb-2 flex items-center">
+                    <i class="fas fa-database mr-1"></i> Data
+                </h5>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Purchased:</span>
+                        <span class="font-medium">{{ total_purchased }} GB</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Deposited:</span>
+                        <span class="font-medium">{{ total_deposited }} GB</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Allocated:</span>
+                        <span class="font-medium">{{ total_allocated }} GB</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Remaining:</span>
+                        <span class="font-medium">{{ remaining_balance }} GB</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bandwidth Stats -->
+            <div>
+                <h5 class="text-xs font-medium text-gray-600 mb-2 flex items-center">
+                    <i class="fas fa-tachometer-alt mr-1"></i> Bandwidth
+                </h5>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Purchased:</span>
+                        <span class="font-medium">{{ total_bandwidth_purchased }} Mbps</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Allocated:</span>
+                        <span class="font-medium">{{ total_bandwidth_allocated }} Mbps</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Remaining:</span>
+                        <span class="font-medium">{{ wallet.balance_bandwidth_mbps }} Mbps</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <!-- Allocation Tabs -->
+        <div class="border-b border-gray-200 mb-6">
+            <nav class="-mb-px flex space-x-8">
+                <button id="dataTabBtn" 
+                        class="py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600">
+                    <i class="fas fa-database mr-2"></i>Allocate Data
+                </button>
+                <button id="bandwidthTabBtn" 
+                        class="py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <i class="fas fa-tachometer-alt mr-2"></i>Allocate Bandwidth
+                </button>
+                <button id="subscriptionTabBtn" 
+                        class="py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <i class="fas fa-play-circle mr-2"></i>Activate Subscription
+                </button>
+            </nav>
+        </div>
+
+        <!-- Data Allocation Tab -->
+        <div id="dataAllocationTab" class="tab-content active">
+            <h3 class="text-lg font-semibold mb-4">Allocate Data to Customers</h3>
+            <p class="text-sm text-gray-500 mb-4">Select customers and specify GB per customer to allocate from the wallet.</p>
+
+            <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">GB per customer</label>
+                    <input id="dataAmountGb" type="number" step="0.01" min="0.01" value="1" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
+                           placeholder="Enter GB amount" />
+                    <p class="text-xs text-gray-500 mt-1">Amount to allocate to each selected customer</p>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center">
+                        <label class="block text-sm font-medium text-gray-700">Customers</label>
+                        <button id="dataSelectAllBtn" type="button" class="text-xs text-blue-600 hover:text-blue-800">
+                            Select All
+                        </button>
+                    </div>
+                    <div class="mt-1 h-28 overflow-auto border border-gray-300 rounded-md p-2 bg-gray-50">
+                        {% for c in eligible_customers %}
+                        <label class="flex items-center space-x-2 mb-2 p-1 hover:bg-gray-100 rounded">
+                            <input type="checkbox" class="data-customer-checkbox" value="{{ c.id }}" />
+                            <span class="text-sm">
+                                {{ c.get_full_name|default:c.username }}
+                                {% if c.email %}<span class="text-gray-500 text-xs">({{ c.email }})</span>{% endif %}
+                            </span>
+                        </label>
+                        {% empty %}
+                        <div class="text-sm text-gray-500 text-center py-4">No eligible customers found</div>
+                        {% endfor %}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <span id="dataSelectedCount">0</span> of {{ eligible_customers|length }} customers selected
+                    </p>
+                </div>
+                <div class="flex flex-col justify-end">
+                    <button id="allocateDataBtn" class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-share-square mr-2"></i>
+                        Allocate Data
+                    </button>
+                    <p class="text-xs text-gray-500 mt-2 text-center">
+                        Will allocate <span id="dataTotalGb">0</span> GB total
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bandwidth Allocation Tab -->
+        <div id="bandwidthAllocationTab" class="tab-content hidden">
+            <h3 class="text-lg font-semibold mb-4">Allocate Bandwidth to Customers</h3>
+            <p class="text-sm text-gray-500 mb-4">Select customers and specify Mbps per customer to allocate from the wallet.</p>
+
+            <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Mbps per customer</label>
+                    <input id="bandwidthAmountMbps" type="number" step="0.1" min="0.1" value="10" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" 
+                           placeholder="Enter Mbps amount" />
+                    <p class="text-xs text-gray-500 mt-1">Bandwidth speed to allocate to each selected customer</p>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center">
+                        <label class="block text-sm font-medium text-gray-700">Customers</label>
+                        <button id="bandwidthSelectAllBtn" type="button" class="text-xs text-green-600 hover:text-green-800">
+                            Select All
+                        </button>
+                    </div>
+                    <div class="mt-1 h-28 overflow-auto border border-gray-300 rounded-md p-2 bg-gray-50">
+                        {% for c in eligible_customers %}
+                        <label class="flex items-center space-x-2 mb-2 p-1 hover:bg-gray-100 rounded">
+                            <input type="checkbox" class="bandwidth-customer-checkbox" value="{{ c.id }}" />
+                            <span class="text-sm">
+                                {{ c.get_full_name|default:c.username }}
+                                {% if c.email %}<span class="text-gray-500 text-xs">({{ c.email }})</span>{% endif %}
+                            </span>
+                        </label>
+                        {% empty %}
+                        <div class="text-sm text-gray-500 text-center py-4">No eligible customers found</div>
+                        {% endfor %}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <span id="bandwidthSelectedCount">0</span> of {{ eligible_customers|length }} customers selected
+                    </p>
+                </div>
+                <div class="flex flex-col justify-end">
+                    <button id="allocateBandwidthBtn" class="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-bolt mr-2"></i>
+                        Allocate Bandwidth
+                    </button>
+                    <p class="text-xs text-gray-500 mt-2 text-center">
+                        Will allocate <span id="bandwidthTotalMbps">0</span> Mbps total
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Activation Tab -->
+        <div id="subscriptionTab" class="tab-content hidden">
+            <h3 class="text-lg font-semibold mb-4">Activate Subscription Manually</h3>
+            <p class="text-sm text-gray-500 mb-4">Choose a customer and a plan to activate immediately. This may deduct data and bandwidth from the wallet.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Customer</label>
+                    <select id="subCustomer" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                        <option value="">-- Select Customer --</option>
+                        {% for c in eligible_customers %}
+                        <option value="{{ c.id }}">
+                            {{ c.get_full_name|default:c.username }} 
+                            {% if c.email %}({{ c.email }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Plan</label>
+                    <select id="subPlan" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                        <option value="">-- Select Plan --</option>
+                        {% for p in plans %}
+                        <option value="{{ p.id }}" data-data-cap="{{ p.data_cap|default:0 }}" data-bandwidth="{{ p.bandwidth|default:0 }}">
+                            {{ p.name }} — 
+                            {% if p.data_cap %}
+                                {{ p.data_cap }}GB
+                            {% else %}
+                                Unlimited
+                            {% endif %}
+                            ({{ p.bandwidth }} Mbps)
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1" id="planDataCapInfo"></p>
+                </div>
+                <div class="flex items-end">
+                    <button id="activateSubBtn" class="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-play-circle mr-2"></i>
+                        Activate Subscription
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="walletAlert" class="mt-6"></div>
+        
+        <!-- Recent Transactions -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h4 class="text-lg font-semibold mb-4">Recent Wallet Activity</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bandwidth</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for tx in recent_transactions %}
+                        <tr>
+                            <td class="px-4 py-3 text-sm">{{ tx.created_at|date:'M d, H:i' }}</td>
+                        <td class="px-4 py-3 text-sm">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {% if tx.transaction_type == 'deposit' %}bg-green-100 text-green-800
+                                    {% elif tx.transaction_type == 'allocation' %}bg-blue-100 text-blue-800
+                                    {% elif tx.transaction_type == 'bandwidth_allocation' %}bg-green-100 text-green-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ tx.get_transaction_type_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm font-medium">
+                                {% if tx.amount_gb %}
+                                    {% if tx.transaction_type == 'deposit' %}+{% else %}-{% endif %}
+                                    {{ tx.amount_gb }} GB
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm font-medium">
+                                {% if tx.amount_mbps %}
+                                    {% if tx.transaction_type == 'deposit' %}+{% else %}-{% endif %}
+                                    {{ tx.amount_mbps }} Mbps
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ tx.description|truncatechars:50 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">No transactions yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    // Get CSRF token
+    function getCsrfToken() {
+        let cookieValue = null;
+        const name = 'csrftoken';
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        // Fallback: try to get from hidden form field
+        if (!cookieValue) {
+            const token = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (token) cookieValue = token.value;
+        }
+        console.log('CSRF Token found:', !!cookieValue);
+        return cookieValue || '';
+    }
+
+    // Tab Management
+    const dataTabBtn = document.getElementById('dataTabBtn');
+    const bandwidthTabBtn = document.getElementById('bandwidthTabBtn');
+    const subscriptionTabBtn = document.getElementById('subscriptionTabBtn');
+    const dataTab = document.getElementById('dataAllocationTab');
+    const bandwidthTab = document.getElementById('bandwidthAllocationTab');
+    const subscriptionTab = document.getElementById('subscriptionTab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    function switchTab(activeTab) {
+        // Hide all tabs
+        tabContents.forEach(tab => {
+            tab.classList.add('hidden');
+            tab.classList.remove('active');
+        });
+        
+        // Remove active styles from all tab buttons
+        [dataTabBtn, bandwidthTabBtn, subscriptionTabBtn].forEach(btn => {
+            btn.classList.remove('border-blue-500', 'text-blue-600', 'border-green-500', 'text-green-600', 'border-purple-500', 'text-purple-600');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // Show selected tab
+        activeTab.classList.remove('hidden');
+        activeTab.classList.add('active');
+        
+        // Style the active tab button
+        if (activeTab === dataTab) {
+            dataTabBtn.classList.remove('border-transparent', 'text-gray-500');
+            dataTabBtn.classList.add('border-blue-500', 'text-blue-600');
+        } else if (activeTab === bandwidthTab) {
+            bandwidthTabBtn.classList.remove('border-transparent', 'text-gray-500');
+            bandwidthTabBtn.classList.add('border-green-500', 'text-green-600');
+        } else if (activeTab === subscriptionTab) {
+            subscriptionTabBtn.classList.remove('border-transparent', 'text-gray-500');
+            subscriptionTabBtn.classList.add('border-purple-500', 'text-purple-600');
+        }
+    }
+
+    dataTabBtn.addEventListener('click', () => switchTab(dataTab));
+    bandwidthTabBtn.addEventListener('click', () => switchTab(bandwidthTab));
+    subscriptionTabBtn.addEventListener('click', () => switchTab(subscriptionTab));
+
+    // Elements
+    const allocateDataBtn = document.getElementById('allocateDataBtn');
+    const allocateBandwidthBtn = document.getElementById('allocateBandwidthBtn');
+    const activateSubBtn = document.getElementById('activateSubBtn');
+    const refreshBtn = document.getElementById('refreshWalletBtn');
+    const walletAlert = document.getElementById('walletAlert');
+    const subPlanSelect = document.getElementById('subPlan');
+    const planDataCapInfo = document.getElementById('planDataCapInfo');
+    
+    const allocateUrl = '{% url "isp_allocate_from_wallet" %}';
+    const csrfToken = getCsrfToken();
+
+    // Show alert function
+    function showAlert(type, message) {
+        const alertClass = type === 'success' ? 
+            'bg-green-50 border border-green-200 text-green-800' : 
+            'bg-red-50 border border-red-200 text-red-800';
+        
+        walletAlert.innerHTML = `
+            <div class="p-4 rounded-lg ${alertClass} flex items-start">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} mr-3 mt-0.5"></i>
+                <div class="flex-1">${message}</div>
+                <button type="button" class="ml-3 text-gray-500 hover:text-gray-700" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Auto-remove after 8 seconds
+        setTimeout(() => {
+            if (walletAlert.innerHTML.includes(message)) {
+                walletAlert.innerHTML = '';
+            }
+        }, 8000);
+    }
+
+    // ===== DATA ALLOCATION FUNCTIONS =====
+    const dataSelectAllBtn = document.getElementById('dataSelectAllBtn');
+    const dataAmountInput = document.getElementById('dataAmountGb');
+    const dataSelectedCountSpan = document.getElementById('dataSelectedCount');
+    const dataTotalGbSpan = document.getElementById('dataTotalGb');
+
+    function updateDataSelectionInfo() {
+        const checkedBoxes = document.querySelectorAll('.data-customer-checkbox:checked');
+        const amount = parseFloat(dataAmountInput.value) || 0;
+        const totalGb = checkedBoxes.length * amount;
+        
+        dataSelectedCountSpan.textContent = checkedBoxes.length;
+        dataTotalGbSpan.textContent = totalGb.toFixed(2);
+        
+        // Enable/disable allocate button
+        if (checkedBoxes.length > 0 && amount > 0) {
+            allocateDataBtn.disabled = false;
+            allocateDataBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            allocateDataBtn.disabled = true;
+            allocateDataBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    // Select all customers for data
+    if (dataSelectAllBtn) {
+        dataSelectAllBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.data-customer-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+            });
+            
+            updateDataSelectionInfo();
+            dataSelectAllBtn.textContent = allChecked ? 'Select All' : 'Deselect All';
+        });
+    }
+
+    // Update data selection info
+    document.querySelectorAll('.data-customer-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateDataSelectionInfo);
+    });
+    
+    if (dataAmountInput) {
+        dataAmountInput.addEventListener('input', updateDataSelectionInfo);
+    }
+
+    // ===== BANDWIDTH ALLOCATION FUNCTIONS =====
+    const bandwidthSelectAllBtn = document.getElementById('bandwidthSelectAllBtn');
+    const bandwidthAmountInput = document.getElementById('bandwidthAmountMbps');
+    const bandwidthSelectedCountSpan = document.getElementById('bandwidthSelectedCount');
+    const bandwidthTotalMbpsSpan = document.getElementById('bandwidthTotalMbps');
+
+    function updateBandwidthSelectionInfo() {
+        const checkedBoxes = document.querySelectorAll('.bandwidth-customer-checkbox:checked');
+        const amount = parseFloat(bandwidthAmountInput.value) || 0;
+        const totalMbps = checkedBoxes.length * amount;
+        
+        bandwidthSelectedCountSpan.textContent = checkedBoxes.length;
+        bandwidthTotalMbpsSpan.textContent = totalMbps.toFixed(1);
+        
+        // Enable/disable allocate button
+        if (checkedBoxes.length > 0 && amount > 0) {
+            allocateBandwidthBtn.disabled = false;
+            allocateBandwidthBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            allocateBandwidthBtn.disabled = true;
+            allocateBandwidthBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    // Select all customers for bandwidth
+    if (bandwidthSelectAllBtn) {
+        bandwidthSelectAllBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.bandwidth-customer-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+            });
+            
+            updateBandwidthSelectionInfo();
+            bandwidthSelectAllBtn.textContent = allChecked ? 'Select All' : 'Deselect All';
+        });
+    }
+
+    // Update bandwidth selection info
+    document.querySelectorAll('.bandwidth-customer-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBandwidthSelectionInfo);
+    });
+    
+    if (bandwidthAmountInput) {
+        bandwidthAmountInput.addEventListener('input', updateBandwidthSelectionInfo);
+    }
+
+    // Update plan data cap info
+    if (subPlanSelect) {
+        subPlanSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const dataCap = selectedOption.getAttribute('data-data-cap');
+            const bandwidth = selectedOption.getAttribute('data-bandwidth');
+            
+            let infoText = '';
+            if (dataCap && dataCap !== '0') {
+                infoText += `Data: ${dataCap} GB`;
+            } else {
+                infoText += 'Data: Unlimited';
+            }
+            
+            if (bandwidth && bandwidth !== '0') {
+                infoText += ` | Bandwidth: ${bandwidth} Mbps`;
+            }
+            
+            planDataCapInfo.textContent = `Plan resources: ${infoText}. Activation will deduct from wallet.`;
+            planDataCapInfo.classList.remove('hidden');
+        });
+    }
+
+    // ===== ALLOCATION FUNCTIONS =====
+    async function allocateResource(actionType, customerIds, amount, resourceType) {
+        if (customerIds.length === 0) {
+            showAlert('error', `Please select at least one customer`);
+            return false;
+        }
+        
+        if (amount <= 0) {
+            showAlert('error', `Please enter a valid ${resourceType === 'data' ? 'GB' : 'Mbps'} amount (greater than 0)`);
+            return false;
+        }
+        
+        const requestData = {
+            action: actionType,
+            customer_ids: customerIds
+        };
+        
+        if (resourceType === 'data') {
+            requestData.amount_gb = amount;
+        } else {
+            requestData.amount_mbps = amount;
+        }
+        
+        try {
+            console.log(`Starting ${resourceType} allocation. CSRF Token:`, !!csrfToken);
+            const response = await fetch(allocateUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            console.log('Response received. Status:', response.status, 'OK:', response.ok);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error response:', response.status, errorText);
+                throw new Error(`Server error ${response.status}: ${errorText.substring(0, 150)}`);
+            }
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Allocation error:', error.message, error.stack);
+            showAlert('error', 'Network error: ' + error.message);
+            return null;
+        }
+    }
+
+    // Allocate data to customers
+    if (allocateDataBtn) {
+        allocateDataBtn.addEventListener('click', async function() {
+            const amountGb = parseFloat(dataAmountInput.value) || 0;
+            const checkedBoxes = Array.from(document.querySelectorAll('.data-customer-checkbox:checked'));
+            const customerIds = checkedBoxes.map(cb => cb.value);
+            
+            // Disable button during request
+            const originalText = allocateDataBtn.innerHTML;
+            allocateDataBtn.disabled = true;
+            allocateDataBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Allocating...';
+            
+            const data = await allocateResource('allocate', customerIds, amountGb, 'data');
+            
+            if (data) {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    // Update wallet balance displays
+                    document.querySelector('.text-3xl.font-bold').textContent = data.remaining_data + ' GB';
+                    
+                    // Reset form
+                    document.querySelectorAll('.data-customer-checkbox:checked').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    dataAmountInput.value = '1';
+                    updateDataSelectionInfo();
+                    
+                    // Reload after a short delay to show updated transactions
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showAlert('error', data.error || 'Data allocation failed');
+                }
+            }
+            
+            // Re-enable button
+            allocateDataBtn.disabled = false;
+            allocateDataBtn.innerHTML = originalText;
+        });
+    }
+
+    // Allocate bandwidth to customers
+if (allocateBandwidthBtn) {
+    allocateBandwidthBtn.addEventListener('click', async function() {
+        const amountMbps = parseFloat(bandwidthAmountInput.value) || 0;
+        const checkedBoxes = Array.from(document.querySelectorAll('.bandwidth-customer-checkbox:checked'));
+        const customerIds = checkedBoxes.map(cb => parseInt(cb.value));
+        
+        // Log for debugging
+        console.log('Bandwidth allocation attempt:', {
+            amountMbps: amountMbps,
+            customerIds: customerIds,
+            customerIdsType: typeof customerIds,
+            customerIdsJSON: JSON.stringify(customerIds)
+        });
+        
+        if (customerIds.length === 0) {
+            showAlert('error', 'Please select at least one customer');
+            return;
+        }
+        
+        if (amountMbps <= 0) {
+            showAlert('error', 'Please enter a valid Mbps amount (greater than 0)');
+            return;
+        }
+        
+        // Disable button during request
+        const originalText = allocateBandwidthBtn.innerHTML;
+        allocateBandwidthBtn.disabled = true;
+        allocateBandwidthBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Allocating...';
+        
+        try {
+            console.log('Starting bandwidth allocation. CSRF Token:', !!csrfToken);
+            const response = await fetch(allocateUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    action: 'allocate_bandwidth',
+                    customer_ids: customerIds,  // Send as array
+                    bandwidth_amount: amountMbps,
+                    description: `Bandwidth allocation of ${amountMbps} Mbps per customer`
+                })
+            });
+            
+            console.log('Response received. Status:', response.status, 'OK:', response.ok);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP error response:', response.status, errorText);
+                throw new Error(`Server error ${response.status}: ${errorText.substring(0, 150)}`);
+            }
+            
+            const data = await response.json();
+            console.log('Bandwidth allocation response:', data);
+            
+            if (data.success) {
+                showAlert('success', data.message);
+                // Update wallet bandwidth balance display
+                const bandwidthElement = document.querySelector('.text-3xl.font-bold.text-green-600');
+                if (bandwidthElement && data.remaining_bandwidth !== undefined) {
+                    bandwidthElement.textContent = data.remaining_bandwidth + ' Mbps';
+                }
+                
+                // Update data balance if also returned
+                if (data.remaining_data !== undefined) {
+                    document.querySelector('.text-3xl.font-bold').textContent = data.remaining_data + ' GB';
+                }
+                
+                // Reset form
+                document.querySelectorAll('.bandwidth-customer-checkbox:checked').forEach(cb => {
+                    cb.checked = false;
+                });
+                bandwidthAmountInput.value = '10';
+                updateBandwidthSelectionInfo();
+                
+                // Reload after a short delay to show updated transactions
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                showAlert('error', data.error || 'Bandwidth allocation failed');
+                if (data.failed_details && data.failed_details.length > 0) {
+                    console.error('Failed allocations:', data.failed_details);
+                }
+            }
+        } catch (error) {
+            console.error('Bandwidth allocation error:', error.message, error.stack);
+            showAlert('error', 'Network error: ' + error.message);
+        } finally {
+            // Re-enable button
+            allocateBandwidthBtn.disabled = false;
+            allocateBandwidthBtn.innerHTML = originalText;
+        }
+    });
+}
+
+    // Activate subscription
+    if (activateSubBtn) {
+        activateSubBtn.addEventListener('click', async function() {
+            const customerId = document.getElementById('subCustomer').value;
+            const planId = document.getElementById('subPlan').value;
+            
+            if (!customerId || !planId) {
+                showAlert('error', 'Please select both a customer and a plan');
+                return;
+            }
+            
+            // Disable button during request
+            const originalText = activateSubBtn.innerHTML;
+            activateSubBtn.disabled = true;
+            activateSubBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Activating...';
+            
+            try {
+                console.log('Starting subscription activation. CSRF Token:', !!csrfToken);
+                const response = await fetch(allocateUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        action: 'activate_subscription',
+                        customer_id: customerId,
+                        plan_id: planId
+                    })
+                });
+                
+                console.log('Response received. Status:', response.status, 'OK:', response.ok);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('HTTP error response:', response.status, errorText);
+                    throw new Error(`Server error ${response.status}: ${errorText.substring(0, 150)}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    let message = `Subscription activated for ${data.customer_name}`;
+                    if (data.warning) {
+                        message += `. Warning: ${data.warning}`;
+                    }
+                    showAlert('success', message);
+                    
+                    // Update wallet balance displays
+                    document.querySelector('.text-3xl.font-bold').textContent = data.remaining_data + ' GB';
+                    const bandwidthElement = document.querySelector('.text-3xl.font-bold.text-green-600');
+                    if (bandwidthElement && data.remaining_bandwidth !== undefined) {
+                        bandwidthElement.textContent = data.remaining_bandwidth + ' Mbps';
+                    }
+                    
+                    // Clear form
+                    document.getElementById('subCustomer').value = '';
+                    document.getElementById('subPlan').value = '';
+                    planDataCapInfo.textContent = '';
+                    
+                    // Reload after a short delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showAlert('error', data.error || 'Activation failed');
+                }
+            } catch (error) {
+                console.error('Activation error:', error.message, error.stack);
+                showAlert('error', 'Network error: ' + error.message);
+            } finally {
+                // Re-enable button
+                activateSubBtn.disabled = false;
+                activateSubBtn.innerHTML = originalText;
+            }
+        });
+    }
+
+    // Refresh wallet
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+
+    // Initialize selection info
+    updateDataSelectionInfo();
+    updateBandwidthSelectionInfo();
+});
+</script>
+
+{% endblock %}

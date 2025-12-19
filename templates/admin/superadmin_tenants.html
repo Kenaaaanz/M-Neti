@@ -1,0 +1,910 @@
+<!-- templates/admin/superadmin_tenants.html -->
+{% extends 'accounts/superadmin_base.html' %}
+{% load static %}
+
+{% block title %}ISP Management - M-Neti{% endblock %}
+
+{% block page_title %}ISP Management{% endblock %}
+{% block page_subtitle %}Manage all Internet Service Providers on the platform{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex-1">
+            <h2 class="text-2xl font-bold text-gray-900">Internet Service Providers</h2>
+            <p class="text-gray-600">Manage ISPs, verify accounts, and view detailed analytics</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'superadmin_create_tenant' %}" 
+               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200">
+                <i class="fas fa-plus mr-2"></i>
+                Create New ISP
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-building text-blue-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Total ISPs</p>
+                <p class="text-2xl font-bold text-gray-900">{{ total_tenants }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-check-circle text-green-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Active ISPs</p>
+                <p class="text-2xl font-bold text-gray-900">{{ active_tenants }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-times-circle text-red-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Inactive ISPs</p>
+                <p class="text-2xl font-bold text-gray-900">{{ inactive_tenants }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-users text-purple-600"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Total Customers</p>
+                <p class="text-2xl font-bold text-gray-900">{{ total_customers }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Search ISPs</label>
+            <input type="text" id="searchInput" placeholder="Search by name, domain, email..." 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending Verification</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+            <select id="sortFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="name">Name (A-Z)</option>
+                <option value="revenue">Revenue (High-Low)</option>
+                <option value="customers">Customers (High-Low)</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- ISPs Table -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ISP Details
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Statistics
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Subscription
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Admins
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for tenant in tenants %}
+                <tr class="hover:bg-gray-50 transition-colors tenant-row" 
+                    data-tenant="{{ tenant.id }}"
+                    data-status="{% if tenant.is_active %}active{% else %}inactive{% endif %}"
+                    data-verified="{% if tenant.is_verified %}verified{% else %}pending{% endif %}"
+                    data-name="{{ tenant.name|lower }}"
+                    data-revenue="{{ tenant.total_revenue|default:0 }}"
+                    data-customers="{{ tenant.customer_count|default:0 }}"
+                    data-created="{{ tenant.created_at|date:'U' }}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                {% if tenant.logo %}
+                                <img class="h-10 w-10 rounded-lg object-cover" src="{{ tenant.logo.url }}" alt="{{ tenant.name }}">
+                                {% else %}
+                                <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                    <span class="text-white font-bold text-sm">{{ tenant.name|first|upper }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ tenant.name }}</div>
+                                <div class="text-sm text-gray-500">{{ tenant.company_name }}</div>
+                                <div class="text-xs text-gray-400">
+                                    <i class="fas fa-globe mr-1"></i>{{ tenant.primary_domain }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">
+                            <div class="flex items-center mb-1">
+                                <i class="fas fa-users text-gray-400 mr-2 text-xs"></i>
+                                <span class="font-medium">{{ tenant.customer_count }} customers</span>
+                            </div>
+                            <div class="flex items-center mb-1">
+                                <i class="fas fa-credit-card text-gray-400 mr-2 text-xs"></i>
+                                <span class="font-medium">KSh {{ tenant.total_revenue|default:0|floatformat:0 }}</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-chart-line text-gray-400 mr-2 text-xs"></i>
+                                <span class="font-medium">KSh {{ tenant.monthly_revenue|default:0|floatformat:0 }} monthly</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                {% if tenant.subscription_plan == 'enterprise' %}bg-purple-100 text-purple-800
+                                {% elif tenant.subscription_plan == 'professional' %}bg-blue-100 text-blue-800
+                                {% else %}bg-green-100 text-green-800{% endif %}">
+                                {{ tenant.get_subscription_plan_display }}
+                            </span>
+                            {% if tenant.subscription_end %}
+                            <div class="mt-1 text-xs text-gray-500">
+                                Expires: {{ tenant.subscription_end|date:"M d, Y" }}
+                                {% if tenant.is_subscription_expiring_soon %}
+                                <span class="ml-1 text-yellow-600"><i class="fas fa-exclamation-triangle"></i></span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <span class="relative flex h-3 w-3 mr-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full 
+                                    {% if tenant.is_active %}bg-green-400 opacity-75{% else %}bg-red-400 opacity-75{% endif %}"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 
+                                    {% if tenant.is_active %}bg-green-500{% else %}bg-red-500{% endif %}"></span>
+                            </span>
+                            <span id="status-badge-{{ tenant.id }}" 
+                                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-badge
+                                    {% if tenant.is_verified %}bg-green-100 text-green-800
+                                    {% elif tenant.is_active %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                {% if tenant.is_verified %}
+                                    Verified
+                                {% elif tenant.is_active %}
+                                    Active
+                                {% else %}
+                                    Inactive
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Created: {{ tenant.created_at|date:"M d, Y" }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-center">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                                {% if tenant.admin_count > 0 %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                <i class="fas fa-user-shield mr-1"></i>
+                                {{ tenant.admin_count }}
+                            </span>
+                            {% if tenant.admin_count == 0 %}
+                            <p class="text-xs text-red-500 mt-1">No admins assigned</p>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center space-x-2">
+                            <a href="{% url 'superadmin_tenant_detail' tenant.id %}" 
+                               class="text-blue-600 hover:text-blue-900"
+                               title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'superadmin_tenant_verify' tenant.id %}" 
+                               class="text-green-600 hover:text-green-900"
+                               title="Verify/Manage">
+                                <i class="fas fa-check-circle"></i>
+                            </a>
+                            
+                            <!-- PayStack Button - Only show for verified tenants -->
+                            {% if tenant.is_verified %}
+                            <button onclick="setupPayStack('{{ tenant.id }}', '{{ tenant.name }}')" 
+                                    id="paystack-btn-{{ tenant.id }}"
+                                    class="paystack-btn px-2 py-1 rounded text-xs font-medium hover:opacity-90 transition-opacity"
+                                    title="Set up PayStack">
+                                <i class="fas fa-credit-card mr-1"></i> PayStack
+                            </button>
+                            {% endif %}
+                            
+                            <button onclick="toggleTenantStatus('{{ tenant.id }}')" 
+                                    class="{% if tenant.is_active %}text-yellow-600 hover:text-yellow-900{% else %}text-green-600 hover:text-green-900{% endif %}"
+                                    title="{% if tenant.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                <i class="fas {% if tenant.is_active %}fa-toggle-on{% else %}fa-toggle-off{% endif %}"></i>
+                            </button>
+                            <a href="{% url 'superadmin_tenant_analytics' tenant.id %}" 
+                               class="text-purple-600 hover:text-purple-900"
+                               title="Analytics">
+                                <i class="fas fa-chart-bar"></i>
+                            </a>
+                            <button onclick="confirmDelete('{{ tenant.id }}', '{{ tenant.name }}')" 
+                                    class="text-red-600 hover:text-red-900"
+                                    title="Delete">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center">
+                        <div class="text-gray-400">
+                            <i class="fas fa-building text-4xl mb-3"></i>
+                            <p class="text-lg font-medium">No ISPs found</p>
+                            <p class="text-sm mt-1">Create your first ISP to get started</p>
+                            <a href="{% url 'superadmin_create_tenant' %}" class="mt-4 inline-block text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-plus mr-1"></i> Create New ISP
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if tenants.has_other_pages %}
+    <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div class="flex items-center justify-between">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if tenants.has_previous %}
+                <a href="?page={{ tenants.previous_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Previous
+                </a>
+                {% endif %}
+                {% if tenants.has_next %}
+                <a href="?page={{ tenants.next_page_number }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing <span class="font-medium">{{ tenants.start_index }}</span> to <span class="font-medium">{{ tenants.end_index }}</span> of <span class="font-medium">{{ tenants.paginator.count }}</span> results
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if tenants.has_previous %}
+                        <a href="?page={{ tenants.previous_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Previous</span>
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                        
+                        {% for num in tenants.paginator.page_range %}
+                            {% if tenants.number == num %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600">
+                                {{ num }}
+                            </span>
+                            {% elif num > tenants.number|add:'-3' and num < tenants.number|add:'3' %}
+                            <a href="?page={{ num }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ num }}
+                            </a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if tenants.has_next %}
+                        <a href="?page={{ tenants.next_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Next</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Export Options -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-medium text-gray-900">Export Data</h3>
+            <p class="text-sm text-gray-500">Export ISP data for reporting</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="{% url 'superadmin_export_tenants' %}?format=csv" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <i class="fas fa-file-csv mr-2"></i>
+                Export CSV
+            </a>
+            <a href="{% url 'superadmin_export_tenants' %}?format=json" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <i class="fas fa-file-code mr-2"></i>
+                Export JSON
+            </a>
+            <button onclick="printISPReport()" 
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <i class="fas fa-print mr-2"></i>
+                Print Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 text-center" id="deleteModalTitle">Delete ISP</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500 text-center" id="deleteModalMessage">
+                    Are you sure you want to delete this ISP? This action cannot be undone.
+                </p>
+            </div>
+            <div class="items-center px-4 py-3 flex justify-center space-x-3">
+                <button id="cancelDelete" class="px-4 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-300">
+                    Cancel
+                </button>
+                <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700">
+                    Delete ISP
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tenant-row {
+        transition: all 0.2s ease;
+    }
+    
+    .tenant-row:hover {
+        background-color: #f9fafb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    
+    .tenant-status-updating {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    .paystack-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .paystack-btn:hover {
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .paystack-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    @keyframes slide-in {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes slide-out {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+    
+    .animate-slide-in {
+        animation: slide-in 0.3s ease forwards;
+    }
+</style>
+
+<script>
+    // Search and Filter Functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const sortFilter = document.getElementById('sortFilter');
+        const tenantRows = document.querySelectorAll('.tenant-row');
+        
+        function filterAndSortTenants() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const statusValue = statusFilter.value;
+            const sortValue = sortFilter.value;
+            
+            let visibleRows = [];
+            
+            tenantRows.forEach(row => {
+                const tenantName = row.getAttribute('data-name');
+                const tenantStatus = row.getAttribute('data-status');
+                const tenantVerified = row.getAttribute('data-verified');
+                const tenantRevenue = parseFloat(row.getAttribute('data-revenue'));
+                const tenantCustomers = parseInt(row.getAttribute('data-customers'));
+                const tenantCreated = parseInt(row.getAttribute('data-created'));
+                
+                // Apply search filter
+                const matchesSearch = tenantName.includes(searchTerm) || searchTerm === '';
+                
+                // Apply status filter
+                let matchesStatus = true;
+                if (statusValue !== 'all') {
+                    if (statusValue === 'pending') {
+                        matchesStatus = tenantVerified === 'pending';
+                    } else {
+                        matchesStatus = tenantStatus === statusValue;
+                    }
+                }
+                
+                // Show/hide row
+                if (matchesSearch && matchesStatus) {
+                    row.style.display = '';
+                    visibleRows.push({
+                        row: row,
+                        name: tenantName,
+                        revenue: tenantRevenue,
+                        customers: tenantCustomers,
+                        created: tenantCreated
+                    });
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Apply sorting
+            visibleRows.sort((a, b) => {
+                switch(sortValue) {
+                    case 'name':
+                        return a.name.localeCompare(b.name);
+                    case 'revenue':
+                        return b.revenue - a.revenue;
+                    case 'customers':
+                        return b.customers - a.customers;
+                    case 'oldest':
+                        return a.created - b.created;
+                    case 'newest':
+                    default:
+                        return b.created - a.created;
+                }
+            });
+            
+            // Reorder rows in DOM
+            const tbody = document.querySelector('tbody');
+            visibleRows.forEach(item => {
+                tbody.appendChild(item.row);
+            });
+        }
+        
+        searchInput.addEventListener('input', filterAndSortTenants);
+        statusFilter.addEventListener('change', filterAndSortTenants);
+        sortFilter.addEventListener('change', filterAndSortTenants);
+        
+        // Initialize filtering
+        filterAndSortTenants();
+    });
+    
+    // Toggle Tenant Status
+    function toggleTenantStatus(tenantId) {
+        if (confirm('Are you sure you want to change this ISP\'s status?')) {
+            const row = document.querySelector(`[data-tenant="${tenantId}"]`);
+            if (row) {
+                row.classList.add('tenant-status-updating');
+            }
+            
+            const formData = new FormData();
+            formData.append('action', 'toggle_active');
+            formData.append('tenant_id', tenantId);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error updating ISP status', 'error');
+                if (row) {
+                    row.classList.remove('tenant-status-updating');
+                }
+            });
+        }
+    }
+    
+    // Update tenant status dynamically (for verification updates)
+    function updateTenantStatus(tenantId, isVerified) {
+        const badge = document.getElementById(`status-badge-${tenantId}`);
+        if (!badge) return;
+        
+        // Update badge appearance
+        if (isVerified) {
+            badge.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-badge bg-green-100 text-green-800';
+            badge.textContent = 'Verified';
+            
+            // Show PayStack button if it exists
+            const paystackBtn = document.getElementById(`paystack-btn-${tenantId}`);
+            if (!paystackBtn) {
+                // Create PayStack button if it doesn't exist
+                const actionsCell = badge.closest('tr').querySelector('td:last-child');
+                const actionsDiv = actionsCell.querySelector('.flex.items-center');
+                const verifyLink = actionsDiv.querySelector('a[href*="verify"]');
+                
+                if (verifyLink && actionsDiv) {
+                    const newPaystackBtn = document.createElement('button');
+                    newPaystackBtn.id = `paystack-btn-${tenantId}`;
+                    newPaystackBtn.className = 'paystack-btn px-2 py-1 rounded text-xs font-medium hover:opacity-90 transition-opacity';
+                    newPaystackBtn.title = 'Set up PayStack';
+                    newPaystackBtn.innerHTML = '<i class="fas fa-credit-card mr-1"></i> PayStack';
+                    newPaystackBtn.onclick = function() { setupPayStack(tenantId, '{{ tenant.name }}'); };
+                    
+                    // Insert after verify link
+                    verifyLink.parentNode.insertBefore(newPaystackBtn, verifyLink.nextSibling);
+                }
+            }
+        } else {
+            badge.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-badge bg-yellow-100 text-yellow-800';
+            badge.textContent = 'Active';
+            
+            // Hide PayStack button if it exists
+            const paystackBtn = document.getElementById(`paystack-btn-${tenantId}`);
+            if (paystackBtn) {
+                paystackBtn.style.display = 'none';
+            }
+        }
+        
+        // Update data attribute for filtering
+        const row = document.querySelector(`[data-tenant="${tenantId}"]`);
+        if (row) {
+            row.setAttribute('data-verified', isVerified ? 'verified' : 'pending');
+        }
+    }
+    
+    // Setup PayStack Integration
+    // Update the setupPayStack function in your superadmin_tenants.html
+function setupPayStack(tenantId, tenantName) {
+    if (confirm(`Configure PayStack payment integration for ${tenantName}?`)) {
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Redirecting...';
+        button.disabled = true;
+        
+        // Redirect directly to the superadmin PayStack configuration page
+        window.open(`/accounts/superadmin/tenants/${tenantId}/configure-paystack-admin/`, '_blank');
+        
+        // Reset button after a delay
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }, 2000);
+    }
+}
+
+    // Delete Confirmation
+    let tenantToDelete = null;
+    
+    function confirmDelete(tenantId, tenantName) {
+        tenantToDelete = tenantId;
+        document.getElementById('deleteModalTitle').textContent = `Delete ${tenantName}`;
+        document.getElementById('deleteModalMessage').textContent = 
+            `Are you sure you want to delete "${tenantName}"? This action cannot be undone and will permanently remove all associated data.`;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+    
+    document.getElementById('cancelDelete').addEventListener('click', function() {
+        document.getElementById('deleteModal').classList.add('hidden');
+        tenantToDelete = null;
+    });
+    
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+        if (tenantToDelete) {
+            const row = document.querySelector(`[data-tenant="${tenantToDelete}"]`);
+            if (row) {
+                row.classList.add('tenant-status-updating');
+            }
+            
+            const formData = new FormData();
+            formData.append('action', 'delete');
+            formData.append('tenant_id', tenantToDelete);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error deleting ISP', 'error');
+                if (row) {
+                    row.classList.remove('tenant-status-updating');
+                }
+            });
+        }
+    });
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('deleteModal');
+        if (event.target === modal) {
+            modal.classList.add('hidden');
+            tenantToDelete = null;
+        }
+    });
+    
+    // Print Report
+    function printISPReport() {
+        const printContent = `
+            <html>
+            <head>
+                <title>ISP Report - M-Neti</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    h1 { color: #1f2937; }
+                    .header { margin-bottom: 30px; }
+                    .section { margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f3f4f6; }
+                    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
+                    .stat-card { background: #f9fafb; padding: 15px; border-radius: 8px; }
+                    @media print {
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>ISP Management Report</h1>
+                    <p>Generated: ${new Date().toLocaleDateString()}</p>
+                    <p>Total ISPs: {{ total_tenants }} | Active: {{ active_tenants }} | Inactive: {{ inactive_tenants }}</p>
+                </div>
+                <div class="section">
+                    <h2>ISP List</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ISP Name</th>
+                                <th>Company</th>
+                                <th>Domain</th>
+                                <th>Status</th>
+                                <th>Customers</th>
+                                <th>Revenue</th>
+                                <th>Plan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tenant in tenants %}
+                            <tr>
+                                <td>{{ tenant.name }}</td>
+                                <td>{{ tenant.company_name }}</td>
+                                <td>{{ tenant.primary_domain }}</td>
+                                <td>{% if tenant.is_verified %}Verified{% elif tenant.is_active %}Active{% else %}Inactive{% endif %}</td>
+                                <td>{{ tenant.customer_count|default:0 }}</td>
+                                <td>KSh {{ tenant.total_revenue|default:0|floatformat:0 }}</td>
+                                <td>{{ tenant.get_subscription_plan_display }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="no-print" style="margin-top: 30px; text-align: center; color: #666;">
+                    <p>Report generated by M-Neti Platform</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+    }
+    
+    // Notification System
+    function showNotification(message, type = 'info') {
+        // Remove any existing notifications
+        const existingNotifications = document.querySelectorAll('.notification-toast');
+        existingNotifications.forEach(notification => {
+            notification.style.animation = 'slide-out 0.3s ease forwards';
+            setTimeout(() => notification.remove(), 300);
+        });
+        
+        const notification = document.createElement('div');
+        notification.className = `notification-toast fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 animate-slide-in ${
+            type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+            type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+            type === 'warning' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+            'bg-blue-100 text-blue-800 border border-blue-200'
+        }`;
+        
+        const icon = type === 'success' ? 'check-circle' : 
+                    type === 'error' ? 'exclamation-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+        
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${icon} mr-2"></i>
+                <span class="font-medium">${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.style.animation = 'slide-out 0.3s ease forwards';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 5000);
+    }
+    
+    // Quick Actions
+    function quickAction(action, tenantId) {
+        switch(action) {
+            case 'view_details':
+                window.location.href = `/accounts/superadmin/tenants/${tenantId}/`;
+                break;
+            case 'view_analytics':
+                window.location.href = `/accounts/superadmin/tenants/${tenantId}/analytics/`;
+                break;
+            case 'send_welcome':
+                if (confirm('Send welcome email to this ISP?')) {
+                    // Implement welcome email functionality
+                    showNotification('Welcome email would be sent', 'info');
+                }
+                break;
+        }
+    }
+
+    // Listen for verification updates from verify page
+window.addEventListener('message', function(event) {
+    if (event.data && event.data.type) {
+        switch(event.data.type) {
+            case 'tenant_verified':
+            case 'tenant_unverified':
+            case 'tenant_status_updated':
+                updateTenantStatus(event.data.tenantId, event.data.is_verified);
+                showNotification(`ISP status updated successfully!`, 'success');
+                break;
+        }
+    }
+});
+
+// Function to update tenant status in the list
+function updateTenantStatus(tenantId, isVerified) {
+    const badge = document.getElementById(`status-badge-${tenantId}`);
+    if (!badge) return;
+    
+    if (isVerified) {
+        badge.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-badge bg-green-100 text-green-800';
+        badge.textContent = 'Verified';
+        
+        // Show PayStack button if it exists
+        const paystackBtn = document.getElementById(`paystack-btn-${tenantId}`);
+        if (!paystackBtn) {
+            // Create PayStack button if it doesn't exist
+            const actionsCell = badge.closest('tr').querySelector('td:last-child');
+            const actionsDiv = actionsCell.querySelector('.flex.items-center');
+            const verifyLink = actionsDiv.querySelector('a[href*="verify"]');
+            
+            if (verifyLink && actionsDiv) {
+                const newPaystackBtn = document.createElement('button');
+                newPaystackBtn.id = `paystack-btn-${tenantId}`;
+                newPaystackBtn.className = 'paystack-btn px-2 py-1 rounded text-xs font-medium hover:opacity-90 transition-opacity';
+                newPaystackBtn.title = 'Set up PayStack';
+                newPaystackBtn.innerHTML = '<i class="fas fa-credit-card mr-1"></i> PayStack';
+                newPaystackBtn.onclick = function() { setupPayStack(tenantId, '{{ tenant.name }}'); };
+                
+                // Insert after verify link
+                verifyLink.parentNode.insertBefore(newPaystackBtn, verifyLink.nextSibling);
+            }
+        }
+    } else {
+        badge.className = 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full status-badge bg-yellow-100 text-yellow-800';
+        badge.textContent = 'Active';
+        
+        // Hide PayStack button if it exists
+        const paystackBtn = document.getElementById(`paystack-btn-${tenantId}`);
+        if (paystackBtn) {
+            paystackBtn.style.display = 'none';
+        }
+    }
+    
+    // Update data attribute for filtering
+    const row = document.querySelector(`[data-tenant="${tenantId}"]`);
+    if (row) {
+        row.setAttribute('data-verified', isVerified ? 'verified' : 'pending');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,281 @@
+<!-- templates/accounts/isp_allocate_bandwidth.html -->
+{% extends "accounts/isp_base.html" %}
+{% load static %}
+
+{% block title %}Allocate Bandwidth - Purchase #{{ purchase.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'isp_purchase_history' %}">Purchase History</a></li>
+                        <li class="breadcrumb-item active">Allocate Bandwidth</li>
+                    </ol>
+                </div>
+                <h4 class="page-title">Allocate Bandwidth - Purchase #{{ purchase.id }}</h4>
+                <p class="text-muted mb-0">
+                    Purchase: {{ purchase.bulk_bandwidth_package.name|default:"Bandwidth Package" }} - 
+                    {{ purchase.total_bandwidth_amount }} Mbps
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Allocate Bandwidth from Purchase #{{ purchase.id }}</h5>
+                    <p class="text-muted">
+                        Available in wallet: <strong>{{ wallet.balance_bandwidth_mbps|floatformat:2 }} Mbps</strong><br>
+                        Purchase amount: <strong>{{ purchase.total_bandwidth_amount }} Mbps</strong>
+                    </p>
+
+                    <form id="allocateBandwidthForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="customer_select" class="form-label">Select Customers</label>
+                            <select class="form-select select2" id="customer_select" multiple data-placeholder="Select customers...">
+                                {% for customer in customers %}
+                                <option value="{{ customer.id }}">
+                                    {{ customer.username }} - {{ customer.get_full_name|default:customer.email }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">You can select multiple customers</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="bandwidth_amount" class="form-label">Bandwidth Amount (Mbps)</label>
+                                    <input type="number" class="form-control" id="bandwidth_amount" 
+                                           name="bandwidth_amount" step="0.1" min="0.1" 
+                                           max="{{ wallet.balance_bandwidth_mbps|floatformat:2 }}"
+                                           required>
+                                    <div class="form-text">Maximum: {{ wallet.balance_bandwidth_mbps|floatformat:2 }} Mbps</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description (Optional)</label>
+                                    <input type="text" class="form-control" id="description" 
+                                           name="description" 
+                                           value="Allocated from purchase #{{ purchase.id }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning" id="allocationWarning" style="display: none;">
+                            <i class="mdi mdi-alert-circle-outline me-2"></i>
+                            <span id="warningText"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'isp_purchase_detail' purchase.id %}" class="btn btn-secondary">
+                                <i class="mdi mdi-arrow-left me-1"></i> Back to Purchase
+                            </a>
+                            <button type="button" class="btn btn-primary" id="allocateButton">
+                                <i class="mdi mdi-send-check me-1"></i> Allocate Bandwidth
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Purchase Details</h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr>
+                                    <td>Purchase ID:</td>
+                                    <td class="text-end">#{{ purchase.id }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Package:</td>
+                                    <td class="text-end">{{ purchase.bulk_bandwidth_package.name|default:"N/A" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Total Amount:</td>
+                                    <td class="text-end">{{ purchase.total_bandwidth_amount }} Mbps</td>
+                                </tr>
+                                <tr>
+                                    <td>Purchase Date:</td>
+                                    <td class="text-end">{{ purchase.purchased_at|date:"M d, Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Status:</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-{% if purchase.status == 'completed' %}success{% else %}warning{% endif %}">
+                                            {{ purchase.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <h6 class="card-subtitle mb-2">Allocation Summary</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr>
+                                    <td>Available in Wallet:</td>
+                                    <td class="text-end">{{ wallet.balance_bandwidth_mbps|floatformat:2 }} Mbps</td>
+                                </tr>
+                                <tr>
+                                    <td>Selected Customers:</td>
+                                    <td class="text-end"><span id="selectedCount">0</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Total to Allocate:</td>
+                                    <td class="text-end"><span id="totalAllocation">0</span> Mbps</td>
+                                </tr>
+                                <tr>
+                                    <td>Remaining After:</td>
+                                    <td class="text-end"><span id="remainingAfter">{{ wallet.balance_bandwidth_mbps|floatformat:2 }}</span> Mbps</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {% if recent_allocations %}
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Allocations</h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for allocation in recent_allocations %}
+                                <tr>
+                                    <td>{{ allocation.created_at|date:"M d" }}</td>
+                                    <td>{{ allocation.description|truncatechars:20 }}</td>
+                                    <td class="text-end">{{ allocation.amount_mbps|floatformat:1 }} Mbps</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('#customer_select').select2({
+        width: '100%'
+    });
+
+    // Update summary when inputs change
+    function updateSummary() {
+        const selectedCount = $('#customer_select').val()?.length || 0;
+        const bandwidthAmount = parseFloat($('#bandwidth_amount').val()) || 0;
+        const availableBandwidth = parseFloat('{{ wallet.balance_bandwidth_mbps }}');
+        
+        const totalAllocation = bandwidthAmount * selectedCount;
+        const remainingAfter = availableBandwidth - totalAllocation;
+        
+        $('#selectedCount').text(selectedCount);
+        $('#totalAllocation').text(totalAllocation.toFixed(2));
+        $('#remainingAfter').text(remainingAfter.toFixed(2));
+        
+        // Show warning if insufficient bandwidth
+        if (totalAllocation > availableBandwidth) {
+            $('#allocationWarning').show();
+            $('#warningText').text(`Insufficient bandwidth! Need ${totalAllocation.toFixed(2)} Mbps but only have ${availableBandwidth.toFixed(2)} Mbps available.`);
+            $('#allocateButton').prop('disabled', true).addClass('btn-danger').removeClass('btn-primary');
+        } else if (selectedCount > 0 && bandwidthAmount > 0) {
+            $('#allocationWarning').hide();
+            $('#allocateButton').prop('disabled', false).removeClass('btn-danger').addClass('btn-primary');
+        } else {
+            $('#allocationWarning').hide();
+            $('#allocateButton').prop('disabled', true).removeClass('btn-danger').addClass('btn-primary');
+        }
+    }
+
+    $('#customer_select, #bandwidth_amount').on('change keyup', updateSummary);
+    
+    // Handle allocation button click
+    $('#allocateButton').click(function() {
+        const customerIds = $('#customer_select').val();
+        const bandwidthAmount = $('#bandwidth_amount').val();
+        const description = $('#description').val();
+        
+        if (!customerIds || customerIds.length === 0) {
+            alert('Please select at least one customer');
+            return;
+        }
+        
+        if (!bandwidthAmount || parseFloat(bandwidthAmount) <= 0) {
+            alert('Please enter a valid bandwidth amount');
+            return;
+        }
+        
+        // Disable button and show loading
+        const $button = $(this);
+        $button.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-1"></i> Allocating...');
+        
+        // Send AJAX request
+        $.ajax({
+            url: window.location.href,  // Current URL with purchase_id
+            type: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: {
+                'customer_ids': JSON.stringify(customerIds),
+                'bandwidth_amount': bandwidthAmount,
+                'description': description,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert('Success: ' + response.message);
+                    // Update UI
+                    $('#remainingAfter').text(response.remaining_bandwidth.toFixed(2));
+                    // Refresh page after 2 seconds
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    alert('Error: ' + response.error);
+                    $button.prop('disabled', false).html('<i class="mdi mdi-send-check me-1"></i> Allocate Bandwidth');
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('Server error: ' + error);
+                $button.prop('disabled', false).html('<i class="mdi mdi-send-check me-1"></i> Allocate Bandwidth');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

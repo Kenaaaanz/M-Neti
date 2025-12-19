@@ -1,0 +1,108 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Complete Payment - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Complete Payment{% endblock %}
+{% block page_subtitle %}Finalize your purchase{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-credit-card text-blue-600 text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900">Complete Purchase</h2>
+            <p class="text-gray-600 mt-2">Purchase #{{ purchase.id }}</p>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Package:</span>
+                    <span class="font-medium">{{ purchase.notes|default:"Package Purchase" }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Amount:</span>
+                    <span class="font-bold text-blue-600 text-xl">KSh {{ purchase.total_price|floatformat:2 }}</span>
+                </div>
+                
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Commission ({{ purchase.bulk_package.commission_rate|default:purchase.bulk_bandwidth_package.commission_rate }}%):</span>
+                    <span class="font-medium">KSh {{ purchase.platform_commission|floatformat:2 }}</span>
+                </div>
+                
+                <div class="flex justify-between border-t pt-3">
+                    <span class="text-gray-900 font-medium">Your Net Cost:</span>
+                    <span class="font-bold text-green-600">KSh {{ purchase.isp_net_amount|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+        
+        {% if purchase.status == 'pending' %}
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Select Payment Method</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% if purchase.package_type == 'data' %}
+                    <div>
+                        <input type="radio" id="method-wallet" name="payment_method" value="wallet" class="hidden peer">
+                        <label for="method-wallet" 
+                               class="flex flex-col items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-green-500 peer-checked:border-green-500 peer-checked:bg-green-50">
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                                <i class="fas fa-wallet text-green-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900">Wallet Balance</h4>
+                            <p class="text-sm text-gray-500 text-center mt-1">Use available data wallet</p>
+                        </label>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <input type="radio" id="method-paystack" name="payment_method" value="paystack" 
+                               class="hidden peer" checked>
+                        <label for="method-paystack" 
+                               class="flex flex-col items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                                <i class="fas fa-credit-card text-blue-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-medium text-gray-900">PayStack</h4>
+                            <p class="text-sm text-gray-500 text-center mt-1">Card, Mobile Money, Bank</p>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex space-x-4">
+                <a href="{% url 'isp_vendor_marketplace' %}" 
+                   class="flex-1 text-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </a>
+                
+                <button type="submit" 
+                        class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-sm transition-all duration-200">
+                    Proceed to Payment
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <div class="text-center p-6">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Payment Already Processed</h3>
+            <p class="text-gray-600 mb-6">This purchase has already been completed.</p>
+            <a href="{% url 'isp_purchase_detail' purchase.id %}" 
+               class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                View Purchase Details
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
