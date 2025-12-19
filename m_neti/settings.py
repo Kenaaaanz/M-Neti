@@ -30,6 +30,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'm-neti.onrender.com',
+    '.m-neti.onrender.com',
     '.m-neti.com',
     ]
 
