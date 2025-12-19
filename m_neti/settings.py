@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 import dj_database_url
+from decouple import config  
+
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-tylg_1m)8v%yj+ru99a0pq&1qt78p@@-9^@s*l$m)=x7(w%fnu'
+SECRET_KEY = config('SECRET_KEY', default='')
 
 DEBUG = 'True'
 
@@ -199,8 +201,8 @@ LOGIN_URL = '/login'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
  #Paystack configuration
-PAYSTACK_PUBLIC_KEY = 'pk_test_326928d62c0d19eaa90341289573887d07a5c96c'
-PAYSTACK_SECRET_KEY = 'sk_test_cbba1d96dd613f76cfa45a5409fbc9bc3712db43'
+PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY', default='')
+PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY', default='')
 PLATFORM_FEE_PERCENTAGE = 7.5
 BASE_URL = os.getenv('BASE_URL', 'https://mneti.onrender.com')
 
@@ -231,7 +233,7 @@ LOGGING = {
         'level': 'DEBUG',
     },
 }
-ENCRYPTION_KEY = b'yiYmoudxKjdvRx5YWhHclJs309Uqjm4PUphU8jzfNNQ='
+ENCRYPTION_KEY = config('ENCRYPTION_KEY', default='')
 
 CORS_ALLOW_ALL_ORIGINS = True
 
