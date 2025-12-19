@@ -200,8 +200,9 @@ LOGIN_REDIRECT_URL = '/dashboard/'
 LOGIN_URL = '/login'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
-PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY')
-PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY')
+ #Paystack configuration
+PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY', default='')
+PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY', default='')
 PLATFORM_FEE_PERCENTAGE = 7.5
 BASE_URL = os.getenv('BASE_URL', 'https://mneti.onrender.com')
 
