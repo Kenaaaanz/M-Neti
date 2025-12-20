@@ -151,8 +151,8 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.BigAutoField(
-                        auto_created=True,
+                    models.UUIDField(
+                        default=uuid.uuid4,
                         editable=False,
                         primary_key=True,
                         serialize=False,
