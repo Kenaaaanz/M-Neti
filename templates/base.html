@@ -11,15 +11,11 @@
 
     <!-- Tailwind CSS with proper configuration -->
     <script>
-        if (typeof tailwind !== 'undefined') {
-            tailwind.config = {
-                important: false,
-                corePlugins: {
-                    preflight: false,
-                }
+        tailwind.config = {
+            important: false,
+            corePlugins: {
+                preflight: false,
             }
-        } else {
-            console.error('Tailwind CSS not loaded!');
         }
     </script>
     
