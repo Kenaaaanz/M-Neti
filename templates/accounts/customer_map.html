@@ -8,11 +8,6 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 <style>
-    /* OVERRIDE: Ensure Tailwind doesn't affect map */
-    #map * {
-        box-sizing: content-box !important;
-    }
-    
     /* Map Container */
     .map-container {
         position: relative;
@@ -30,12 +25,7 @@
         font: inherit !important;
     }
     
-    /* CRITICAL: Ensure map tiles render */
-    .leaflet-tile {
-        image-rendering: pixelated !important;
-    }
-    
-    /* Button styling for location access */
+    /* Location button */
     .location-access-btn {
         display: inline-flex;
         align-items: center;
@@ -55,14 +45,6 @@
         background: linear-gradient(135deg, #2563eb, #1d4ed8);
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    }
-    
-    .location-access-btn:active {
-        transform: translateY(0);
-    }
-    
-    .location-access-btn i {
-        font-size: 16px;
     }
     
     /* Input styling */
@@ -85,14 +67,17 @@
         color: #374151;
     }
     
-    .input-group input {
+    .input-group input,
+    .input-group textarea {
         padding: 10px;
         border: 1px solid #d1d5db;
         border-radius: 6px;
         font-size: 14px;
+        resize: vertical;
     }
     
-    .input-group input:focus {
+    .input-group input:focus,
+    .input-group textarea:focus {
         outline: none;
         border-color: #3b82f6;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -118,6 +103,7 @@
         transition: all 0.2s;
         border: none;
         outline: none;
+        gap: 8px;
     }
     
     .btn-primary {
@@ -176,6 +162,56 @@
         border-radius: 4px;
         padding: 8px 12px;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Search Results */
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        margin-top: 5px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        display: none;
+    }
+    
+    .search-results.visible {
+        display: block;
+    }
+    
+    .search-result-item {
+        padding: 12px 15px;
+        border-bottom: 1px solid #f3f4f6;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .search-result-item:hover {
+        background-color: #f9fafb;
+    }
+    
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+    
+    .search-result-name {
+        font-weight: 500;
+        color: #111827;
+        margin-bottom: 4px;
+    }
+    
+    .search-result-details {
+        font-size: 12px;
+        color: #6b7280;
     }
     
     /* Toast notifications */
@@ -190,6 +226,9 @@
         z-index: 10000;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         animation: slideIn 0.3s ease-out;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
     
     .toast-success { background-color: #10b981; }
@@ -274,12 +313,13 @@
                 <!-- Search Bar -->
                 <div class="search-container">
                     <input type="text" 
-                           id="address-search" 
+                           id="addressSearch" 
                            class="search-input"
                            placeholder="Search for your address in Kenya...">
-                    <button id="search-btn" class="search-button">
+                    <button id="searchButton" class="search-button">
                         <i class="fas fa-search"></i>
                     </button>
+                    <div id="searchResults" class="search-results"></div>
                 </div>
                 
                 <!-- Map Container -->
@@ -307,23 +347,22 @@
                 
                 <!-- Address Display -->
                 <div class="input-group">
-                    <label for="address-display">Address</label>
-                    <textarea id="address-display" 
+                    <label for="addressDisplay">Address</label>
+                    <textarea id="addressDisplay" 
                               rows="2"
-                              class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                               placeholder="Address will appear here after selecting a location..."></textarea>
                 </div>
                 
                 <!-- Action Buttons -->
                 <div class="action-buttons">
-                    <button id="save-location" class="btn btn-primary">
-                        <i class="fas fa-save mr-2"></i>Save Location
+                    <button id="saveLocation" class="btn btn-primary">
+                        <i class="fas fa-save"></i>Save Location
                     </button>
-                    <button id="use-current-location" class="btn btn-success">
-                        <i class="fas fa-location-crosshairs mr-2"></i>Use Current Location
+                    <button id="useCurrentLocation" class="btn btn-success">
+                        <i class="fas fa-location-crosshairs"></i>Use Current Location
                     </button>
-                    <button id="clear-location" class="btn btn-secondary">
-                        <i class="fas fa-trash mr-2"></i>Clear
+                    <button id="clearLocation" class="btn btn-secondary">
+                        <i class="fas fa-trash"></i>Clear
                     </button>
                 </div>
             </div>
@@ -396,7 +435,7 @@
             <div class="info-card">
                 <h3 class="text-lg font-semibold mb-3">Quick Actions</h3>
                 <div class="space-y-3">
-                    <button onclick="useCurrentLocation()" class="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition duration-200">
+                    <button id="quickCurrentLocation" class="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition duration-200">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                                 <i class="fas fa-location-crosshairs text-green-600"></i>
@@ -409,7 +448,7 @@
                         <i class="fas fa-chevron-right text-gray-400"></i>
                     </button>
                     
-                    <button onclick="searchAddress()" class="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition duration-200">
+                    <button id="quickSearch" class="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition duration-200">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                                 <i class="fas fa-search text-blue-600"></i>
@@ -443,10 +482,9 @@
 
 {% block extra_scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
 <script>
 // ============================================================================
-// CUSTOMER LOCATION MAP - SIMPLIFIED & FIXED VERSION
+// CUSTOMER LOCATION MAP - WORKING VERSION
 // ============================================================================
 
 let map = null;
@@ -471,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     try {
         initMap();
-        bindEvents();
+        setupEventListeners();
         setupDefaultLocation();
         console.log('✅ Map initialized successfully');
     } catch (error) {
@@ -495,21 +533,17 @@ function initMap() {
     center = DEFAULT_LOCATION;
     {% endif %}
     
-    // Create map with proper interaction
+    // Create map
     map = L.map('map', {
         center: [center.lat, center.lng],
         zoom: center.zoom,
         zoomControl: true,
-        // ENABLE INTERACTION
         dragging: true,
         touchZoom: true,
         scrollWheelZoom: true,
         doubleClickZoom: true,
         boxZoom: true,
         keyboard: true,
-        tap: true,
-        tapHold: false,
-        // Bounds for Kenya
         maxBounds: [
             [KENYA_BOUNDS.southWest[0], KENYA_BOUNDS.southWest[1]],
             [KENYA_BOUNDS.northEast[0], KENYA_BOUNDS.northEast[1]]
@@ -524,7 +558,7 @@ function initMap() {
         minZoom: 6
     }).addTo(map);
     
-    // Fix map size after creation
+    // Fix map size
     setTimeout(() => {
         if (map) {
             map.invalidateSize(true);
@@ -605,13 +639,9 @@ function updateLocation(lat, lng, address = '') {
 }
 
 function updateFormFields(lat, lng, address = '') {
-    const latitudeInput = document.getElementById('latitude');
-    const longitudeInput = document.getElementById('longitude');
-    const addressDisplay = document.getElementById('address-display');
-    
-    if (latitudeInput) latitudeInput.value = lat.toFixed(6);
-    if (longitudeInput) longitudeInput.value = lng.toFixed(6);
-    if (addressDisplay && address) addressDisplay.value = address;
+    document.getElementById('latitude').value = lat.toFixed(6);
+    document.getElementById('longitude').value = lng.toFixed(6);
+    document.getElementById('addressDisplay').value = address;
 }
 
 function isInKenya(lat, lng) {
@@ -623,57 +653,83 @@ function isInKenya(lat, lng) {
     );
 }
 
+// Search Address Function
 async function searchAddress() {
-    const searchInput = document.getElementById('addressSearch').value;
+    const searchInput = document.getElementById('addressSearch');
     const resultsDiv = document.getElementById('searchResults');
     
-    if (!searchInput.trim()) {
-        resultsDiv.innerHTML = '<p class="text-red-500">Please enter a location</p>';
+    if (!searchInput || !resultsDiv) {
+        console.error('Search elements not found');
         return;
     }
     
-    resultsDiv.innerHTML = '<p>Searching...</p>';
+    const query = searchInput.value.trim();
+    
+    if (!query) {
+        showToast('Please enter a location to search', 'warning');
+        return;
+    }
+    
+    // Show loading
+    resultsDiv.innerHTML = '<div class="p-4 text-center text-gray-500">Searching...</div>';
+    resultsDiv.classList.add('visible');
     
     try {
-        // Use YOUR Django endpoint instead of direct OSM API
-        const response = await fetch(`/accounts/api/geocode/?q=${encodeURIComponent(searchInput)}&limit=5&countrycodes=ke`);
+        // Use your Django endpoint
+        const response = await fetch(`/accounts/api/search-address/?q=${encodeURIComponent(query)}&limit=5&countrycodes=ke`);
         
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error(`HTTP error: ${response.status}`);
         }
         
         const data = await response.json();
         
         if (data.error) {
-            resultsDiv.innerHTML = `<p class="text-red-500">Error: ${data.error}</p>`;
+            resultsDiv.innerHTML = `<div class="p-3 text-red-500">${data.error}</div>`;
             return;
         }
         
-        displayResults(data.results);
+        if (!data.results || data.results.length === 0) {
+            resultsDiv.innerHTML = '<div class="p-3 text-gray-500">No results found</div>';
+            return;
+        }
+        
+        // Display results
+        let html = '';
+        data.results.forEach((result, index) => {
+            const safeName = result.display_name
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, "&#39;");
+            
+            html += `
+                <div class="search-result-item" onclick="selectSearchResult(${result.lat}, ${result.lon}, '${safeName}')">
+                    <div class="search-result-name">${result.display_name}</div>
+                    <div class="search-result-details">
+                        ${result.type} • ${result.lat}, ${result.lon}
+                    </div>
+                </div>
+            `;
+        });
+        
+        resultsDiv.innerHTML = html;
         
     } catch (error) {
         console.error('Search failed:', error);
-        resultsDiv.innerHTML = `<p class="text-red-500">Search failed: ${error.message}</p>`;
+        resultsDiv.innerHTML = `<div class="p-3 text-red-500">Search failed: ${error.message}</div>`;
     }
 }
 
-// Or use the simpler endpoint:
-async function searchAddressSimple() {
-    const searchInput = document.getElementById('addressSearch').value;
-    
-    try {
-        const response = await fetch(`/accounts/api/search-address/?q=${encodeURIComponent(searchInput)}&limit=5`);
-        const data = await response.json();
-        
-        if (data.results && data.results.length > 0) {
-            // Process and display results
-            displayResults(data.results);
-        } else {
-            document.getElementById('searchResults').innerHTML = '<p class="text-gray-500">No results found</p>';
-        }
-    } catch (error) {
-        console.error('Search error:', error);
-        document.getElementById('searchResults').innerHTML = '<p class="text-red-500">Search failed</p>';
+function selectSearchResult(lat, lng, address) {
+    updateLocation(lat, lng, address);
+    hideSearchResults();
+    showToast('Location selected', 'success');
+}
+
+function hideSearchResults() {
+    const resultsDiv = document.getElementById('searchResults');
+    if (resultsDiv) {
+        resultsDiv.classList.remove('visible');
+        resultsDiv.innerHTML = '';
     }
 }
 
@@ -684,12 +740,16 @@ async function reverseGeocode(lat, lng) {
     
     try {
         const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&countrycodes=ke`;
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'M-Neti/1.0 (contact@mneti.com)'
+            }
+        });
         const data = await response.json();
         
         if (data.display_name) {
             const address = data.display_name;
-            document.getElementById('address-display').value = address;
+            document.getElementById('addressDisplay').value = address;
             if (marker) {
                 marker.bindPopup(address).openPopup();
             }
@@ -698,7 +758,7 @@ async function reverseGeocode(lat, lng) {
     } catch (error) {
         console.warn('Reverse geocode failed:', error);
         const fallback = `Location at ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-        document.getElementById('address-display').value = fallback;
+        document.getElementById('addressDisplay').value = fallback;
         if (marker) {
             marker.bindPopup(fallback).openPopup();
         }
@@ -708,12 +768,14 @@ async function reverseGeocode(lat, lng) {
 
 function useCurrentLocation() {
     if (!navigator.geolocation) {
-        showToast('Geolocation not supported', 'error');
+        showToast('Geolocation not supported by your browser', 'error');
         return;
     }
     
-    const currentLocationBtn = document.getElementById('use-current-location');
-    setButtonLoading(currentLocationBtn, true);
+    const button = document.getElementById('useCurrentLocation');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Detecting...';
+    button.disabled = true;
     
     navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -723,22 +785,30 @@ function useCurrentLocation() {
             if (isInKenya(lat, lng)) {
                 updateLocation(lat, lng);
                 reverseGeocode(lat, lng);
-                showToast('Location found', 'success');
+                showToast('Current location detected', 'success');
             } else {
-                showToast('Location outside Kenya', 'warning');
+                showToast('Location outside Kenya. Please select a location within Kenya.', 'warning');
             }
             
-            setButtonLoading(currentLocationBtn, false);
+            button.innerHTML = originalText;
+            button.disabled = false;
         },
         (error) => {
-            let message = 'Unable to get location';
-            if (error.code === error.PERMISSION_DENIED) {
-                message = 'Location access denied. Please allow location access in browser settings.';
-            } else if (error.code === error.TIMEOUT) {
-                message = 'Location request timeout';
+            let message = 'Unable to get your location';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = 'Location access denied. Please enable location permissions in your browser.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = 'Location information unavailable.';
+                    break;
+                case error.TIMEOUT:
+                    message = 'Location request timed out.';
+                    break;
             }
             showToast(message, 'error');
-            setButtonLoading(currentLocationBtn, false);
+            button.innerHTML = originalText;
+            button.disabled = false;
         },
         { 
             enableHighAccuracy: true,
@@ -749,13 +819,9 @@ function useCurrentLocation() {
 }
 
 async function saveLocation() {
-    const latitudeInput = document.getElementById('latitude');
-    const longitudeInput = document.getElementById('longitude');
-    const addressDisplay = document.getElementById('address-display');
-    
-    const lat = parseFloat(latitudeInput?.value);
-    const lng = parseFloat(longitudeInput?.value);
-    const address = addressDisplay?.value || '';
+    const lat = parseFloat(document.getElementById('latitude').value);
+    const lng = parseFloat(document.getElementById('longitude').value);
+    const address = document.getElementById('addressDisplay').value.trim();
     
     if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
         showToast('Please select a location first', 'warning');
@@ -767,8 +833,10 @@ async function saveLocation() {
         return;
     }
     
-    const saveBtn = document.getElementById('save-location');
-    setButtonLoading(saveBtn, true);
+    const button = document.getElementById('saveLocation');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    button.disabled = true;
     
     try {
         const csrfToken = getCSRFToken();
@@ -789,20 +857,25 @@ async function saveLocation() {
         
         if (data.success) {
             showToast('Location saved successfully!', 'success');
-            setTimeout(() => window.location.reload(), 1500);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         } else {
-            throw new Error(data.error || 'Save failed');
+            throw new Error(data.error || 'Failed to save location');
         }
     } catch (error) {
         console.error('Save failed:', error);
         showToast(`Save failed: ${error.message}`, 'error');
     } finally {
-        setButtonLoading(saveBtn, false);
+        button.innerHTML = originalText;
+        button.disabled = false;
     }
 }
 
 function clearLocation() {
-    if (!confirm('Clear location?')) return;
+    if (!confirm('Are you sure you want to clear the location?')) {
+        return;
+    }
     
     if (marker) {
         map.removeLayer(marker);
@@ -811,32 +884,52 @@ function clearLocation() {
     
     document.getElementById('latitude').value = '';
     document.getElementById('longitude').value = '';
-    document.getElementById('address-display').value = '';
-    document.getElementById('address-search').value = '';
+    document.getElementById('addressDisplay').value = '';
+    document.getElementById('addressSearch').value = '';
     currentLatLng = null;
+    hideSearchResults();
     
     map.setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], DEFAULT_LOCATION.zoom);
     showToast('Location cleared', 'info');
 }
 
-function bindEvents() {
+function setupEventListeners() {
     // Map click
     map.on('click', function(e) {
         updateLocation(e.latlng.lat, e.latlng.lng);
         reverseGeocode(e.latlng.lat, e.latlng.lng);
     });
     
-    // Buttons
-    document.getElementById('save-location').addEventListener('click', saveLocation);
-    document.getElementById('use-current-location').addEventListener('click', useCurrentLocation);
-    document.getElementById('clear-location').addEventListener('click', clearLocation);
-    document.getElementById('search-btn').addEventListener('click', searchAddress);
+    // Main buttons
+    document.getElementById('saveLocation').addEventListener('click', saveLocation);
+    document.getElementById('useCurrentLocation').addEventListener('click', useCurrentLocation);
+    document.getElementById('clearLocation').addEventListener('click', clearLocation);
+    document.getElementById('searchButton').addEventListener('click', searchAddress);
     
-    // Search enter key
-    document.getElementById('address-search').addEventListener('keypress', function(e) {
+    // Quick action buttons
+    document.getElementById('quickCurrentLocation').addEventListener('click', useCurrentLocation);
+    document.getElementById('quickSearch').addEventListener('click', function() {
+        document.getElementById('addressSearch').focus();
+    });
+    
+    // Search input events
+    const searchInput = document.getElementById('addressSearch');
+    searchInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             searchAddress();
+        }
+    });
+    
+    // Hide search results when clicking outside
+    document.addEventListener('click', function(e) {
+        const searchResults = document.getElementById('searchResults');
+        const searchContainer = document.querySelector('.search-container');
+        
+        if (searchResults && searchContainer && 
+            !searchContainer.contains(e.target) && 
+            e.target !== searchResults) {
+            hideSearchResults();
         }
     });
     
@@ -867,47 +960,54 @@ function bindEvents() {
     });
 }
 
-function setButtonLoading(button, isLoading) {
-    if (!button) return;
-    const original = button.innerHTML;
-    button.disabled = isLoading;
-    button.innerHTML = isLoading ? 
-        '<i class="fas fa-spinner fa-spin"></i>' : 
-        original;
-    
-    // Store original for restoration
-    if (!isLoading && !button.hasAttribute('data-original')) {
-        button.setAttribute('data-original', original);
-    }
-}
-
 function getCSRFToken() {
-    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-           document.cookie.match(/csrftoken=([^;]+)/)?.[1];
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+    
+    if (!cookieValue) {
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        return metaTag ? metaTag.getAttribute('content') : '';
+    }
+    
+    return cookieValue;
 }
 
 function showToast(message, type = 'info') {
-    // Remove existing
-    document.querySelectorAll('.toast').forEach(toast => toast.remove());
+    // Remove existing toast
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
     
+    // Create new toast
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
+    
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    
     toast.innerHTML = `
-        <div class="flex items-center">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
-                         type === 'error' ? 'fa-exclamation-circle' : 
-                         type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} mr-2"></i>
-            <span>${message}</span>
-        </div>
+        <i class="fas ${icons[type] || 'fa-info-circle'}"></i>
+        <span>${message}</span>
     `;
     
     document.body.appendChild(toast);
     
-    setTimeout(() => toast.remove(), 3000);
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
 }
 
-// Global functions for quick actions
-window.useCurrentLocation = useCurrentLocation;
+// Make functions available globally
 window.searchAddress = searchAddress;
+window.selectSearchResult = selectSearchResult;
+window.useCurrentLocation = useCurrentLocation;
 </script>
 {% endblock %}
