@@ -66,7 +66,7 @@ MIDDLEWARE = [
     'billing.middleware.AutoPaymentMiddleware',
 ]
 
-ROOT_URLCONF = 'M-Neti.urls'
+ROOT_URLCONF = 'm_neti.urls'
 
 TEMPLATES = [
     {
@@ -86,7 +86,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'M-Neti.wsgi.application'
+WSGI_APPLICATION = 'm_neti.wsgi.application'
 
 # Database
 
