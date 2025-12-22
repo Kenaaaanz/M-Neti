@@ -21,7 +21,7 @@ class PaystackConfiguration(models.Model):
     account_number = models.CharField(max_length=20, blank=True, null=True, help_text="Bank account number")
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='paystack_configs')
     public_key = models.CharField(max_length=255, default='pk_test_326928d62c0d19eaa90341289573887d07a5c96c')
-    secret_key = models.CharField(max_length=255, default='sk_test_cbba1d96dd613f76cfa45a5409fbc9bc3712db43')
+    secret_key = models.CharField(max_length=255, default='sk_test_a38271e5a19686576e1d775df3f2d42b2027a242')
     subaccount_code = models.CharField(max_length=255, blank=True, null=True)
     transaction_charge = models.DecimalField(max_digits=5, decimal_places=2, default=1.5)
     is_active = models.BooleanField(default=True)

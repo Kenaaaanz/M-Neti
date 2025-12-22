@@ -11,10 +11,10 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
+SECRET_KEY = 'django-insecure-tylg_1m)8v%yj+ru99a0pq&1qt78p@@-9^@s*l$m)=x7(w%fnu' #config('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
 
 # DEBUG should be False in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = True #config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'billing',
     'router_manager',
     'corsheaders',
-    'storages',  # For production static/media files
+    'storages',
+    'sslserver',
 ]
 
 PHONENUMBER_DEFAULT_REGION = 'KE'
@@ -65,7 +66,7 @@ MIDDLEWARE = [
     'billing.middleware.AutoPaymentMiddleware',
 ]
 
-ROOT_URLCONF = 'm_neti.urls'
+ROOT_URLCONF = 'M-Neti.urls'
 
 TEMPLATES = [
     {
@@ -85,25 +86,38 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'm_neti.wsgi.application'
+WSGI_APPLICATION = 'M-Neti.wsgi.application'
 
 # Database
+
+DATABASES = {
+    'default': {
+        # 'ENGINE': 'django.db.backends.sqlite3',
+        # 'NAME': BASE_DIR / 'db.sqlite3',
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "netbuddy",
+        "USER": "postgres",
+        "PASSWORD": "Ken@4427",
+        "HOST": "localhost",
+        "PORT": "5432",
+    }
+}
 # Use PostgreSQL on Render, SQLite locally
-if 'DATABASE_URL' in os.environ:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=config('DATABASE_URL'),
-            conn_max_age=600,
-            ssl_require=True
-        )
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+#if 'DATABASE_URL' in os.environ:
+    #DATABASES = {
+        #'default': dj_database_url.config(
+            #default=config('DATABASE_URL'),
+            #conn_max_age=600,
+            #ssl_require=True
+        #)
+    #}
+#else:
+    #DATABASES = {
+        #'default': {
+            #'ENGINE': 'django.db.backends.sqlite3',
+            #'NAME': BASE_DIR / 'db.sqlite3',
+        #}
+    #}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -154,8 +168,8 @@ LOGIN_URL = '/login'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 # Paystack configuration
-PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY', default='')
-PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY', default='')
+PAYSTACK_PUBLIC_KEY = 'pk_test_326928d62c0d19eaa90341289573887d07a5c96c'#config('PAYSTACK_PUBLIC_KEY', default='')
+PAYSTACK_SECRET_KEY = 'sk_test_a38271e5a19686576e1d775df3f2d42b2027a242'#config('PAYSTACK_SECRET_KEY', default='')
 PLATFORM_FEE_PERCENTAGE = config('PLATFORM_FEE_PERCENTAGE', default=7.5, cast=float)
 BASE_URL = config('BASE_URL', default='https://mneti.onrender.com')
 

@@ -7,7 +7,7 @@ from django.utils.http import urlencode
 
 class PaystackAPI:
     def __init__(self, secret_key=None):
-        self.secret_key = 'sk_test_cbba1d96dd613f76cfa45a5409fbc9bc3712db43' #secret_key or getattr(settings, 'PAYSTACK_SECRET_KEY', '')
+        self.secret_key = 'sk_test_a38271e5a19686576e1d775df3f2d42b2027a242' #secret_key or getattr(settings, 'PAYSTACK_SECRET_KEY', '')
         self.public_key = 'pk_test_326928d62c0d19eaa90341289573887d07a5c96c' #getattr(settings, 'PAYSTACK_PUBLIC_KEY', '')
         self.base_url = 'https://api.paystack.co'
     

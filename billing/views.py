@@ -957,7 +957,7 @@ def paystack_bulk_data_payment(request, purchase_id):
     try:
         paystack_config = PaystackConfiguration.objects.get(tenant=tenant, is_active=True)
         PAYSTACK_SECRET_KEY = paystack_config.secret_key
-        paystack_public_key = paystack_config.public_key
+        PAYSTACK_PUBLIC_KEY = paystack_config.public_key
     except PaystackConfiguration.DoesNotExist:
         messages.error(request, 'PayStack configuration not found for this ISP.')
         return redirect('bulk_data_marketplace')
@@ -1579,10 +1579,16 @@ def dashboard(request):
         }
     
     return render(request, 'dashboard.html', context)
+
 @login_required
 def paystack_subscribe_with_plan(request, plan_id):
     """Handle subscription with specific SubscriptionPlan (form submission)"""
+    
+    logger.info(f"=== PAYSTACK SUBSCRIPTION STARTED ===")
+    logger.info(f"User: {request.user.username}, Plan ID: {plan_id}")
+    
     if not BILLING_ENABLED:
+        logger.warning("Billing not enabled - redirecting")
         messages.error(request, 'Billing is not enabled on this system.')
         return redirect('plan_selection')
     
@@ -1591,19 +1597,24 @@ def paystack_subscribe_with_plan(request, plan_id):
         tenant = getattr(request, 'tenant', None) or getattr(user, 'tenant', None)
         
         if not tenant:
+            logger.error(f"No tenant for user: {user.username}")
             messages.error(request, 'No tenant associated with your account.')
             return redirect('plan_selection')
         
+        logger.info(f"Tenant found: {tenant.name} (ID: {tenant.id})")
+        
         # Get plan for current tenant
-        plan = get_object_or_404(
-            SubscriptionPlan, 
-            id=plan_id, 
-            tenant=tenant,
-            is_active=True
-        )
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id, tenant=tenant, is_active=True)
+            logger.info(f"Plan found: {plan.name} - ${plan.price}")
+        except SubscriptionPlan.DoesNotExist:
+            logger.error(f"Plan {plan_id} not found for tenant {tenant.name}")
+            messages.error(request, 'Selected plan not found or is no longer available.')
+            return redirect('plan_selection')
         
         # Generate unique reference
         reference = f"sub_{request.user.id}_{uuid.uuid4().hex[:8]}"
+        logger.info(f"Generated reference: {reference}")
         
         # Create payment record
         payment = Payment.objects.create(
@@ -1614,17 +1625,68 @@ def paystack_subscribe_with_plan(request, plan_id):
             status='pending',
             payment_method='paystack'
         )
+        logger.info(f"Payment created: {payment.id}")
         
-        # Get Paystack configuration
+        logger.info("=" * 60)
+        logger.info("TRACING PAYSTACK KEY SOURCE")
+        logger.info("=" * 60)
+
+        # 1. Check database first
         try:
             paystack_config = PaystackConfiguration.objects.get(tenant=tenant, is_active=True)
-            PAYSTACK_SECRET_KEY = paystack_config.secret_key
-            subaccount_code = paystack_config.subaccount_code
+            db_key = paystack_config.secret_key
+            logger.info(f"1. Database key found: {db_key[:10]}...{db_key[-4:] if db_key and len(db_key) > 14 else ''}")
+            logger.info(f"   Config ID: {paystack_config.id}")
+            logger.info(f"   Tenant: {paystack_config.tenant.name}")
         except PaystackConfiguration.DoesNotExist:
-            # Fallback to settings
-            PAYSTACK_SECRET_KEY = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
-            subaccount_code = None
-        
+            logger.info("1. No Paystack config in database")
+            db_key = None
+            paystack_config = None
+        except Exception as e:
+            logger.error(f"1. Database error: {e}")
+            db_key = None
+            paystack_config = None
+
+        # 2. Check settings
+        settings_key = getattr(settings, 'PAYSTACK_SECRET_KEY', None)
+        logger.info(f"2. Settings key: {settings_key[:10] if settings_key else 'None'}")
+
+        # 3. Check environment variables
+        import os
+        env_key = os.environ.get('PAYSTACK_SECRET_KEY')
+        logger.info(f"3. Environment key: {env_key[:10] if env_key else 'None'}")
+
+        # 4. Determine which key will be used
+        PAYSTACK_SECRET_KEY = None
+
+        if db_key:
+            cleaned_db = str(db_key).strip().replace('\n', '').replace('\r', '')
+            if cleaned_db.startswith('sk_test_') or cleaned_db.startswith('sk_live_'):
+                PAYSTACK_SECRET_KEY = cleaned_db
+                logger.info(f"4. Using database key: {PAYSTACK_SECRET_KEY[:10]}...")
+            else:
+                logger.warning(f"4. Database key invalid format: {cleaned_db[:20]}...")
+
+        if not PAYSTACK_SECRET_KEY and settings_key:
+            cleaned_settings = str(settings_key).strip()
+            if cleaned_settings.startswith('sk_test_') or cleaned_settings.startswith('sk_live_'):
+                PAYSTACK_SECRET_KEY = cleaned_settings
+                logger.info(f"4. Using settings key: {PAYSTACK_SECRET_KEY[:10]}...")
+
+        if not PAYSTACK_SECRET_KEY and env_key:
+            cleaned_env = str(env_key).strip()
+            if cleaned_env.startswith('sk_test_') or cleaned_env.startswith('sk_live_'):
+                PAYSTACK_SECRET_KEY = cleaned_env
+                logger.info(f"4. Using environment key: {PAYSTACK_SECRET_KEY[:10]}...")
+
+        if not PAYSTACK_SECRET_KEY:
+            logger.error("4. NO VALID KEY FOUND ANYWHERE!")
+            messages.error(request, 'Payment gateway configuration error. Please contact support.')
+            return redirect('plan_selection')
+
+        logger.info(f"5. FINAL KEY TO BE USED: {PAYSTACK_SECRET_KEY[:10]}...{PAYSTACK_SECRET_KEY[-4:]}")
+        logger.info(f"   Key length: {len(PAYSTACK_SECRET_KEY)}")
+        logger.info("=" * 60)
         # Prepare metadata
         metadata = {
             'user_id': str(request.user.id),
@@ -1633,21 +1695,38 @@ def paystack_subscribe_with_plan(request, plan_id):
             'tenant_id': str(tenant.id) if tenant else None,
         }
         
-        # Paystack payment data - FIXED: Use decimal_to_paystack_amount utility
+        # Convert amount using utility function
+        try:
+            amount_kobo = decimal_to_paystack_amount(plan.price)
+            logger.info(f"Amount: {plan.price} -> {amount_kobo} kobo")
+        except Exception as e:
+            logger.error(f"Amount conversion error: {e}")
+            # Fallback calculation
+            amount_kobo = int(float(plan.price) * 100)
+        
+        # Paystack payment data
         paystack_data = {
             'email': request.user.email,
-            'amount': decimal_to_paystack_amount(plan.price),  # FIXED: Use utility function
+            'amount': amount_kobo,
             'reference': reference,
             'callback_url': request.build_absolute_uri(f'/billing/payment/verify/{reference}/'),
             'metadata': metadata
         }
         
         # Add subaccount if configured
-        if subaccount_code:
-            paystack_data['subaccount'] = subaccount_code
-            # Also fix transaction_charge calculation
-            transaction_charge_amount = plan.price * Decimal('0.015')  # 1.5% as Decimal
-            paystack_data['transaction_charge'] = decimal_to_paystack_amount(transaction_charge_amount)
+        subaccount_code = None
+        try:
+            if paystack_config and hasattr(paystack_config, 'subaccount_code'):
+                subaccount_code = paystack_config.subaccount_code
+                if subaccount_code:
+                    paystack_data['subaccount'] = subaccount_code
+                    transaction_charge_amount = plan.price * Decimal('0.015')
+                    paystack_data['transaction_charge'] = decimal_to_paystack_amount(transaction_charge_amount)
+                    logger.info(f"Added subaccount: {subaccount_code}")
+        except:
+            pass
+        
+        logger.info(f"Paystack data prepared, calling API...")
         
         # Initialize Paystack transaction
         headers = {
@@ -1655,44 +1734,66 @@ def paystack_subscribe_with_plan(request, plan_id):
             'Content-Type': 'application/json',
         }
         
+        # === DEBUG THE REQUEST ===
+        logger.info(f"DEBUG: Making request to Paystack...")
+        
         response = requests.post(
             'https://api.paystack.co/transaction/initialize',
             json=paystack_data,
             headers=headers,
-            timeout=30
+            timeout=30,
+            verify=True
         )
+        
+        logger.info(f"Paystack response status: {response.status_code}")
+        logger.info(f"Paystack response body: {response.text[:500]}")
         
         if response.status_code == 200:
             data = response.json()
+            logger.info(f"Paystack API response status: {data.get('status')}")
+            
             if data['status']:
                 # Success - redirect to Paystack payment page
                 authorization_url = data['data']['authorization_url']
+                logger.info(f"Success! Redirecting to: {authorization_url}")
                 return redirect(authorization_url)
             else:
                 # Paystack API returned error
                 error_message = data.get('message', 'Unknown Paystack error')
+                logger.error(f"Paystack API error: {error_message}")
                 payment.status = 'failed'
                 payment.save()
                 messages.error(request, f'Paystack error: {error_message}')
+        elif response.status_code == 401:
+            # Specific handling for 401
+            error_data = response.json()
+            logger.error(f"PAYSTACK 401 ERROR: {error_data}")
+            logger.error(f"The key being used: {PAYSTACK_SECRET_KEY[:10]}...")
+            
+            messages.error(request, 'Invalid payment gateway credentials. Please contact your ISP administrator.')
         else:
             # HTTP error
+            logger.error(f"HTTP error from Paystack: {response.status_code}")
+            logger.error(f"Response: {response.text}")
             payment.status = 'failed'
             payment.save()
-            messages.error(request, 'Unable to connect to Paystack. Please try again.')
+            messages.error(request, f'Unable to connect to Paystack (HTTP {response.status_code}). Please try again.')
             
     except SubscriptionPlan.DoesNotExist:
+        logger.error("SubscriptionPlan.DoesNotExist exception")
         messages.error(request, 'Selected plan not found or is no longer available.')
     except requests.exceptions.RequestException as e:
         # Network-related errors
+        logger.error(f"Network error: {e}")
         messages.error(request, 'Network error. Please check your connection and try again.')
-        logger.error(f"Paystack network error: {e}")
     except Exception as e:
         # Any other unexpected errors
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         messages.error(request, 'An unexpected error occurred. Please try again.')
-        logger.error(f"Paystack subscription error: {e}")
     
+    logger.warning("Subscription failed - redirecting to plan selection")
     return redirect('plan_selection')
-
+    
 @login_required
 def paystack_subscribe(request):
     """View for subscribing to a plan via PayStack"""

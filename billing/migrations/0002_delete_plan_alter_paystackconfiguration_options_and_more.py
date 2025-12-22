@@ -62,6 +62,8 @@ class Migration(migrations.Migration):
             name="reference",
             field=models.CharField(default=uuid.uuid4, max_length=100, unique=True),
         ),
+
+        
         migrations.AddField(
             model_name="payment",
             name="updated_at",
