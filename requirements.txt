@@ -12,6 +12,7 @@ django_countries==7.6.1
 django-jazzmin==3.0.1
 django_phonenumber_field==7.1.0
 django-storages
+django-sslserver
 dl==0.1.0
 docutils
 django-cors-headers==4.3.0
