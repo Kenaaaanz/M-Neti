@@ -90,27 +90,27 @@ WSGI_APPLICATION = 'M-Neti.wsgi.application'
 
 # Database
 
-DATABASES = {
-    'default': {
+#DATABASES = {
+    #'default': {
         # 'ENGINE': 'django.db.backends.sqlite3',
         # 'NAME': BASE_DIR / 'db.sqlite3',
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "netbuddy",
-        "USER": "postgres",
-        "PASSWORD": "Ken@4427",
-        "HOST": "localhost",
-        "PORT": "5432",
-    }
-}
-# Use PostgreSQL on Render, SQLite locally
-#if 'DATABASE_URL' in os.environ:
-    #DATABASES = {
-        #'default': dj_database_url.config(
-            #default=config('DATABASE_URL'),
-            #conn_max_age=600,
-            #ssl_require=True
-        #)
+        #"ENGINE": "django.db.backends.postgresql",
+        #"NAME": "netbuddy",
+        #"USER": "postgres",
+        #"PASSWORD": "Ken@4427",
+        #"HOST": "localhost",
+        #"PORT": "5432",
     #}
+#}
+# Use PostgreSQL on Render, SQLite locally
+if 'DATABASE_URL' in os.environ:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=config('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
 #else:
     #DATABASES = {
         #'default': {
