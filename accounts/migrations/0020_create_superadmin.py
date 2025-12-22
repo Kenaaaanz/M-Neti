@@ -43,7 +43,7 @@ def delete_superadmin(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('billing', '0019_activitylog'),  
+        ('accounts', '0019_activitylog'),  
     ]
 
     operations = [
