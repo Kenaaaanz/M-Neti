@@ -6,17 +6,6 @@ import uuid
 def create_superadmin(apps, schema_editor):
     # Get models
     CustomUser = apps.get_model('accounts', 'CustomUser')
-    Tenant = apps.get_model('accounts', 'Tenant')
-    
-    # Create or get default tenant for superadmin
-    default_tenant, created = Tenant.objects.get_or_create(
-        name="Platform Administration",
-        defaults={
-            'domain': 'admin.local',
-            'is_active': True,
-            'billing_enabled': True,
-        }
-    )
     
     # Check if superadmin already exists
     if not CustomUser.objects.filter(email='gichabakenani@gmail.com').exists():
@@ -31,7 +20,6 @@ def create_superadmin(apps, schema_editor):
             is_active=True,
             is_staff=True,
             is_superuser=True,
-            tenant=default_tenant,
             password=make_password('admin@123')  # Change this password!
         )
         print(f"✅ Superadmin created: {superadmin.email}")
