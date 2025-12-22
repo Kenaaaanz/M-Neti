@@ -624,39 +624,56 @@ function isInKenya(lat, lng) {
 }
 
 async function searchAddress() {
-    const addressSearch = document.getElementById('address-search');
-    const query = addressSearch?.value?.trim();
+    const searchInput = document.getElementById('addressSearch').value;
+    const resultsDiv = document.getElementById('searchResults');
     
-    if (!query) {
-        showToast('Please enter an address', 'warning');
+    if (!searchInput.trim()) {
+        resultsDiv.innerHTML = '<p class="text-red-500">Please enter a location</p>';
         return;
     }
     
-    const searchBtn = document.getElementById('search-btn');
-    setButtonLoading(searchBtn, true);
+    resultsDiv.innerHTML = '<p>Searching...</p>';
     
     try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=ke&bounded=1`;
-        const response = await fetch(url);
+        // Use YOUR Django endpoint instead of direct OSM API
+        const response = await fetch(`/accounts/api/geocode/?q=${encodeURIComponent(searchInput)}&limit=5&countrycodes=ke`);
+        
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        
         const data = await response.json();
         
-        if (data.length > 0) {
-            const result = data[0];
-            updateLocation(
-                parseFloat(result.lat),
-                parseFloat(result.lon),
-                result.display_name
-            );
-            addressSearch.value = result.display_name;
-            showToast('Address found', 'success');
-        } else {
-            showToast('Address not found in Kenya', 'warning');
+        if (data.error) {
+            resultsDiv.innerHTML = `<p class="text-red-500">Error: ${data.error}</p>`;
+            return;
         }
+        
+        displayResults(data.results);
+        
     } catch (error) {
         console.error('Search failed:', error);
-        showToast('Search failed. Please try again.', 'error');
-    } finally {
-        setButtonLoading(searchBtn, false);
+        resultsDiv.innerHTML = `<p class="text-red-500">Search failed: ${error.message}</p>`;
+    }
+}
+
+// Or use the simpler endpoint:
+async function searchAddressSimple() {
+    const searchInput = document.getElementById('addressSearch').value;
+    
+    try {
+        const response = await fetch(`/accounts/api/search-address/?q=${encodeURIComponent(searchInput)}&limit=5`);
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+            // Process and display results
+            displayResults(data.results);
+        } else {
+            document.getElementById('searchResults').innerHTML = '<p class="text-gray-500">No results found</p>';
+        }
+    } catch (error) {
+        console.error('Search error:', error);
+        document.getElementById('searchResults').innerHTML = '<p class="text-red-500">Search failed</p>';
     }
 }
 

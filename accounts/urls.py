@@ -343,4 +343,11 @@ path('api/sms/customers/', views_isp.api_get_customers_for_sms, name='api_get_cu
 path('isp/marketplace/purchase/<int:purchase_id>/callback/', 
         views_isp.isp_package_payment_callback, 
         name='isp_package_payment_callback'),
+
+# Geocoding API endpoints
+path('api/search-address/', views_maps.search_address, name='search_address'),
+path('api/reverse-geocode/', views_maps.reverse_geocode, name='reverse_geocode'),
+path('api/geocode/', views_maps.GeocodeView.as_view(), name='geocode'),
+path('api/mapbox-geocode/', views_maps.mapbox_geocode, name='mapbox_geocode'),
+
 ]

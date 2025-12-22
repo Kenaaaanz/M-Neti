@@ -3,12 +3,21 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.core.cache import cache
+from django.utils.decorators import method_decorator
 import json
+import requests
+import hashlib
+from django.views import View
 from decimal import Decimal, InvalidOperation
 from .models import CustomUser, CustomerLocation, ISPZone
 from billing.models import Subscription
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # Helper function to determine pin color
 def get_pin_color(user, subscription):
@@ -716,3 +725,209 @@ def get_customer_location_status(request, customer_id):
         return JsonResponse({'success': False, 'error': 'Customer not found'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+def search_address(request):
+    """Proxy endpoint for OpenStreetMap Nominatim API"""
+    if request.method == 'GET':
+        query = request.GET.get('q', '')
+        limit = request.GET.get('limit', '5')
+        countrycodes = request.GET.get('countrycodes', 'ke')
+        
+        if not query:
+            return JsonResponse({'error': 'Query parameter "q" is required'}, status=400)
+        
+        # Construct Nominatim URL
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            'q': query,
+            'format': 'json',
+            'limit': limit,
+            'countrycodes': countrycodes,
+            'bounded': 1,
+        }
+        
+        # Add headers to identify your application
+        headers = {
+            'User-Agent': 'M-Neti/1.0 (admin@mneti.com)',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        
+        try:
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Transform the data if needed
+            results = []
+            for item in data:
+                results.append({
+                    'display_name': item.get('display_name', ''),
+                    'lat': item.get('lat', ''),
+                    'lon': item.get('lon', ''),
+                    'type': item.get('type', ''),
+                    'address': item.get('address', {}),
+                })
+            
+            return JsonResponse({'results': results})
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"OSM API error: {e}")
+            return JsonResponse({'error': 'Failed to fetch location data'}, status=500)
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return JsonResponse({'error': 'Internal server error'}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def reverse_geocode(request):
+    """Convert coordinates to address"""
+    if request.method == 'GET':
+        lat = request.GET.get('lat')
+        lon = request.GET.get('lon')
+        
+        if not lat or not lon:
+            return JsonResponse({'error': 'Latitude and longitude required'}, status=400)
+        
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            'lat': lat,
+            'lon': lon,
+            'format': 'json',
+        }
+        
+        headers = {
+            'User-Agent': 'M-Neti/1.0 (admin@mneti.com)',
+        }
+        
+        try:
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            data = response.json()
+            return JsonResponse(data)
+        except Exception as e:
+            logger.error(f"Reverse geocode error: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+# OPTION 4: Cached geocoding view
+@method_decorator(csrf_exempt, name='dispatch')
+class GeocodeView(View):
+    """Handle geocoding with caching and rate limiting"""
+    
+    def get_cache_key(self, params):
+        """Generate cache key from parameters"""
+        param_str = json.dumps(params, sort_keys=True)
+        return f'geocode_{hashlib.md5(param_str.encode()).hexdigest()}'
+    
+    def get(self, request):
+        query = request.GET.get('q', '')
+        limit = request.GET.get('limit', '5')
+        countrycodes = request.GET.get('countrycodes', 'ke')
+        
+        if not query:
+            return JsonResponse({'error': 'Query required'}, status=400)
+        
+        # Check cache first
+        params = {'q': query, 'limit': limit, 'countrycodes': countrycodes}
+        cache_key = self.get_cache_key(params)
+        cached_data = cache.get(cache_key)
+        
+        if cached_data:
+            logger.info(f"Cache hit for: {query}")
+            return JsonResponse(cached_data)
+        
+        # Make API call
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            'q': query,
+            'format': 'json',
+            'limit': limit,
+            'countrycodes': countrycodes,
+            'bounded': 1,
+        }
+        
+        headers = {
+            'User-Agent': 'M-Neti/1.0 (contact@mneti.com)',
+        }
+        
+        try:
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response.raise_for_status()
+            
+            data = {'results': response.json()}
+            
+            # Cache for 1 hour (OSM requests should be cached)
+            cache.set(cache_key, data, 3600)
+            
+            return JsonResponse(data)
+            
+        except requests.exceptions.Timeout:
+            logger.error("OSM API timeout")
+            return JsonResponse({'error': 'Service timeout'}, status=504)
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"OSM API HTTP error: {e}")
+            return JsonResponse({'error': 'Geocoding service error'}, status=502)
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return JsonResponse({'error': 'Internal error'}, status=500)
+
+# Mapbox geocoding alternative (if you want to use Mapbox)
+@csrf_exempt
+def mapbox_geocode(request):
+    """Use Mapbox Geocoding API (requires API token)"""
+    if request.method == 'GET':
+        query = request.GET.get('q', '')
+        limit = request.GET.get('limit', '5')
+        
+        if not query:
+            return JsonResponse({'error': 'Query required'}, status=400)
+        
+        # Get Mapbox token from settings (you need to add this to your settings.py)
+        from django.conf import settings
+        access_token = getattr(settings, 'MAPBOX_ACCESS_TOKEN', '')
+        
+        if not access_token:
+            return JsonResponse({'error': 'Mapbox access token not configured'}, status=500)
+        
+        url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{query}.json"
+        params = {
+            'access_token': access_token,
+            'limit': limit,
+            'country': 'ke',  # Kenya
+            'types': 'address,place,neighborhood,locality',
+        }
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Transform Mapbox response to match our format
+            results = []
+            for feature in data.get('features', []):
+                results.append({
+                    'display_name': feature.get('place_name', ''),
+                    'lat': feature['center'][1] if 'center' in feature else '',
+                    'lon': feature['center'][0] if 'center' in feature else '',
+                    'type': feature.get('place_type', [''])[0],
+                    'address': {
+                        'name': feature.get('text', ''),
+                        'region': feature.get('context', [{}])[0].get('text', '') if feature.get('context') else '',
+                        'country': 'Kenya'
+                    }
+                })
+            
+            return JsonResponse({'results': results})
+            
+        except Exception as e:
+            logger.error(f"Mapbox geocoding error: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+# ==================== END GEOCODING FUNCTIONS ====================
