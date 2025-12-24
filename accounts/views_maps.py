@@ -176,6 +176,10 @@ def save_customer_location(request):
         if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
             return JsonResponse({'success': False, 'error': 'Coordinates out of valid range'})
         
+        # Parse address and extract safe country value
+        address = data.get('address', '')
+        safe_address, safe_country = parse_address_and_country(address)
+        
         # Get the current user (who is the customer)
         user = request.user
         
@@ -186,7 +190,8 @@ def save_customer_location(request):
             defaults={
                 'latitude': latitude,
                 'longitude': longitude,
-                'address': address,
+                'address': safe_address,
+                'country': safe_country,
                 'source': 'browser',
                 'is_verified': False
             }
@@ -929,5 +934,22 @@ def mapbox_geocode(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+# In accounts/views_maps.py, add this helper function:
+
+def parse_address_and_country(address_string):
+    """Parse address and extract country safely for database"""
+    if not address_string:
+        return address_string, "KE"  # Default to Kenya code
+    
+    # Simple parsing - look for "Kenya" in the address
+    if "Kenya" in address_string:
+        # Extract just "Kenya" (2 characters would be "KE")
+        return address_string, "KE"
+    elif "kenya" in address_string.lower():
+        return address_string, "KE"
+    else:
+        # Default to Kenya for all Kenyan addresses
+        return address_string, "KE"
 
 # ==================== END GEOCODING FUNCTIONS ====================
