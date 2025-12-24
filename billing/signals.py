@@ -58,7 +58,7 @@ def handle_payment_completion(sender, instance, created, **kwargs):
     except Exception as e:
         logger.error(f"Failed to auto-activate subscription for payment {instance.reference}: {e}")
 
-from accounts.utils.map_updates import send_map_update
+from accounts.utils_module.map_updates import send_map_update
 
 @receiver(post_save, sender='billing.Subscription')
 def handle_subscription_activation(sender, instance, created, **kwargs):
