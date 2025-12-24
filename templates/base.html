@@ -92,6 +92,114 @@
             -webkit-tap-highlight-color: transparent !important;
         }
         
+        :root {
+    --bg-color: #ffffff;
+    --text-color: #212529;
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --border-color: #dee2e6;
+    --card-bg: #ffffff;
+    --header-bg: #f8f9fa;
+    --footer-bg: #f8f9fa;
+    --input-bg: #ffffff;
+    --input-border: #ced4da;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    }
+
+    [data-theme="dark"] {
+        --bg-color: #121212;
+        --text-color: #e0e0e0;
+        --primary-color: #4dabf7;
+        --secondary-color: #adb5bd;
+        --border-color: #444444;
+        --card-bg: #1e1e1e;
+        --header-bg: #2d2d2d;
+        --footer-bg: #2d2d2d;
+        --input-bg: #2d2d2d;
+        --input-border: #444444;
+        --shadow-color: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Apply colors */
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .card {
+        background-color: var(--card-bg);
+        border-color: var(--border-color);
+    }
+
+    .navbar,
+    .footer {
+        background-color: var(--header-bg) !important;
+    }
+
+    .form-control {
+        background-color: var(--input-bg);
+        border-color: var(--input-border);
+        color: var(--text-color);
+    }
+
+    .btn-outline-primary {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .table {
+        color: var(--text-color);
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.075);
+    }
+
+    [data-theme="dark"] .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.075);
+    }
+
+    .modal-content {
+        background-color: var(--card-bg);
+        color: var(--text-color);
+    }
+
+    .dropdown-menu {
+        background-color: var(--card-bg);
+        border-color: var(--border-color);
+    }
+
+    .dropdown-item {
+        color: var(--text-color);
+    }
+
+    .dropdown-item:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    /* Dark mode toggle button */
+    .dark-mode-toggle {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 1.2rem;
+        padding: 0.5rem;
+        transition: color 0.3s ease;
+    }
+
+    .dark-mode-toggle:hover {
+        color: var(--primary-color);
+    }
+
+        
         /* FIXED: Mobile Sidebar */
         @media (max-width: 1024px) {
             #sidebar {
@@ -224,6 +332,9 @@
                             <i class="fas fa-headset w-5 text-center"></i>
                             <span>Support</span>
                         </a>
+                        <button class="dark-mode-toggle" data-darkmode-toggle>
+                            <i class="fas fa-moon" data-darkmode-icon></i>
+                        </button>
                     {% endif %}
                 </nav>
                 
@@ -372,6 +483,121 @@
                 sidebar.classList.remove('open');
             }
         });
+
+        class DarkMode {
+        constructor() {
+            this.init();
+        }
+        
+        init() {
+            // Check saved preference or system preference
+            const savedMode = localStorage.getItem('darkMode');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedMode === 'true' || (!savedMode && systemPrefersDark)) {
+                this.enable();
+            }
+            
+            // Setup toggle button if exists
+            this.setupToggleButton();
+            
+            // Listen for system preference changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!localStorage.getItem('darkMode')) {
+                    e.matches ? this.enable() : this.disable();
+                }
+            });
+        }
+        
+        setupToggleButton() {
+            const toggleButtons = document.querySelectorAll('[data-darkmode-toggle]');
+            
+            toggleButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    this.toggle();
+                });
+            });
+        }
+        
+        toggle() {
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                this.disable();
+            } else {
+                this.enable();
+            }
+            
+            // Save to server via AJAX
+            this.savePreference();
+        }
+        
+        enable() {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('darkMode', 'true');
+            this.updateToggleButtons(true);
+        }
+        
+        disable() {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('darkMode', 'false');
+            this.updateToggleButtons(false);
+        }
+        
+        updateToggleButtons(isDark) {
+            const icons = document.querySelectorAll('[data-darkmode-icon]');
+            icons.forEach(icon => {
+                if (isDark) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                } else {
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
+            });
+        }
+        
+        async savePreference() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            
+            try {
+                const response = await fetch('/accounts/toggle-dark-mode/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ dark_mode: isDark })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.status === 'success') {
+                    console.error('Failed to save dark mode preference:', data.message);
+                }
+            } catch (error) {
+                console.error('Error saving dark mode preference:', error);
+            }
+        }
+        
+        getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        new DarkMode();
+    });
     </script>
 
     {% block extra_scripts %}{% endblock %}

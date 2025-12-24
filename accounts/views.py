@@ -25,6 +25,16 @@ from router_manager.models import Router
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
+import secrets
+import string
+from .utils import (
+    generate_otp_secret, 
+    generate_otp_token, 
+    verify_otp_token, 
+    generate_qr_code_data,
+    send_otp_email,
+    generate_backup_codes
+)
 
 
 # Import billing models with proper error handling
@@ -102,6 +112,20 @@ def login_view(request):
                     pass
             
             login(request, user)
+
+            # Check if 2FA is enabled
+            if user.two_factor_enabled and user.otp_secret:
+                # Clear previous 2FA verification
+                request.session['2fa_verified'] = False
+                
+                # Send OTP to user's email
+                otp_token = generate_otp_token(user.otp_secret)
+                send_otp_email(user.email, otp_token, user.username)
+                
+                # Redirect to 2FA verification
+                messages.info(request, 'Please enter the OTP sent to your email to complete login.')
+                return redirect('verify_2fa_login')
+
             return redirect('dashboard_router')
         else:
             # Log failed attempt
@@ -477,41 +501,6 @@ def enable_2fa(request):
     return redirect('profile')
 
 @login_required
-@require_POST
-def disable_2fa(request):
-    """
-    Disable two-factor authentication
-    """
-    user = request.user
-    
-    try:
-        user.two_factor_enabled = False
-        user.save()
-        
-        messages.success(request, 'Two-factor authentication has been disabled.')
-        
-        # Check if it's an AJAX request
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'status': 'success',
-                'message': 'Two-factor authentication disabled successfully!',
-                'two_factor_enabled': False
-            })
-            
-    except Exception as e:
-        error_message = f'Error disabling two-factor authentication: {str(e)}'
-        messages.error(request, error_message)
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'status': 'error',
-                'message': error_message
-            }, status=400)
-    
-    return redirect('profile')
-
-
-@login_required
 def export_data(request):
     """
     Export user data in JSON or CSV format
@@ -627,8 +616,6 @@ def export_data(request):
         messages.error(request, f'Error exporting data: {str(e)}')
         return redirect('profile')
     
-# Add these to your views.py if they're missing
-
 @login_required
 def update_notifications(request):
     """Update notification preferences"""
@@ -1543,3 +1530,241 @@ def api_support_get_unread_count(request):
             'success': False,
             'unread_count': 0
         })
+    
+@login_required
+@require_POST
+def toggle_dark_mode(request):
+    """
+    Toggle dark mode preference
+    """
+    user = request.user
+    
+    try:
+        data = json.loads(request.body)
+        dark_mode = data.get('dark_mode', False)
+        
+        user.dark_mode = dark_mode
+        user.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Dark mode preference updated!',
+            'dark_mode': user.dark_mode
+        })
+        
+    except json.JSONDecodeError:
+        # Handle non-AJAX request
+        user.dark_mode = not user.dark_mode
+        user.save()
+        
+        messages.success(request, f'Dark mode {"enabled" if user.dark_mode else "disabled"}!')
+        return redirect('profile')
+    
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error updating dark mode: {str(e)}'
+        }, status=400)
+
+@login_required
+def setup_2fa(request):
+    """
+    Setup two-factor authentication
+    """
+    user = request.user
+    
+    if request.method == 'POST':
+        try:
+            # Generate new secret if not exists
+            if not user.otp_secret:
+                user.otp_secret = generate_otp_secret()
+                user.save()
+            
+            # Generate OTP token and send via email
+            otp_token = generate_otp_token(user.otp_secret)
+            
+            # Send OTP to user's email
+            email_sent = send_otp_email(
+                user.email, 
+                otp_token, 
+                user.username
+            )
+            
+            if email_sent:
+                messages.success(request, 'OTP sent to your email! Please enter it below to verify and enable 2FA.')
+            else:
+                messages.error(request, 'Failed to send OTP email. Please try again.')
+            
+            return redirect('verify_2fa_setup')
+            
+        except Exception as e:
+            messages.error(request, f'Error setting up 2FA: {str(e)}')
+            return redirect('profile')
+    
+    # GET request - show setup page
+    if not user.otp_secret:
+        user.otp_secret = generate_otp_secret()
+        user.save()
+    
+    # Generate QR code and backup codes
+    qr_code_data, provisioning_uri = generate_qr_code_data(user.username, user.otp_secret)
+    backup_codes = generate_backup_codes()
+    
+    # Store backup codes in session temporarily
+    request.session['backup_codes'] = backup_codes
+    
+    context = {
+        'qr_code_data': qr_code_data,
+        'provisioning_uri': provisioning_uri,
+        'backup_codes': backup_codes,
+        'secret_key': user.otp_secret,
+    }
+    
+    return render(request, 'accounts/setup_2fa.html', context)
+
+@login_required
+def verify_2fa_setup(request):
+    """
+    Verify 2FA setup with OTP
+    """
+    user = request.user
+    
+    if not user.otp_secret:
+        messages.error(request, 'Please setup 2FA first.')
+        return redirect('setup_2fa')
+    
+    if request.method == 'POST':
+        otp_token = request.POST.get('otp_token', '').strip()
+        
+        if not otp_token:
+            messages.error(request, 'Please enter the OTP.')
+            return render(request, 'accounts/verify_2fa.html')
+        
+        # Verify OTP
+        if verify_otp_token(user.otp_secret, otp_token):
+            user.two_factor_enabled = True
+            user.otp_created_at = timezone.now()
+            user.save()
+            
+            # Get backup codes from session
+            backup_codes = request.session.get('backup_codes', [])
+            
+            messages.success(request, 'Two-factor authentication enabled successfully!')
+            
+            # Show backup codes
+            return render(request, 'accounts/backup_codes.html', {
+                'backup_codes': backup_codes,
+            })
+        else:
+            messages.error(request, 'Invalid OTP. Please try again.')
+    
+    return render(request, 'accounts/verify_2fa.html')
+
+@login_required
+def disable_2fa(request):
+    """
+    Disable two-factor authentication
+    """
+    user = request.user
+    
+    if request.method == 'POST':
+        # Require password confirmation for security
+        password = request.POST.get('password', '')
+        
+        if not user.check_password(password):
+            messages.error(request, 'Invalid password. Please try again.')
+            return render(request, 'accounts/disable_2fa_confirm.html')
+        
+        user.two_factor_enabled = False
+        user.otp_secret = None
+        user.otp_created_at = None
+        user.save()
+        
+        messages.success(request, 'Two-factor authentication has been disabled.')
+        return redirect('profile')
+    
+    return render(request, 'accounts/disable_2fa_confirm.html')
+
+def verify_2fa_login(request):
+    """
+    Verify 2FA during login
+    """
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    if not request.user.two_factor_enabled:
+        return redirect('dashboard')
+    
+    # Check if already verified in this session
+    if request.session.get('2fa_verified', False):
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        otp_token = request.POST.get('otp_token', '').strip()
+        backup_code = request.POST.get('backup_code', '').strip()
+        
+        if backup_code:
+            # Verify backup code (you need to implement backup code storage)
+            # This is a simplified version - you should store and verify properly
+            valid_backup_codes = request.session.get('backup_codes', [])
+            
+            if backup_code in valid_backup_codes:
+                # Remove used backup code
+                valid_backup_codes.remove(backup_code)
+                request.session['backup_codes'] = valid_backup_codes
+                request.session['2fa_verified'] = True
+                messages.success(request, 'Logged in with backup code!')
+                return redirect('dashboard')
+            else:
+                messages.error(request, 'Invalid backup code.')
+        
+        elif otp_token:
+            # Verify OTP token
+            if verify_otp_token(request.user.otp_secret, otp_token):
+                request.session['2fa_verified'] = True
+                messages.success(request, 'Two-factor authentication verified!')
+                return redirect('dashboard')
+            else:
+                messages.error(request, 'Invalid OTP. Please try again.')
+        else:
+            messages.error(request, 'Please enter OTP or backup code.')
+    
+    # Resend OTP if requested
+    if 'resend_otp' in request.GET:
+        otp_token = generate_otp_token(request.user.otp_secret)
+        send_otp_email(request.user.email, otp_token, request.user.username)
+        messages.info(request, 'New OTP sent to your email!')
+    
+    return render(request, 'accounts/verify_2fa_login.html')
+
+@login_required
+def regenerate_backup_codes(request):
+    """
+    Regenerate backup codes
+    """
+    if not request.user.two_factor_enabled:
+        messages.error(request, '2FA is not enabled for your account.')
+        return redirect('profile')
+    
+    if request.method == 'POST':
+        # Require password for security
+        password = request.POST.get('password', '')
+        
+        if not request.user.check_password(password):
+            messages.error(request, 'Invalid password. Please try again.')
+            return render(request, 'accounts/regenerate_backup_codes.html')
+        
+        # Generate new backup codes
+        backup_codes = generate_backup_codes()
+        
+        # Store in session (in production, store in database)
+        request.session['backup_codes'] = backup_codes
+        
+        messages.warning(request, 'New backup codes generated! Save them immediately.')
+        
+        return render(request, 'accounts/backup_codes.html', {
+            'backup_codes': backup_codes,
+            'regenerated': True,
+        })
+    
+    return render(request, 'accounts/regenerate_backup_codes.html')

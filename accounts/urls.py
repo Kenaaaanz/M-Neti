@@ -46,9 +46,17 @@ path('update-preferences/', views.update_preferences, name='update_preferences')
 path('update-billing-address/', views.update_billing_address, name='update_billing_address'),
 path('export-data/', views.export_data, name='export_data'),
 path('delete-account/', views.delete_account, name='delete_account'),
-path('enable-2fa/', views.enable_2fa, name='enable_2fa'),
-path('disable-2fa/', views.disable_2fa, name='disable_2fa'),
 path('sessions/revoke/<int:session_id>/', views.revoke_session, name='revoke_session'),
+
+# Dark mode
+path('toggle-dark-mode/', views.toggle_dark_mode, name='toggle_dark_mode'),
+    
+# 2FA URLs
+path('setup-2fa/', views.setup_2fa, name='setup_2fa'),
+path('verify-2fa-setup/', views.verify_2fa_setup, name='verify_2fa_setup'),
+path('verify-2fa-login/', views.verify_2fa_login, name='verify_2fa_login'),
+path('disable-2fa/', views.disable_2fa, name='disable_2fa'),
+path('regenerate-backup-codes/', views.regenerate_backup_codes, name='regenerate_backup_codes'),
 
 # ============================================
 # PAYMENT & SUBSCRIPTION

@@ -1,6 +1,9 @@
 import re
 from django.http import HttpResponseForbidden
 from .models import Tenant
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.contrib import messages
 
 class TenantMiddleware:
     def __init__(self, get_response):
@@ -57,3 +60,27 @@ class RoleAccessMiddleware:
                     return HttpResponseForbidden("Access denied - wrong tenant domain")
         
         return None
+    
+class TwoFactorMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        # Check if user is authenticated and 2FA is enabled
+        if request.user.is_authenticated:
+            if hasattr(request.user, 'two_factor_enabled') and request.user.two_factor_enabled:
+                # Check if 2FA is verified for this session
+                if not request.session.get('2fa_verified', False):
+                    # Exclude 2FA verification URLs and logout
+                    excluded_paths = [
+                        reverse('verify_2fa_login'),
+                        reverse('logout'),
+                        reverse('resend_2fa_otp'),
+                    ]
+                    
+                    if not any(request.path.startswith(path) for path in excluded_paths):
+                        messages.info(request, 'Please complete two-factor authentication.')
+                        return redirect('verify_2fa_login')
+        
+        response = self.get_response(request)
+        return response

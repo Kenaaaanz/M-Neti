@@ -64,6 +64,8 @@ MIDDLEWARE = [
     'accounts.middleware.TenantMiddleware',
     'accounts.middleware.RoleAccessMiddleware',
     'billing.middleware.AutoPaymentMiddleware',
+    'accounts.middleware.TwoFactorMiddleware',
+
 ]
 
 ROOT_URLCONF = 'm_neti.urls'

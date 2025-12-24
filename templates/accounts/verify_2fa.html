@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Verify Two-Factor Authentication</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        We've sent a 6-digit OTP to your email address: <strong>{{ user.email }}</strong>
+                    </div>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="otp_token" class="form-label">Enter OTP Code</label>
+                            <input type="text" 
+                                   name="otp_token" 
+                                   id="otp_token"
+                                   class="form-control form-control-lg text-center"
+                                   placeholder="000000"
+                                   maxlength="6"
+                                   pattern="\d{6}"
+                                   required>
+                            <div class="form-text">
+                                Enter the 6-digit code from your authenticator app or email
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check"></i> Verify & Enable 2FA
+                            </button>
+                            <a href="{% url 'setup_2fa' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-sync"></i> Resend OTP
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -214,6 +214,19 @@ class CustomUser(AbstractUser):
     
     # Security
     two_factor_enabled = models.BooleanField(default=False)
+    # In your models.py (CustomUser model)
+class CustomUser(AbstractUser):
+    # ... existing fields ...
+    
+    # Dark mode field (if not already there)
+    dark_mode = models.BooleanField(default=False)
+    
+    # 2FA fields
+    two_factor_enabled = models.BooleanField(default=False)
+    otp_secret = models.CharField(max_length=32, blank=True, null=True)
+    otp_created_at = models.DateTimeField(blank=True, null=True)
+    
+    # ... rest of your model ...
     last_password_change = models.DateTimeField(auto_now_add=True)
     
     # Timestamps

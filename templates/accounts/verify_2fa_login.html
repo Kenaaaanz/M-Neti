@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Two-Factor Authentication Required</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-shield-alt"></i>
+                        For added security, please complete two-factor authentication.
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Method 1: OTP from Email</h5>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="otp_token" class="form-label">Enter OTP Code</label>
+                                <input type="text" 
+                                       name="otp_token" 
+                                       id="otp_token"
+                                       class="form-control form-control-lg text-center"
+                                       placeholder="000000"
+                                       maxlength="6"
+                                       pattern="\d{6}"
+                                       required>
+                                <div class="form-text">
+                                    Check your email for the 6-digit code
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" name="method" value="otp" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-check"></i> Verify OTP
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <h5>Method 2: Backup Code</h5>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="backup_code" class="form-label">Enter Backup Code</label>
+                                <input type="text" 
+                                       name="backup_code" 
+                                       id="backup_code"
+                                       class="form-control form-control-lg"
+                                       placeholder="XXXX-XXXX"
+                                       required>
+                                <div class="form-text">
+                                    Use one of your 8-character backup codes
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" name="method" value="backup" class="btn btn-outline-primary btn-lg">
+                                    <i class="fas fa-key"></i> Use Backup Code
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'verify_2fa_login' %}?resend_otp=true" class="btn btn-link">
+                            <i class="fas fa-redo"></i> Resend OTP Email
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -194,6 +194,41 @@
                 </form>
             </div>
 
+            <!-- 2FA setup -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Two-Factor Authentication</h5>
+                </div>
+                <div class="card-body">
+                    {% if user.two_factor_enabled %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-shield-alt"></i>
+                            <strong>2FA is enabled</strong> for your account.
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <a href="{% url 'regenerate_backup_codes' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-redo"></i> Regenerate Backup Codes
+                                </a>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#disable2FAModal">
+                                    <i class="fas fa-ban"></i> Disable 2FA
+                                </button>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>2FA is not enabled</strong> - Your account is less secure.
+                        </div>
+                        <a href="{% url 'setup_2fa' %}" class="btn btn-primary">
+                            <i class="fas fa-shield-alt"></i> Enable Two-Factor Authentication
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- Security Section -->
             <div id="security" class="bg-white rounded-xl shadow-sm p-6 mb-6">
                 <h2 class="text-xl font-semibold mb-6 flex items-center">
