@@ -43,10 +43,11 @@ INSTALLED_APPS = [
     'accounts',
     'django.contrib.humanize',
     'billing',
-    'router_manager',
+    'router_manager.apps.RouterManagerConfig',
     'corsheaders',
     'storages',
     'sslserver',
+
 ]
 
 PHONENUMBER_DEFAULT_REGION = 'KE'
@@ -92,27 +93,27 @@ WSGI_APPLICATION = 'm_neti.wsgi.application'
 
 # Database
 
-#DATABASES = {
-    #'default': {
+DATABASES = {
+    'default': {
         # 'ENGINE': 'django.db.backends.sqlite3',
-        # 'NAME': BASE_DIR / 'db.sqlite3',
-        #"ENGINE": "django.db.backends.postgresql",
-        #"NAME": "netbuddy",
-        #"USER": "postgres",
-        #"PASSWORD": "Ken@4427",
-        #"HOST": "localhost",
-        #"PORT": "5432",
-    #}
-#}
-# Use PostgreSQL on Render, SQLite locally
-if 'DATABASE_URL' in os.environ:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=config('DATABASE_URL'),
-            conn_max_age=600,
-            ssl_require=True
-        )
+         #'NAME': BASE_DIR / 'db.sqlite3',
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "netbuddy",
+        "USER": "postgres",
+        "PASSWORD": "Ken@4427",
+        "HOST": "localhost",
+        "PORT": "5432",
     }
+}
+# Use PostgreSQL on Render, SQLite locally
+#if 'DATABASE_URL' in os.environ:
+    #DATABASES = {
+        #'default': dj_database_url.config(
+            #default=config('DATABASE_URL'),
+            #conn_max_age=600,
+            #ssl_require=True
+        #)
+    #}
 #else:
     #DATABASES = {
         #'default': {
@@ -261,3 +262,53 @@ CSRF_TRUSTED_ORIGINS = [
     'https://mneti.onrender.com',
     'https://www.mneti.onrender.com',
 ]
+
+# Router Manager Settings
+ROUTER_MANAGER = {
+    'SYNC_INTERVAL': 300,  # Seconds between syncs (5 minutes)
+    'CONNECTION_TIMEOUT': 10,  # Timeout for router connections
+    'PORT_RANGE_START': 10000,  # Start of port range for assignments
+    'PORT_RANGE_END': 20000,   # End of port range for assignments
+    'ENABLE_BACKGROUND_MONITOR': True,  # Enable/disable background monitoring
+}
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'logs/router_manager.log',
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {
+        'router_manager': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'router_manager.router_drivers': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}

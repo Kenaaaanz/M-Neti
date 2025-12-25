@@ -1,4 +1,3 @@
-<!-- templates/base.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,21 +6,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>{% block title %}M-Neti - WiFi Management Platform{% endblock %}</title>
     
-    <!-- Tailwind CSS with proper configuration -->
-    <script>
-        tailwind.config = {
-            important: false,
-            corePlugins: {
-                preflight: false,
-            }
-        }
-    </script>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Custom Styling -->
+    <!-- Custom Base Styles (NO LEAFLET INTERFERENCE) -->
     <style>
         :root {
             --primary: #2563eb;
@@ -36,9 +27,8 @@
         }
         
         /* Default body style */
-        body:not(.support-page) {
+        body {
             font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
         
@@ -54,153 +44,21 @@
             border-radius: 16px;
         }
         
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            transition: all 0.3s ease;
+        /* Dark mode */
+        :root[data-theme="dark"] {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --primary-color: #4dabf7;
+            --secondary-color: #adb5bd;
+            --border-color: #444444;
+            --card-bg: #1e1e1e;
+            --header-bg: #2d2d2d;
+            --footer-bg: #2d2d2d;
+            --input-bg: #2d2d2d;
+            --shadow-color: rgba(0, 0, 0, 0.3);
         }
         
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
-        }
-        
-        /* CRITICAL: PROPER LEAFLET PROTECTION */
-        .leaflet-container {
-            font: inherit !important;
-            line-height: inherit !important;
-            z-index: 1 !important;
-        }
-        
-        .leaflet-container img {
-            max-width: none !important;
-        }
-        
-        /* Map container specific */
-        #map,
-        .map-container,
-        .map-container-wrapper {
-            width: 100% !important;
-            height: 100% !important;
-            position: relative !important;
-            z-index: 1 !important;
-        }
-        
-        /* Fix for touch devices */
-        .leaflet-container {
-            touch-action: pan-x pan-y !important;
-            -webkit-tap-highlight-color: transparent !important;
-        }
-        
-        :root {
-    --bg-color: #ffffff;
-    --text-color: #212529;
-    --primary-color: #007bff;
-    --secondary-color: #6c757d;
-    --border-color: #dee2e6;
-    --card-bg: #ffffff;
-    --header-bg: #f8f9fa;
-    --footer-bg: #f8f9fa;
-    --input-bg: #ffffff;
-    --input-border: #ced4da;
-    --shadow-color: rgba(0, 0, 0, 0.1);
-    }
-
-    [data-theme="dark"] {
-        --bg-color: #121212;
-        --text-color: #e0e0e0;
-        --primary-color: #4dabf7;
-        --secondary-color: #adb5bd;
-        --border-color: #444444;
-        --card-bg: #1e1e1e;
-        --header-bg: #2d2d2d;
-        --footer-bg: #2d2d2d;
-        --input-bg: #2d2d2d;
-        --input-border: #444444;
-        --shadow-color: rgba(0, 0, 0, 0.3);
-    }
-
-    /* Apply colors */
-    body {
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    .card {
-        background-color: var(--card-bg);
-        border-color: var(--border-color);
-    }
-
-    .navbar,
-    .footer {
-        background-color: var(--header-bg) !important;
-    }
-
-    .form-control {
-        background-color: var(--input-bg);
-        border-color: var(--input-border);
-        color: var(--text-color);
-    }
-
-    .btn-outline-primary {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-    }
-
-    .btn-outline-primary:hover {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-    }
-
-    .table {
-        color: var(--text-color);
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.075);
-    }
-
-    [data-theme="dark"] .table-hover tbody tr:hover {
-        background-color: rgba(255, 255, 255, 0.075);
-    }
-
-    .modal-content {
-        background-color: var(--card-bg);
-        color: var(--text-color);
-    }
-
-    .dropdown-menu {
-        background-color: var(--card-bg);
-        border-color: var(--border-color);
-    }
-
-    .dropdown-item {
-        color: var(--text-color);
-    }
-
-    .dropdown-item:hover {
-        background-color: var(--primary-color);
-        color: white;
-    }
-
-    /* Dark mode toggle button */
-    .dark-mode-toggle {
-        background: none;
-        border: none;
-        color: var(--text-color);
-        cursor: pointer;
-        font-size: 1.2rem;
-        padding: 0.5rem;
-        transition: color 0.3s ease;
-    }
-
-    .dark-mode-toggle:hover {
-        color: var(--primary-color);
-    }
-
-        
-        /* FIXED: Mobile Sidebar */
+        /* Mobile Sidebar */
         @media (max-width: 1024px) {
             #sidebar {
                 position: fixed;
@@ -217,7 +75,7 @@
                 transform: translateX(0);
             }
             
-            /* Sidebar backdrop - only covers sidebar area, not entire screen */
+            /* Sidebar backdrop */
             .sidebar-backdrop {
                 display: none;
                 position: fixed;
@@ -248,14 +106,26 @@
                 display: none !important;
             }
         }
+        
+        /* IMPORTANT: No Leaflet interference in base styles */
+        /* Leaflet styles should only be in map pages */
+        
+        /* Message cards */
+        .message-card {
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
     
     {% block extrastyle %}{% endblock %}
+    {% block extra_css %}{% endblock %}
 </head>
-<body class="min-h-screen {% block body_class %}{% endblock %}">
+<body class="min-h-screen bg-gray-50 {% block body_class %}{% endblock %}">
     {% if user.is_authenticated %}
-    <!-- REMOVED: Problematic overlay that was blocking clicks -->
-    
     <div class="flex h-screen">
         <!-- Sidebar -->
         <div id="sidebar" class="bg-gradient-to-b from-gray-900 to-gray-800 w-64 flex-shrink-0 lg:relative z-50 h-full">
@@ -273,15 +143,6 @@
                     </div>
                 </div>
 
-                <a href="{% url 'customer_map' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition">
-                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <i class="fas fa-map-marker-alt text-purple-600"></i>
-                    </div>
-                    <div>
-                        <div class="font-medium">Set My Location</div>
-                    </div>
-                </a>
-                
                 <!-- Navigation -->
                 <nav class="space-y-2 flex-1">
                     {% if user.role == 'superadmin' %}
@@ -322,19 +183,14 @@
                             <i class="fas fa-credit-card w-5 text-center"></i>
                             <span>Payments</span>
                         </a>
-                        <!-- Customer Map Link -->
-                        <!-- On any other template -->
-                        <a href="{% url 'customer_map' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span>Set My Location</span>
+                        <a href="{% url 'customer_map' %}" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-white hover:bg-white hover:bg-opacity-10 transition duration-200 {% if 'customer_map' in request.path %}bg-white bg-opacity-10{% endif %}" onclick="closeMobileSidebar()">
+                            <i class="fas fa-map-marker-alt w-5 text-center"></i>
+                            <span>My Location</span>
                         </a>
                         <a href="{% url 'support_chat' %}" class="nav-link flex items-center space-x-3 p-3 rounded-lg text-white hover:bg-white hover:bg-opacity-10 transition duration-200 {% if 'support' in request.path %}bg-white bg-opacity-10{% endif %}" onclick="closeMobileSidebar()">
                             <i class="fas fa-headset w-5 text-center"></i>
                             <span>Support</span>
                         </a>
-                        <button class="dark-mode-toggle" data-darkmode-toggle>
-                            <i class="fas fa-moon" data-darkmode-icon></i>
-                        </button>
                     {% endif %}
                 </nav>
                 
@@ -356,7 +212,7 @@
             </div>
         </div>
         
-        <!-- Sidebar Backdrop - Only for mobile, doesn't block clicks on main content -->
+        <!-- Sidebar Backdrop -->
         <div class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
         <!-- Main Content -->
@@ -397,8 +253,7 @@
                     </div>
                     {% endif %}
 
-                    {% block content %}
-                    {% endblock %}
+                    {% block content %}{% endblock %}
                 </div>
             </main>
         </div>
@@ -408,10 +263,10 @@
     {% endif %}
 
     <script>
-        // Simple sidebar functionality - NO OVERLAY BLOCKING CLICKS
+        // Sidebar functionality
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
-            if (window.innerWidth < 1025) { // Mobile only
+            if (window.innerWidth < 1025) {
                 sidebar.classList.toggle('open');
             }
         }
@@ -423,39 +278,11 @@
             }
         }
 
-        // Close sidebar when clicking on a link (for mobile)
+        // Auto-hide messages after 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
-            // Close sidebar when clicking any nav link on mobile
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', function() {
-                    if (window.innerWidth < 1025) {
-                        closeMobileSidebar();
-                    }
-                });
-            });
-            
-            // Close sidebar when clicking outside on mobile
-            document.addEventListener('click', function(e) {
-                if (window.innerWidth < 1025) {
-                    const sidebar = document.getElementById('sidebar');
-                    const menuButton = document.querySelector('button[onclick="toggleSidebar()"]');
-                    const sidebarBackdrop = document.querySelector('.sidebar-backdrop');
-                    
-                    // Check if click is outside sidebar and not on menu button
-                    if (sidebar.classList.contains('open') &&
-                        !sidebar.contains(e.target) && 
-                        !menuButton.contains(e.target) &&
-                        e.target !== sidebarBackdrop) {
-                        closeMobileSidebar();
-                    }
-                }
-            });
-            
-            // Auto-hide message cards after 5 seconds
             setTimeout(() => {
                 const messages = document.querySelectorAll('.message-card');
                 messages.forEach(msg => {
-                    msg.style.transition = 'opacity 0.5s ease';
                     msg.style.opacity = '0';
                     setTimeout(() => {
                         if (msg.parentNode) {
@@ -465,139 +292,14 @@
                 });
             }, 5000);
             
-            // Close sidebar on escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && window.innerWidth < 1025) {
-                    closeMobileSidebar();
+            // Auto-close sidebar on desktop resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 1025) {
+                    const sidebar = document.getElementById('sidebar');
+                    sidebar.classList.remove('open');
                 }
             });
-            
-            // Ensure everything is clickable on page load
-            console.log('✅ Page loaded - all elements should be clickable');
         });
-
-        // Auto-close sidebar on desktop resize
-        window.addEventListener('resize', function() {
-            if (window.innerWidth >= 1025) {
-                const sidebar = document.getElementById('sidebar');
-                sidebar.classList.remove('open');
-            }
-        });
-
-        class DarkMode {
-        constructor() {
-            this.init();
-        }
-        
-        init() {
-            // Check saved preference or system preference
-            const savedMode = localStorage.getItem('darkMode');
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            
-            if (savedMode === 'true' || (!savedMode && systemPrefersDark)) {
-                this.enable();
-            }
-            
-            // Setup toggle button if exists
-            this.setupToggleButton();
-            
-            // Listen for system preference changes
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-                if (!localStorage.getItem('darkMode')) {
-                    e.matches ? this.enable() : this.disable();
-                }
-            });
-        }
-        
-        setupToggleButton() {
-            const toggleButtons = document.querySelectorAll('[data-darkmode-toggle]');
-            
-            toggleButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    this.toggle();
-                });
-            });
-        }
-        
-        toggle() {
-            if (document.documentElement.getAttribute('data-theme') === 'dark') {
-                this.disable();
-            } else {
-                this.enable();
-            }
-            
-            // Save to server via AJAX
-            this.savePreference();
-        }
-        
-        enable() {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            localStorage.setItem('darkMode', 'true');
-            this.updateToggleButtons(true);
-        }
-        
-        disable() {
-            document.documentElement.removeAttribute('data-theme');
-            localStorage.setItem('darkMode', 'false');
-            this.updateToggleButtons(false);
-        }
-        
-        updateToggleButtons(isDark) {
-            const icons = document.querySelectorAll('[data-darkmode-icon]');
-            icons.forEach(icon => {
-                if (isDark) {
-                    icon.classList.remove('fa-moon');
-                    icon.classList.add('fa-sun');
-                } else {
-                    icon.classList.remove('fa-sun');
-                    icon.classList.add('fa-moon');
-                }
-            });
-        }
-        
-        async savePreference() {
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            
-            try {
-                const response = await fetch('/accounts/toggle-dark-mode/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': this.getCookie('csrftoken'),
-                    },
-                    body: JSON.stringify({ dark_mode: isDark })
-                });
-                
-                const data = await response.json();
-                
-                if (!data.status === 'success') {
-                    console.error('Failed to save dark mode preference:', data.message);
-                }
-            } catch (error) {
-                console.error('Error saving dark mode preference:', error);
-            }
-        }
-        
-        getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-    }
-
-    // Initialize when DOM is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-        new DarkMode();
-    });
     </script>
 
     {% block extra_scripts %}{% endblock %}

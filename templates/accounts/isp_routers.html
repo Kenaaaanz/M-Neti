@@ -75,7 +75,7 @@
             </div>
         </div>
         <div class="space-y-3">
-            <a href="{% url 'isp_add_router' %}" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200">
+            <a href="{% url 'isp_router_type_selection' %}" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200">
                 <i class="fas fa-plus mr-2"></i> Add New Router
             </a>
             <a href="{% url 'isp_port_forwarding' %}" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200">
@@ -124,49 +124,152 @@
         </div>
     </div>
 
-    <!-- Customer Routers Card -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
-                    <i class="fas fa-router text-purple-600 text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Customer Routers</h3>
-                    <p class="text-sm text-gray-500">{{ routers.count }} connected</p>
-                </div>
-            </div>
-        </div>
-        <div class="space-y-3">
-            {% for router in routers|slice:":3" %}
-            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                    <p class="font-medium text-gray-900">{{ router.user.username }}</p>
-                    <p class="text-sm text-gray-500">{{ router.model }} • {{ router.mac_address|slice:":8" }}...</p>
-                </div>
-                <div>
-                    {% if router.is_online %}
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                        Online
-                    </span>
-                    {% else %}
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        <span class="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                        Offline
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-            {% empty %}
-            <p class="text-gray-500 text-center py-4">No customer routers connected</p>
-            {% endfor %}
-            {% if routers.count > 3 %}
-            <a href="#customer-routers" onclick="switchTab('customer-routers')" class="text-blue-600 hover:text-blue-800 text-sm font-medium text-center block">
-                View all {{ routers.count }} routers →
-            </a>
-            {% endif %}
-        </div>
+    <!-- Customer Routers Tab -->
+<div id="content-customer-routers" class="tab-content active p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-semibold text-gray-900">Customer Routers</h3>
+        <a href="{% url 'router_assignment_dashboard' %}" 
+           class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
+            <i class="fas fa-user-check mr-2"></i> Assign Router
+        </a>
+    </div>
+    
+    <!-- Add quick assignment buttons if needed -->
+    <div class="mb-6 flex flex-wrap gap-3">
+        <a href="{% url 'router_assignment_list' %}" 
+           class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+            <i class="fas fa-list mr-2"></i> View All Assignments
+        </a>
+        <a href="{% url 'quick_assign_router' %}" 
+           class="inline-flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+            <i class="fas fa-bolt mr-2"></i> Quick Assign
+        </a>
+        <a href="{% url 'bulk_assignment' %}" 
+           class="inline-flex items-center px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">
+            <i class="fas fa-upload mr-2"></i> Bulk Assign
+        </a>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-200">
+                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Router Name</th>
+                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Customer</th>
+                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Status</th>
+                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">MAC Address</th>
+                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Model</th>
+                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Last Checked</th>
+                    <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for router in routers %}
+                <tr class="hover:bg-gray-50 transition duration-150">
+                    <td class="py-4 px-6">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-router text-blue-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900">{{ router.name|default:router.model }}</div>
+                                <div class="text-sm text-gray-500">{{ router.ssid|default:"No SSID" }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6">
+                        {% if router.assigned_to %}
+                            <div class="text-sm font-medium text-gray-900">{{ router.assigned_to.username }}</div>
+                            <div class="text-xs text-gray-500">{{ router.assigned_to.email }}</div>
+                        {% else %}
+                            <span class="text-sm text-gray-400">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-6">
+                        {% if router.is_online %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                            Online
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                            Offline
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-6 text-sm text-gray-900 font-mono">
+                        {% if router.mac_address %}
+                            {{ router.mac_address }}
+                        {% else %}
+                            <span class="text-gray-400">Not set</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-6 text-sm text-gray-600">{{ router.router_model|default:"Unknown" }}</td>
+                    <td class="py-4 px-6 text-sm text-gray-500">
+                        {% if router.last_checked %}
+                            {{ router.last_checked|timesince }} ago
+                        {% else %}
+                            <span class="text-gray-400">Never</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-6">
+                        <div class="flex items-center space-x-2">
+                            {% if router.assigned_to %}
+                                <a href="{% url 'customer_router_details' router.assigned_to.id %}" 
+                                   class="text-indigo-600 hover:text-indigo-800 p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+                                   title="View Customer Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'unassign_router' router.id %}" 
+                                   class="text-yellow-600 hover:text-yellow-800 p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+                                   title="Unassign Router"
+                                   onclick="return confirm('Are you sure you want to unassign this router from {{ router.assigned_to.username }}?')">
+                                    <i class="fas fa-user-minus"></i>
+                                </a>
+                            {% else %}
+                                <a href="{% url 'assign_router_to_customer' router.id %}" 
+                                   class="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+                                   title="Assign to Customer">
+                                    <i class="fas fa-user-plus"></i>
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'test_router_connection' router.id %}" 
+                               class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+                               title="Test Connection">
+                                <i class="fas fa-plug"></i>
+                            </a>
+                            <a href="{% url 'isp_edit_router' router.id %}" 
+                               class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+                               title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="py-12 text-center">
+                        <div class="text-gray-400 mb-3">
+                            <i class="fas fa-router text-4xl"></i>
+                        </div>
+                        <p class="text-gray-500 font-medium">No router configurations found</p>
+                        <p class="text-sm text-gray-400 mt-1">Add router configurations to start assigning to customers</p>
+                        <div class="mt-4 space-x-3">
+                            <a href="{% url 'isp_add_router' %}" 
+                               class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                <i class="fas fa-plus mr-2"></i> Add Router Config
+                            </a>
+                            <a href="{% url 'router_assignment_dashboard' %}" 
+                               class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                <i class="fas fa-user-check mr-2"></i> Go to Assignments
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 

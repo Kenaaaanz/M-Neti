@@ -1,0 +1,406 @@
+<!-- router_manager/templates/router/isp/router_setup_specific.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}{{ router_type }} Router Setup - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}{{ router_type }} Router Setup{% endblock %}
+{% block page_subtitle %}Configure and deploy {{ router_type }} routers{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Router Type Info -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center">
+                <div class="w-16 h-16 {% if router_type == 'Huawei' %}bg-red-100 text-red-600{% elif router_type == 'MikroTik' %}bg-orange-100 text-orange-600{% elif router_type == 'Tenda' %}bg-blue-100 text-blue-600{% elif router_type == 'TP-Link' %}bg-green-100 text-green-600{% elif router_type == 'Ubiquiti' %}bg-purple-100 text-purple-600{% else %}bg-gray-100 text-gray-600{% endif %} rounded-2xl flex items-center justify-center mr-4">
+                    {% if router_type == 'Huawei' %}
+                    <i class="fas fa-broadcast-tower text-2xl"></i>
+                    {% elif router_type == 'MikroTik' %}
+                    <i class="fas fa-network-wired text-2xl"></i>
+                    {% elif router_type == 'Tenda' %}
+                    <i class="fas fa-wifi text-2xl"></i>
+                    {% elif router_type == 'TP-Link' %}
+                    <i class="fas fa-ethernet text-2xl"></i>
+                    {% elif router_type == 'Ubiquiti' %}
+                    <i class="fas fa-satellite-dish text-2xl"></i>
+                    {% else %}
+                    <i class="fas fa-router text-2xl"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900">{{ router_type }} Router Configuration</h3>
+                    <p class="text-gray-600">{{ help_text }}</p>
+                    {% if coming_soon %}
+                    <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                        <i class="fas fa-clock mr-1"></i>
+                        Driver under development
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Capabilities -->
+        {% if driver_capabilities %}
+        <div class="mb-8 p-4 bg-gray-50 rounded-xl">
+            <h4 class="font-semibold text-gray-900 mb-3">Supported Features</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {% for capability in driver_capabilities %}
+                <div class="flex items-center text-gray-700">
+                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                    <span>{{ capability }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Configuration Form -->
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Router Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Router Name *</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.name.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- IP Address -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">IP Address *</label>
+                    {{ form.ip_address }}
+                    {% if form.ip_address.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.ip_address.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Username -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Username *</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.username.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Web Port -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Web Port</label>
+                    {{ form.web_port }}
+                    <p class="mt-1 text-sm text-gray-500">
+                        {% if router_type == 'MikroTik' %}
+                        MikroTik API port (default: 8728)
+                        {% elif router_type == 'Ubiquiti' %}
+                        Ubiquiti HTTPS port (default: 443)
+                        {% else %}
+                        Web interface port (default: 80)
+                        {% endif %}
+                    </p>
+                    {% if form.web_port.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.web_port.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Router Type (Hidden) -->
+                <input type="hidden" name="router_type" value="{{ router_type|lower }}">
+                
+                <!-- Router Model -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ router_type }} Model {% if router_type in 'Huawei,MikroTik,Tenda' %}*{% endif %}
+                    </label>
+                    {{ form.router_model }}
+                    <p class="mt-1 text-sm text-gray-500">
+                        {% if router_type == 'Huawei' %}
+                        Huawei model (HG8245H, HG8145V5, etc.)
+                        {% elif router_type == 'MikroTik' %}
+                        MikroTik model (RB750, hAP ac², etc.)
+                        {% elif router_type == 'Tenda' %}
+                        Tenda model (AC10, F3, F6, etc.)
+                        {% elif router_type == 'TP-Link' %}
+                        TP-Link model (Archer C7, etc.)
+                        {% elif router_type == 'Ubiquiti' %}
+                        Ubiquiti model (UniFi Dream Machine, etc.)
+                        {% else %}
+                        Enter router model
+                        {% endif %}
+                    </p>
+                    {% if form.router_model.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.router_model.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Huawei-specific fields -->
+                {% if router_type == 'Huawei' %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ONT ID *</label>
+                    <input type="text" name="huawei_ont_id" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                           placeholder="e.g., HWTC12345678">
+                    <p class="mt-1 text-sm text-gray-500">Huawei ONT device ID from device label</p>
+                </div>
+                {% endif %}
+                
+                <!-- Password -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                    {{ form.password }}
+                    <p class="mt-1 text-sm text-gray-500">
+                        {% if router_type == 'Tenda' %}
+                        Password will be MD5 hashed for authentication
+                        {% elif router_type == 'MikroTik' %}
+                        RouterOS API password
+                        {% else %}
+                        Router admin password (min. 6 characters)
+                        {% endif %}
+                    </p>
+                    {% if form.password.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.password.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Confirm Password -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
+                    {{ form.confirm_password }}
+                    {% if form.confirm_password.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.confirm_password.errors }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Display form non-field errors -->
+            {% if form.non_field_errors %}
+            <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
+                <ul class="text-sm text-red-600">
+                    {% for error in form.non_field_errors %}
+                    <li class="flex items-start">
+                        <i class="fas fa-exclamation-triangle mt-0.5 mr-2"></i>
+                        <span>{{ error }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <!-- Brand-specific Configuration Tips -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 mt-8">
+                <h4 class="font-semibold text-gray-900 mb-3">{{ router_type }} Configuration Tips</h4>
+                <ul class="space-y-3">
+                    {% if router_type == 'Huawei' %}
+                    <li class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">ONT ID Required:</span>
+                            <p class="text-gray-600 text-sm">Make sure to enter the correct Huawei ONT ID from the device label.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">XML API Access:</span>
+                            <p class="text-gray-600 text-sm">Ensure the router's XML API is enabled in web interface settings.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-network-wired text-blue-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">VLAN Configuration:</span>
+                            <p class="text-gray-600 text-sm">Use VLAN ID 100 for internet and 200 for IPTV services.</p>
+                        </div>
+                    </li>
+                    
+                    {% elif router_type == 'MikroTik' %}
+                    <li class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">API Access:</span>
+                            <p class="text-gray-600 text-sm">Enable API service in RouterOS: <code class="bg-gray-100 px-1">/ip service enable api</code></p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">Secure Connection:</span>
+                            <p class="text-gray-600 text-sm">Consider using API SSL on port 8729 for secure connections.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-shield-alt text-blue-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">Firewall Rules:</span>
+                            <p class="text-gray-600 text-sm">Configure proper firewall rules to secure the API access.</p>
+                        </div>
+                    </li>
+                    
+                    {% elif router_type == 'Tenda' %}
+                    <li class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">MD5 Hashing:</span>
+                            <p class="text-gray-600 text-sm">Tenda routers use MD5 hash for password authentication.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">Web Interface:</span>
+                            <p class="text-gray-600 text-sm">Default web interface is at <code class="bg-gray-100 px-1">http://192.168.0.1</code></p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-mobile-alt text-blue-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">Tenda App:</span>
+                            <p class="text-gray-600 text-sm">Use Tenda WiFi app for initial setup and QR code configuration.</p>
+                        </div>
+                    </li>
+                    
+                    {% else %}
+                    <li class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">Default Credentials:</span>
+                            <p class="text-gray-600 text-sm">Change default admin credentials for security.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check text-green-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">Network Access:</span>
+                            <p class="text-gray-600 text-sm">Ensure the router is accessible from your management network.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-book text-blue-500 mt-1 mr-3"></i>
+                        <div>
+                            <span class="font-medium">Documentation:</span>
+                            <p class="text-gray-600 text-sm">Consult your router's manual for specific configuration details.</p>
+                        </div>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-4 pt-8 border-t border-gray-200">
+                <a href="{% url 'isp_routers' %}" class="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-3 bg-gradient-to-r {% if router_type == 'Huawei' %}from-red-500 to-red-600{% elif router_type == 'MikroTik' %}from-orange-500 to-orange-600{% elif router_type == 'Tenda' %}from-blue-500 to-blue-600{% elif router_type == 'TP-Link' %}from-green-500 to-green-600{% elif router_type == 'Ubiquiti' %}from-purple-500 to-purple-600{% else %}from-gray-500 to-gray-600{% endif %} text-white font-medium rounded-xl hover:opacity-90 transition">
+                    <i class="fas fa-save mr-2"></i>
+                    Save {{ router_type }} Configuration
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Driver Documentation -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h4 class="font-semibold text-gray-900 mb-4">Driver Documentation</h4>
+        <div class="prose max-w-none">
+            {% if router_type == 'Huawei' %}
+            <h5>Huawei Driver Features:</h5>
+            <ul>
+                <li><strong>Authentication:</strong> HTTP Digest authentication</li>
+                <li><strong>Protocol:</strong> XML over HTTP</li>
+                <li><strong>Endpoints:</strong> /api/system/deviceinfo, /api/monitoring/status, /api/wlan/host-list</li>
+                <li><strong>Supported Models:</strong> HG8245H, HG8245Q, HG8145V5, HS8546V5, EG8145V5</li>
+                <li><strong>Requirements:</strong> XML API must be enabled on the router</li>
+                <li><strong>Port:</strong> 80 (HTTP), 443 (HTTPS)</li>
+            </ul>
+            
+            {% elif router_type == 'MikroTik' %}
+            <h5>MikroTik Driver Features:</h5>
+            <ul>
+                <li><strong>Authentication:</strong> RouterOS API authentication</li>
+                <li><strong>Protocol:</strong> librouteros (RouterOS API protocol)</li>
+                <li><strong>Commands:</strong> /system/routerboard/getall, /ip/dhcp-server/lease/print, /interface/wireless/registration-table/print</li>
+                <li><strong>Supported Models:</strong> All RouterOS devices (RB series, hAP series, CCR series)</li>
+                <li><strong>Requirements:</strong> API service must be enabled on port 8728</li>
+                <li><strong>Port:</strong> 8728 (API), 8729 (API SSL)</li>
+            </ul>
+            
+            {% elif router_type == 'Tenda' %}
+            <h5>Tenda Driver Features:</h5>
+            <ul>
+                <li><strong>Authentication:</strong> Form-based with MD5 password hash</li>
+                <li><strong>Protocol:</strong> HTTP form submission</li>
+                <li><strong>Endpoints:</strong> /login/Auth, /goform/getStatus, /goform/getClientInfo</li>
+                <li><strong>Supported Models:</strong> AC10, AC18, F3, F6, FH456 series</li>
+                <li><strong>Requirements:</strong> Web interface must be accessible</li>
+                <li><strong>Port:</strong> 80 (HTTP)</li>
+            </ul>
+            
+            {% elif router_type == 'TP-Link' %}
+            <h5>TP-Link Driver Features:</h5>
+            <ul>
+                <li><strong>Status:</strong> Under development</li>
+                <li><strong>Planned Features:</strong> Basic web interface support, WiFi configuration, device monitoring</li>
+                <li><strong>Port:</strong> 80 (HTTP)</li>
+            </ul>
+            
+            {% elif router_type == 'Ubiquiti' %}
+            <h5>Ubiquiti Driver Features:</h5>
+            <ul>
+                <li><strong>Status:</strong> Under development</li>
+                <li><strong>Planned Features:</strong> UniFi/EdgeMAX API support, centralized management, advanced networking</li>
+                <li><strong>Port:</strong> 443 (HTTPS)</li>
+            </ul>
+            
+            {% endif %}
+            
+            <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-sm text-blue-800">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Note:</strong> After configuration, test the connection using the "Test Connection" button on the router management page.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-fill web port based on router type
+    const routerType = "{{ router_type }}".toLowerCase();
+    const portField = document.querySelector('input[name="web_port"]');
+    
+    if (portField && !portField.value) {
+        if (routerType === 'mikrotik') {
+            portField.value = '8728';
+        } else if (routerType === 'ubiquiti') {
+            portField.value = '443';
+        } else {
+            portField.value = '80';
+        }
+    }
+    
+    // Password confirmation validation
+    const passwordField = document.querySelector('input[name="password"]');
+    const confirmPasswordField = document.querySelector('input[name="confirm_password"]');
+    
+    if (passwordField && confirmPasswordField) {
+        function validatePasswordMatch() {
+            if (passwordField.value !== confirmPasswordField.value) {
+                confirmPasswordField.classList.add('border-red-500');
+                confirmPasswordField.classList.remove('border-gray-300');
+            } else {
+                confirmPasswordField.classList.remove('border-red-500');
+                confirmPasswordField.classList.add('border-gray-300');
+            }
+        }
+        
+        passwordField.addEventListener('input', validatePasswordMatch);
+        confirmPasswordField.addEventListener('input', validatePasswordMatch);
+    }
+});
+</script>
+{% endblock %}

@@ -1,284 +1,319 @@
-<!-- templates/accounts/customer_map.html -->
 {% extends 'base.html' %}
 {% load static %}
+
+{% block body_class %}map-page{% endblock %}
 
 {% block title %}My Location - M-Neti{% endblock %}
 
 {% block extrastyle %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
 <style>
-    /* Map Container */
-    .map-container {
-        position: relative;
-        width: 100%;
-        height: 500px;
-        border-radius: 10px;
-        overflow: hidden;
-        background: #f8fafc;
-    }
-    
-    /* Fix Leaflet issues */
-    .leaflet-container {
+    /* RESET: Force proper map styling */
+    #map {
         width: 100% !important;
         height: 100% !important;
-        font: inherit !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        z-index: 1 !important;
     }
     
-    /* Location button */
+    .map-container {
+        position: relative !important;
+        width: 100% !important;
+        height: 500px !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+        background: #f8fafc !important;
+        margin-bottom: 1rem !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+    
+    /* CRITICAL: Force Leaflet to work correctly */
+    .leaflet-container {
+        font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif !important;
+    }
+    
+    .leaflet-container .leaflet-tile {
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: none !important;
+    }
+    
+    .leaflet-container img.leaflet-tile {
+        width: 256px !important;
+        height: 256px !important;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+    
+    .leaflet-tile-container img {
+        width: 256px !important;
+        height: 256px !important;
+    }
+    
+    /* Page specific styles */
     .location-access-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 10px 20px !important;
+        background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+        text-decoration: none !important;
     }
     
     .location-access-btn:hover {
-        background: linear-gradient(135deg, #2563eb, #1d4ed8);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
     }
     
     /* Input styling */
     .coordinate-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        margin: 1rem 0;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 1rem !important;
+        margin: 1rem 0 !important;
     }
     
     .input-group {
-        display: flex;
-        flex-direction: column;
+        display: flex !important;
+        flex-direction: column !important;
     }
     
     .input-group label {
-        font-size: 14px;
-        font-weight: 500;
-        margin-bottom: 5px;
-        color: #374151;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        margin-bottom: 5px !important;
+        color: #374151 !important;
     }
     
     .input-group input,
     .input-group textarea {
-        padding: 10px;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        font-size: 14px;
-        resize: vertical;
+        padding: 10px !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 6px !important;
+        font-size: 14px !important;
+        resize: vertical !important;
+        background: white !important;
+        color: #1f2937 !important;
     }
     
     .input-group input:focus,
     .input-group textarea:focus {
-        outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
     }
     
     /* Button styling */
     .action-buttons {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 1rem;
+        display: flex !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
+        margin-top: 1rem !important;
     }
     
     .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 20px;
-        border-radius: 6px;
-        font-weight: 500;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        border: none;
-        outline: none;
-        gap: 8px;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 10px 20px !important;
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+        border: none !important;
+        outline: none !important;
+        gap: 8px !important;
     }
     
     .btn-primary {
-        background-color: #3b82f6;
-        color: white;
+        background-color: #3b82f6 !important;
+        color: white !important;
     }
     
     .btn-primary:hover {
-        background-color: #2563eb;
+        background-color: #2563eb !important;
     }
     
     .btn-success {
-        background-color: #10b981;
-        color: white;
+        background-color: #10b981 !important;
+        color: white !important;
     }
     
     .btn-success:hover {
-        background-color: #059669;
+        background-color: #059669 !important;
     }
     
     .btn-secondary {
-        background-color: #6b7280;
-        color: white;
+        background-color: #6b7280 !important;
+        color: white !important;
     }
     
     .btn-secondary:hover {
-        background-color: #4b5563;
+        background-color: #4b5563 !important;
     }
     
     .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
+        opacity: 0.6 !important;
+        cursor: not-allowed !important;
     }
     
     /* Search box */
     .search-container {
-        position: relative;
-        margin-bottom: 1rem;
+        position: relative !important;
+        margin-bottom: 1rem !important;
     }
     
     .search-input {
-        width: 100%;
-        padding: 12px 45px 12px 15px;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        font-size: 14px;
+        width: 100% !important;
+        padding: 12px 45px 12px 15px !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 6px !important;
+        font-size: 14px !important;
+        background: white !important;
     }
     
     .search-button {
-        position: absolute;
-        right: 5px;
-        top: 5px;
-        background: #3b82f6;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 8px 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: absolute !important;
+        right: 5px !important;
+        top: 5px !important;
+        background: #3b82f6 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
+        padding: 8px 12px !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     
     /* Search Results */
     .search-results {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        margin-top: 5px;
-        max-height: 300px;
-        overflow-y: auto;
-        z-index: 1000;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        display: none;
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: white !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 6px !important;
+        margin-top: 5px !important;
+        max-height: 300px !important;
+        overflow-y: auto !important;
+        z-index: 1000 !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        display: none !important;
     }
     
     .search-results.visible {
-        display: block;
+        display: block !important;
     }
     
     .search-result-item {
-        padding: 12px 15px;
-        border-bottom: 1px solid #f3f4f6;
-        cursor: pointer;
-        transition: background-color 0.2s;
+        padding: 12px 15px !important;
+        border-bottom: 1px solid #f3f4f6 !important;
+        cursor: pointer !important;
+        transition: background-color 0.2s !important;
     }
     
     .search-result-item:hover {
-        background-color: #f9fafb;
+        background-color: #f9fafb !important;
     }
     
     .search-result-item:last-child {
-        border-bottom: none;
+        border-bottom: none !important;
     }
     
     .search-result-name {
-        font-weight: 500;
-        color: #111827;
-        margin-bottom: 4px;
+        font-weight: 500 !important;
+        color: #111827 !important;
+        margin-bottom: 4px !important;
     }
     
     .search-result-details {
-        font-size: 12px;
-        color: #6b7280;
+        font-size: 12px !important;
+        color: #6b7280 !important;
     }
     
     /* Toast notifications */
     .toast {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 500;
-        z-index: 10000;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        animation: slideIn 0.3s ease-out;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
+        padding: 12px 20px !important;
+        border-radius: 8px !important;
+        color: white !important;
+        font-weight: 500 !important;
+        z-index: 10000 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        animation: slideIn 0.3s ease-out !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
     }
     
-    .toast-success { background-color: #10b981; }
-    .toast-error { background-color: #ef4444; }
-    .toast-warning { background-color: #f59e0b; }
-    .toast-info { background-color: #3b82f6; }
+    .toast-success { background-color: #10b981 !important; }
+    .toast-error { background-color: #ef4444 !important; }
+    .toast-warning { background-color: #f59e0b !important; }
+    .toast-info { background-color: #3b82f6 !important; }
     
     @keyframes slideIn {
         from {
-            transform: translateX(100%);
-            opacity: 0;
+            transform: translateX(100%) !important;
+            opacity: 0 !important;
         }
         to {
-            transform: translateX(0);
-            opacity: 1;
+            transform: translateX(0) !important;
+            opacity: 1 !important;
         }
     }
     
     /* Card styling */
     .info-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e5e7eb;
+        background: white !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid #e5e7eb !important;
     }
     
     .benefits-card {
-        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-        border: 1px solid #bfdbfe;
-        border-radius: 12px;
-        padding: 20px;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+        border: 1px solid #bfdbfe !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
     }
     
     /* Responsive */
     @media (max-width: 768px) {
         .map-container {
-            height: 400px;
+            height: 400px !important;
         }
         
         .coordinate-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr !important;
         }
         
         .action-buttons {
-            flex-direction: column;
+            flex-direction: column !important;
         }
         
         .btn {
-            width: 100%;
+            width: 100% !important;
         }
     }
 </style>
@@ -286,14 +321,13 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-6">
-    <!-- Header with Button -->
+    <!-- Header -->
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">My Location</h1>
             <p class="text-gray-600 mt-1">Set your location for better service delivery and support</p>
         </div>
         
-        <!-- Button to Access This Page from Other Pages -->
         <a href="{% url 'customer_map' %}" class="location-access-btn">
             <i class="fas fa-map-marker-alt"></i>
             <span>Set My Location</span>
@@ -322,8 +356,8 @@
                     <div id="searchResults" class="search-results"></div>
                 </div>
                 
-                <!-- Map Container -->
-                <div class="map-container">
+                <!-- Map Container - SIMPLE STRUCTURE -->
+                <div class="map-container" id="mapContainer">
                     <div id="map"></div>
                 </div>
                 
@@ -481,45 +515,69 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
 <script>
 // ============================================================================
-// CUSTOMER LOCATION MAP - WORKING VERSION
+// CUSTOMER LOCATION MAP - FIXED VERSION
 // ============================================================================
 
 let map = null;
 let marker = null;
-let currentLatLng = null;
 
-// Default Kenya bounds
-const KENYA_BOUNDS = {
-    southWest: [-5.0, 33.5],
-    northEast: [5.0, 42.0]
-};
-
+// Default Nairobi location
 const DEFAULT_LOCATION = {
     lat: -1.2921,
     lng: 36.8219,
-    zoom: 7
+    zoom: 12
 };
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Initializing Customer Location Map...');
     
-    try {
-        initMap();
-        setupEventListeners();
-        setupDefaultLocation();
-        console.log('✅ Map initialized successfully');
-    } catch (error) {
-        console.error('❌ Map initialization failed:', error);
-        showToast('Failed to load map. Please refresh the page.', 'error');
-    }
+    // Delay initialization slightly to ensure DOM is fully ready
+    setTimeout(() => {
+        try {
+            initMap();
+            setupEventListeners();
+            setupDefaultLocation();
+            
+            // CRITICAL: Force map to redraw after a short delay
+            setTimeout(() => {
+                if (map) {
+                    map.invalidateSize();
+                    console.log('✅ Map invalidated size');
+                    
+                    // Force a tile refresh
+                    map.setView(map.getCenter(), map.getZoom());
+                }
+            }, 200);
+            
+            console.log('✅ Map initialized successfully');
+        } catch (error) {
+            console.error('❌ Map initialization failed:', error);
+            showToast('Failed to load map. Please refresh the page.', 'error');
+        }
+    }, 100);
 });
 
 function initMap() {
     console.log('🗺️ Creating map...');
+    
+    // Remove any existing map instance
+    if (map) {
+        map.remove();
+        map = null;
+    }
+    
+    // Clear the map container
+    const mapElement = document.getElementById('map');
+    if (mapElement) {
+        mapElement.innerHTML = '';
+    }
     
     // Determine initial center
     let center;
@@ -529,11 +587,13 @@ function initMap() {
         lng: {{ primary_location.longitude }}, 
         zoom: 15 
     };
+    console.log('Using saved location:', center);
     {% else %}
     center = DEFAULT_LOCATION;
+    console.log('Using default location:', center);
     {% endif %}
     
-    // Create map
+    // Create map with proper options
     map = L.map('map', {
         center: [center.lat, center.lng],
         zoom: center.zoom,
@@ -543,66 +603,54 @@ function initMap() {
         scrollWheelZoom: true,
         doubleClickZoom: true,
         boxZoom: true,
-        keyboard: true,
-        maxBounds: [
-            [KENYA_BOUNDS.southWest[0], KENYA_BOUNDS.southWest[1]],
-            [KENYA_BOUNDS.northEast[0], KENYA_BOUNDS.northEast[1]]
-        ],
-        maxBoundsViscosity: 1.0
+        keyboard: true
     });
     
-    // Add tile layer
+    console.log('Map created, adding tiles...');
+    
+    // Add tile layer with proper attribution
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
-        minZoom: 6
+        minZoom: 6,
+        subdomains: ['a', 'b', 'c'],
+        tileSize: 256,
+        zoomOffset: 0
     }).addTo(map);
     
-    // Fix map size
+    console.log('Tiles added, map should be visible');
+    
+    // Force immediate size check
     setTimeout(() => {
         if (map) {
             map.invalidateSize(true);
         }
-    }, 100);
+    }, 50);
 }
 
 function setupDefaultLocation() {
     {% if primary_location %}
     // Use saved location
-    currentLatLng = [{{ primary_location.latitude }}, {{ primary_location.longitude }}];
-    marker = L.marker(currentLatLng, {
-        draggable: true,
-        title: 'Your Location'
-    }).addTo(map);
+    const lat = {{ primary_location.latitude }};
+    const lng = {{ primary_location.longitude }};
+    const address = '{{ primary_location.address|escapejs }}';
     
-    marker.bindPopup('{{ primary_location.address|escapejs }}').openPopup();
-    
-    updateFormFields(
-        currentLatLng[0], 
-        currentLatLng[1], 
-        '{{ primary_location.address|escapejs }}'
-    );
-    
-    // Add drag event
-    marker.on('dragend', function(e) {
-        const pos = marker.getLatLng();
-        updateFormFields(pos.lat, pos.lng);
-        reverseGeocode(pos.lat, pos.lng);
-    });
+    console.log('Setting up saved location:', lat, lng, address);
+    updateLocation(lat, lng, address);
     {% else %}
     // Set default Nairobi location
+    console.log('Setting up default location');
     updateLocation(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng, "Nairobi, Kenya");
     {% endif %}
 }
 
 function updateLocation(lat, lng, address = '') {
-    if (!map) return;
-    
-    // Validate Kenya bounds
-    if (!isInKenya(lat, lng)) {
-        showToast('Location must be within Kenya', 'warning');
+    if (!map) {
+        console.error('Map not initialized');
         return;
     }
+    
+    console.log('Updating location to:', lat, lng, address);
     
     // Remove existing marker
     if (marker) {
@@ -613,21 +661,19 @@ function updateLocation(lat, lng, address = '') {
     // Create new marker
     marker = L.marker([lat, lng], {
         draggable: true,
-        title: 'Selected Location'
+        title: 'Your Location'
     }).addTo(map);
     
     // Center map
     map.setView([lat, lng], 15);
     
-    // Update form
+    // Update form fields
     updateFormFields(lat, lng, address);
-    
-    // Store location
-    currentLatLng = [lat, lng];
     
     // Add drag event
     marker.on('dragend', function(e) {
         const pos = marker.getLatLng();
+        console.log('Marker dragged to:', pos.lat, pos.lng);
         updateFormFields(pos.lat, pos.lng);
         reverseGeocode(pos.lat, pos.lng);
     });
@@ -635,25 +681,28 @@ function updateLocation(lat, lng, address = '') {
     // Bind popup
     if (address) {
         marker.bindPopup(address).openPopup();
+    } else {
+        reverseGeocode(lat, lng);
     }
+    
+    // Force map refresh
+    setTimeout(() => {
+        if (map) {
+            map.invalidateSize();
+        }
+    }, 100);
 }
 
 function updateFormFields(lat, lng, address = '') {
-    document.getElementById('latitude').value = lat.toFixed(6);
-    document.getElementById('longitude').value = lng.toFixed(6);
-    document.getElementById('addressDisplay').value = address;
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    const addressInput = document.getElementById('addressDisplay');
+    
+    if (latInput) latInput.value = lat.toFixed(6);
+    if (lngInput) lngInput.value = lng.toFixed(6);
+    if (addressInput) addressInput.value = address;
 }
 
-function isInKenya(lat, lng) {
-    return (
-        lat >= KENYA_BOUNDS.southWest[0] &&
-        lat <= KENYA_BOUNDS.northEast[0] &&
-        lng >= KENYA_BOUNDS.southWest[1] &&
-        lng <= KENYA_BOUNDS.northEast[1]
-    );
-}
-
-// Search Address Function
 async function searchAddress() {
     const searchInput = document.getElementById('addressSearch');
     const resultsDiv = document.getElementById('searchResults');
@@ -675,28 +724,28 @@ async function searchAddress() {
     resultsDiv.classList.add('visible');
     
     try {
-        // Use your Django endpoint
-        const response = await fetch(`/accounts/api/search-address/?q=${encodeURIComponent(query)}&limit=5&countrycodes=ke`);
+        // Use OpenStreetMap Nominatim API
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ke&limit=5`;
+        console.log('Searching:', url);
         
-        if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-        }
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'M-Neti/1.0',
+                'Accept': 'application/json'
+            }
+        });
         
         const data = await response.json();
+        console.log('Search results:', data);
         
-        if (data.error) {
-            resultsDiv.innerHTML = `<div class="p-3 text-red-500">${data.error}</div>`;
-            return;
-        }
-        
-        if (!data.results || data.results.length === 0) {
+        if (data.length === 0) {
             resultsDiv.innerHTML = '<div class="p-3 text-gray-500">No results found</div>';
             return;
         }
         
         // Display results
         let html = '';
-        data.results.forEach((result, index) => {
+        data.forEach((result, index) => {
             const safeName = result.display_name
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, "&#39;");
@@ -705,7 +754,7 @@ async function searchAddress() {
                 <div class="search-result-item" onclick="selectSearchResult(${result.lat}, ${result.lon}, '${safeName}')">
                     <div class="search-result-name">${result.display_name}</div>
                     <div class="search-result-details">
-                        ${result.type} • ${result.lat}, ${result.lon}
+                        ${result.type} • ${parseFloat(result.lat).toFixed(6)}, ${parseFloat(result.lon).toFixed(6)}
                     </div>
                 </div>
             `;
@@ -715,12 +764,12 @@ async function searchAddress() {
         
     } catch (error) {
         console.error('Search failed:', error);
-        resultsDiv.innerHTML = `<div class="p-3 text-red-500">Search failed: ${error.message}</div>`;
+        resultsDiv.innerHTML = '<div class="p-3 text-red-500">Search failed. Please try again.</div>';
     }
 }
 
 function selectSearchResult(lat, lng, address) {
-    updateLocation(lat, lng, address);
+    updateLocation(parseFloat(lat), parseFloat(lng), address);
     hideSearchResults();
     showToast('Location selected', 'success');
 }
@@ -734,15 +783,12 @@ function hideSearchResults() {
 }
 
 async function reverseGeocode(lat, lng) {
-    if (marker) {
-        marker.bindPopup('<i class="fas fa-spinner fa-spin"></i> Loading address...').openPopup();
-    }
-    
     try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&countrycodes=ke`;
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`;
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'M-Neti/1.0 (contact@mneti.com)'
+                'User-Agent': 'M-Neti/1.0',
+                'Accept': 'application/json'
             }
         });
         const data = await response.json();
@@ -782,22 +828,20 @@ function useCurrentLocation() {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             
-            if (isInKenya(lat, lng)) {
-                updateLocation(lat, lng);
-                reverseGeocode(lat, lng);
-                showToast('Current location detected', 'success');
-            } else {
-                showToast('Location outside Kenya. Please select a location within Kenya.', 'warning');
-            }
+            console.log('Got current location:', lat, lng);
+            updateLocation(lat, lng);
+            reverseGeocode(lat, lng);
+            showToast('Current location detected', 'success');
             
             button.innerHTML = originalText;
             button.disabled = false;
         },
         (error) => {
+            console.error('Geolocation error:', error);
             let message = 'Unable to get your location';
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    message = 'Location access denied. Please enable location permissions in your browser.';
+                    message = 'Location access denied. Please enable location permissions.';
                     break;
                 case error.POSITION_UNAVAILABLE:
                     message = 'Location information unavailable.';
@@ -825,11 +869,6 @@ async function saveLocation() {
     
     if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
         showToast('Please select a location first', 'warning');
-        return;
-    }
-    
-    if (!isInKenya(lat, lng)) {
-        showToast('Location must be within Kenya', 'error');
         return;
     }
     
@@ -886,8 +925,6 @@ function clearLocation() {
     document.getElementById('longitude').value = '';
     document.getElementById('addressDisplay').value = '';
     document.getElementById('addressSearch').value = '';
-    currentLatLng = null;
-    hideSearchResults();
     
     map.setView([DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lng], DEFAULT_LOCATION.zoom);
     showToast('Location cleared', 'info');
@@ -896,6 +933,7 @@ function clearLocation() {
 function setupEventListeners() {
     // Map click
     map.on('click', function(e) {
+        console.log('Map clicked at:', e.latlng.lat, e.latlng.lng);
         updateLocation(e.latlng.lat, e.latlng.lng);
         reverseGeocode(e.latlng.lat, e.latlng.lng);
     });
@@ -952,10 +990,15 @@ function setupEventListeners() {
         }
     });
     
-    // Window resize
+    // Window resize - fix map size
+    let resizeTimer;
     window.addEventListener('resize', function() {
-        setTimeout(() => {
-            if (map) map.invalidateSize(true);
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            if (map) {
+                map.invalidateSize(true);
+                console.log('Map resized');
+            }
         }, 250);
     });
 }

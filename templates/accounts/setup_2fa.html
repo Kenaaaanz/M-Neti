@@ -1,65 +1,363 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block extra_css %}
+<style>
+    /* 2FA Setup Page Styles */
+    .auth-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .auth-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        max-width: 500px;
+        width: 100%;
+        animation: slideUp 0.6s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .auth-header {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        text-align: center;
+    }
+    
+    .auth-header h4 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.5rem;
+    }
+    
+    .auth-body {
+        padding: 2rem;
+    }
+    
+    .qr-container {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .qr-code {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        display: inline-block;
+        background: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .qr-code img {
+        border-radius: 8px;
+    }
+    
+    .secret-key-container {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1rem 0;
+        text-align: center;
+    }
+    
+    .secret-key {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+        background: white;
+        padding: 0.75rem;
+        border-radius: 8px;
+        border: 1px dashed #cbd5e0;
+        word-break: break-all;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .secret-key:hover {
+        background: #f1f5f9;
+        border-color: #3b82f6;
+    }
+    
+    .secret-key:active {
+        transform: scale(0.98);
+    }
+    
+    .secret-key.copied {
+        background: #d1fae5;
+        border-color: #10b981;
+        color: #065f46;
+    }
+    
+    .apps-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+    
+    .app-card {
+        text-align: center;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        transition: all 0.3s;
+        background: white;
+    }
+    
+    .app-card:hover {
+        border-color: #3b82f6;
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15);
+    }
+    
+    .app-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .app-name {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin: 0;
+    }
+    
+    .alert-warning {
+        background: #fffbeb;
+        border: 2px solid #f59e0b;
+        color: #92400e;
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .alert-warning i {
+        color: #f59e0b;
+        margin-right: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        border: none;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        font-size: 1rem;
+        border-radius: 12px;
+        transition: all 0.3s;
+        width: 100%;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-outline-secondary {
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        font-size: 1rem;
+        border-radius: 12px;
+        transition: all 0.3s;
+        width: 100%;
+        background: white;
+    }
+    
+    .btn-outline-secondary:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+    }
+    
+    .form-grid {
+        display: grid;
+        gap: 1rem;
+    }
+    
+    /* Dark mode support */
+    [data-theme="dark"] .auth-card {
+        background: #1e293b;
+        color: #e2e8f0;
+    }
+    
+    [data-theme="dark"] .app-card {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    [data-theme="dark"] .app-name {
+        color: #cbd5e0;
+    }
+    
+    [data-theme="dark"] .secret-key-container {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    [data-theme="dark"] .secret-key {
+        background: #374151;
+        color: #d1d5db;
+    }
+    
+    [data-theme="dark"] .alert-warning {
+        background: #451a03;
+        border-color: #9a3412;
+        color: #fdba74;
+    }
+    
+    [data-theme="dark"] .btn-outline-secondary {
+        background: #374151;
+        border-color: #4b5563;
+        color: #d1d5db;
+    }
+    
+    /* Responsive */
+    @media (max-width: 640px) {
+        .apps-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .auth-body {
+            padding: 1.5rem;
+        }
+        
+        .qr-code {
+            max-width: 180px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .apps-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .app-card {
+            max-width: 200px;
+            margin: 0 auto;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Setup Two-Factor Authentication</h4>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h4>Setup Two-Factor Authentication</h4>
+        </div>
+        <div class="auth-body">
+            <div class="qr-container">
+                <p class="mb-3 text-gray-700">Scan this QR code with your authenticator app:</p>
+                <div class="qr-code">
+                    <img src="data:image/png;base64,{{ qr_code_data }}" 
+                         alt="QR Code" 
+                         style="max-width: 200px;">
                 </div>
-                <div class="card-body">
-                    <div class="text-center mb-4">
-                        <p>Scan this QR code with your authenticator app:</p>
-                        <img src="data:image/png;base64,{{ qr_code_data }}" 
-                             alt="QR Code" 
-                             class="img-fluid mb-3"
-                             style="max-width: 200px;">
-                        <p class="small text-muted">Or enter this secret key manually:</p>
-                        <div class="alert alert-info">
-                            <code class="user-select-all">{{ secret_key }}</code>
-                        </div>
+                <p class="text-sm text-gray-500 mt-3">Or enter this secret key manually:</p>
+                <div class="secret-key-container">
+                    <div class="secret-key" id="secretKey" onclick="copyToClipboard(this)">
+                        {{ secret_key }}
                     </div>
-                    
-                    <div class="mb-4">
-                        <h5>Supported Apps:</h5>
-                        <div class="d-flex justify-content-around">
-                            <div class="text-center">
-                                <i class="fab fa-google fa-2x mb-2 text-primary"></i>
-                                <p class="small">Google Authenticator</p>
-                            </div>
-                            <div class="text-center">
-                                <i class="fas fa-mobile-alt fa-2x mb-2 text-primary"></i>
-                                <p class="small">Authy</p>
-                            </div>
-                            <div class="text-center">
-                                <i class="fas fa-lock fa-2x mb-2 text-primary"></i>
-                                <p class="small">Microsoft Authenticator</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Important:</strong> Save your secret key in a secure location. 
-                        You'll need it if you lose access to your authenticator app.
-                    </div>
-                    
-                    <form method="POST" action="{% url 'setup_2fa' %}">
-                        {% csrf_token %}
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-envelope"></i> Send OTP to Email
-                            </button>
-                            <a href="{% url 'profile' %}" class="btn btn-outline-secondary">
-                                Skip for Now
-                            </a>
-                        </div>
-                    </form>
+                    <small class="text-gray-500 mt-2 block">Click to copy</small>
                 </div>
+            </div>
+            
+            <div class="mb-4">
+                <h5 class="text-center mb-4 text-gray-800 font-semibold">Supported Apps:</h5>
+                <div class="apps-grid">
+                    <div class="app-card">
+                        <div class="app-icon text-blue-600">
+                            <i class="fab fa-google"></i>
+                        </div>
+                        <p class="app-name">Google Authenticator</p>
+                    </div>
+                    <div class="app-card">
+                        <div class="app-icon text-blue-500">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <p class="app-name">Authy</p>
+                    </div>
+                    <div class="app-card">
+                        <div class="app-icon text-purple-600">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <p class="app-name">Microsoft Authenticator</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Important:</strong> Save your secret key in a secure location. 
+                You'll need it if you lose access to your authenticator app.
+            </div>
+            
+            <div class="form-grid">
+                <form method="POST" action="{% url 'setup_2fa' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-envelope mr-2"></i> Send OTP to Email
+                    </button>
+                </form>
+                <a href="{% url 'profile' %}" class="btn-outline-secondary">
+                    <i class="fas fa-times mr-2"></i> Skip for Now
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function copyToClipboard(element) {
+        const text = element.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            // Visual feedback
+            element.classList.add('copied');
+            element.textContent = 'Copied! ✓';
+            
+            setTimeout(() => {
+                element.classList.remove('copied');
+                element.textContent = text;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            element.textContent = 'Press Ctrl+C to copy';
+            setTimeout(() => {
+                element.textContent = text;
+            }, 2000);
+        });
+    }
+    
+    // Auto-hide messages after 5 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            const messages = document.querySelectorAll('.alert');
+            messages.forEach(msg => {
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 300);
+            });
+        }, 5000);
+    });
+</script>
 {% endblock %}

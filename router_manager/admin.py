@@ -4,31 +4,60 @@ from .models import RouterConfig, Device, PortForwardingRule, Router, ConnectedD
 
 @admin.register(RouterConfig)
 class RouterConfigAdmin(admin.ModelAdmin):
-    list_display = ['name', 'tenant', 'router_type', 'router_model', 'ip_address', 'is_online']
-    list_filter = ['router_type', 'is_online', 'tenant']
-    search_fields = ['name', 'ip_address']
-    readonly_fields = ['created_at']
+    list_display = ('name', 'router_type', 'router_model', 'ip_address', 
+                   'is_online', 'is_available', 'assigned_to', 'tenant')
+    list_filter = ('router_type', 'is_online', 'is_available', 'tenant')
+    search_fields = ('name', 'router_model', 'ip_address', 'assigned_to__username')
+    readonly_fields = ('last_checked', 'created_at')
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'tenant', 'router_type', 'router_model')
+        }),
+        ('Connection Settings', {
+            'fields': ('ip_address', 'web_port', 'username', 'password')
+        }),
+        ('Status & Assignment', {
+            'fields': ('is_online', 'is_available', 'assigned_to', 'last_checked')
+        }),
+        ('Advanced', {
+            'fields': ('huawei_ont_id', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
 
 @admin.register(Router)
 class RouterAdmin(admin.ModelAdmin):
-    list_display = ('user', 'model', 'mac_address', 'ssid', 'online_status', 'security_status', 'created_at')
-    list_filter = ('model', 'is_online', 'security_type', 'band', 'created_at')
-    search_fields = ('user__email', 'user__username', 'mac_address', 'ssid', 'model')
-    readonly_fields = ('created_at', 'updated_at', 'last_seen')
+    list_display = ('model', 'user', 'tenant', 'is_online', 
+                   'has_isp_config', 'created_at')
+    list_filter = ('is_online', 'tenant', 'created_at')
+    search_fields = ('model', 'user__username', 'user__email', 'mac_address')
+    readonly_fields = ('last_seen', 'created_at', 'updated_at')
     fieldsets = (
         ('Basic Information', {
-            'fields': ('user', 'model', 'mac_address')
+            'fields': ('user', 'tenant', 'router_config', 'model', 'mac_address')
         }),
         ('WiFi Settings', {
-            'fields': ('ssid', 'password', 'security_type', 'hide_ssid', 'band', 'channel_width')
+            'fields': ('ssid', 'password', 'security_type', 'hide_ssid')
+        }),
+        ('Network Settings', {
+            'fields': ('band', 'channel_width')
         }),
         ('Security Settings', {
             'fields': ('firewall_enabled', 'remote_access', 'upnp_enabled')
         }),
         ('Status', {
-            'fields': ('is_online', 'last_seen', 'created_at', 'updated_at')
+            'fields': ('is_online', 'last_seen')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
         }),
     )
+    
+    def has_isp_config(self, obj):
+        return obj.router_config is not None
+    has_isp_config.boolean = True
+    has_isp_config.short_description = 'Has ISP Config'
     
     def online_status(self, obj):
         color = 'green' if obj.is_online else 'red'

@@ -1,0 +1,461 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Router Assignments - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Router Assignments{% endblock %}
+{% block page_subtitle %}Manage and assign routers to customers{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header with Stats -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ page_title }}</h1>
+            <p class="text-gray-600">{{ page_subtitle }}</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'router_assignment_dashboard' %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
+                <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+            </a>
+            <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors filter-button">
+                <i class="fas fa-filter mr-2"></i> Filter
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div id="filterSection" class="hidden bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Filter Router Assignments</h3>
+            <button type="button" class="text-gray-400 hover:text-gray-600 close-filter">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <form method="get" action="{% url 'router_assignment_list' %}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Status
+                    </label>
+                    {{ filter_form.status }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Router Type
+                    </label>
+                    {{ filter_form.router_type }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Search
+                    </label>
+                    {{ filter_form.search }}
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <a href="{% url 'router_assignment_list' %}" 
+                   class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-medium transition-colors">
+                    Clear Filters
+                </a>
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium mb-1">Total</p>
+                    <p class="text-3xl font-bold">{{ router_configs.paginator.count }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-router text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium mb-1">Available</p>
+                    <p class="text-3xl font-bold">
+                        {% with available=router_configs.paginator.count|add:"-assigned" %}
+                            {{ available }}
+                        {% endwith %}
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium mb-1">Assigned</p>
+                    <p class="text-3xl font-bold">{{ assigned }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-user-check text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm font-medium mb-1">Online</p>
+                    <p class="text-3xl font-bold">{{ online }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-wifi text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Router Assignments Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Router Assignments</h3>
+                <p class="text-sm text-gray-500 mt-1">Manage all router configurations and assignments</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                {% if status_filter != 'all' or type_filter != 'all' or search_query %}
+                <span class="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    <i class="fas fa-filter mr-1"></i> Filtered
+                </span>
+                {% endif %}
+                <span class="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
+                    {{ router_configs.paginator.count }} routers
+                </span>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            {% if router_configs %}
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Router Name</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Type & Model</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">IP Address</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Status</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Customer</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Last Checked</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for config in router_configs %}
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <td class="py-4 px-6">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-router text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-900">{{ config.name }}</div>
+                                    <div class="text-sm text-gray-500">
+                                        {% if config.is_available %}
+                                        <span class="text-green-600">Available</span>
+                                        {% else %}
+                                        <span class="text-purple-600">Assigned</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex flex-col space-y-1">
+                                <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 w-fit">
+                                    {{ config.get_router_type_display }}
+                                </span>
+                                <span class="text-sm text-gray-600">{{ config.router_model }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="font-mono text-sm text-gray-900">
+                                {{ config.ip_address }}:{{ config.web_port }}
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">{{ config.username }}</div>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if config.is_online %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                Online
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                                Offline
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if config.assigned_to %}
+                            <a href="{% url 'customer_router_details' config.assigned_to.id %}" 
+                               class="group text-gray-900 hover:text-blue-600 transition-colors">
+                                <div class="font-medium group-hover:text-blue-600">{{ config.assigned_to.username }}</div>
+                                <div class="text-xs text-gray-500 group-hover:text-blue-400">{{ config.assigned_to.email }}</div>
+                            </a>
+                            {% else %}
+                            <span class="text-gray-400 italic">Not assigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if config.last_checked %}
+                            <div class="text-sm text-gray-900">{{ config.last_checked|date:"M d, Y" }}</div>
+                            <div class="text-xs text-gray-500">{{ config.last_checked|time:"H:i" }}</div>
+                            {% else %}
+                            <span class="text-gray-400 italic">Never</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex items-center space-x-2">
+                                {% if config.is_available %}
+                                <a href="{% url 'assign_router_to_customer' config.id %}" 
+                                   class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors" 
+                                   title="Assign to Customer">
+                                    <i class="fas fa-user-plus"></i>
+                                </a>
+                                {% else %}
+                                <a href="{% url 'unassign_router' config.id %}" 
+                                   class="text-yellow-600 hover:text-yellow-800 p-2 rounded-lg hover:bg-yellow-50 transition-colors" 
+                                   title="Unassign"
+                                   onclick="return confirm('Unassign this router from {{ config.assigned_to.username }}?')">
+                                    <i class="fas fa-user-times"></i>
+                                </a>
+                                {% endif %}
+                                
+                                <button class="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition-colors test-connection" 
+                                        data-config-id="{{ config.id }}"
+                                        title="Test Connection">
+                                    <i class="fas fa-plug"></i>
+                                </button>
+                                
+                                <a href="{% url 'isp_edit_router' config.id %}" 
+                                   class="text-gray-600 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                                   title="Edit Configuration">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="text-gray-400 mb-3">
+                    <i class="fas fa-router text-4xl"></i>
+                </div>
+                <p class="text-gray-500 font-medium">
+                    {% if status_filter != 'all' or type_filter != 'all' or search_query %}
+                    No router configurations match your filters
+                    {% else %}
+                    No router configurations found
+                    {% endif %}
+                </p>
+                <p class="text-sm text-gray-400 mt-1">
+                    {% if status_filter != 'all' or type_filter != 'all' or search_query %}
+                    Try adjusting your filters or search criteria
+                    {% else %}
+                    Add router configurations to get started
+                    {% endif %}
+                </p>
+                <div class="mt-4 space-x-3">
+                    {% if status_filter != 'all' or type_filter != 'all' or search_query %}
+                    <a href="{% url 'router_assignment_list' %}" 
+                       class="inline-block bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        Clear Filters
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'isp_add_router' %}" 
+                       class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-plus mr-2"></i> Add Router Configuration
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if router_configs.has_other_pages %}
+        <div class="px-6 py-4 border-t border-gray-200">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="text-sm text-gray-500">
+                    Showing {{ router_configs.start_index }} to {{ router_configs.end_index }} of {{ router_configs.paginator.count }} entries
+                </div>
+                <div class="flex items-center space-x-2">
+                    {% if router_configs.has_previous %}
+                    <a href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                       class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        First
+                    </a>
+                    <a href="?page={{ router_configs.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                       class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        Previous
+                    </a>
+                    {% endif %}
+                    
+                    {% for num in router_configs.paginator.page_range %}
+                        {% if router_configs.number == num %}
+                        <span class="px-3 py-1 bg-blue-600 text-white rounded-lg font-medium">
+                            {{ num }}
+                        </span>
+                        {% elif num > router_configs.number|add:'-3' and num < router_configs.number|add:'3' %}
+                        <a href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                           class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                            {{ num }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if router_configs.has_next %}
+                    <a href="?page={{ router_configs.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                       class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        Next
+                    </a>
+                    <a href="?page={{ router_configs.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                       class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        Last
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle filter section
+    const filterButton = document.querySelector('.filter-button');
+    const closeFilterButton = document.querySelector('.close-filter');
+    const filterSection = document.getElementById('filterSection');
+    
+    if (filterButton && filterSection) {
+        filterButton.addEventListener('click', function() {
+            filterSection.classList.toggle('hidden');
+        });
+        
+        if (closeFilterButton) {
+            closeFilterButton.addEventListener('click', function() {
+                filterSection.classList.add('hidden');
+            });
+        }
+    }
+    
+    // Test connection functionality
+    const testButtons = document.querySelectorAll('.test-connection');
+    
+    testButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const configId = this.dataset.configId;
+            const originalHTML = this.innerHTML;
+            
+            // Show loading state
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            this.classList.add('opacity-50');
+            this.disabled = true;
+            
+            fetch(`/router/isp/assignments/test/${configId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', data.message);
+                        
+                        // Update status badge in the row
+                        const row = this.closest('tr');
+                        const statusCell = row.querySelector('.inline-flex');
+                        if (statusCell) {
+                            statusCell.className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800';
+                            statusCell.innerHTML = '<span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>Online';
+                        }
+                    } else {
+                        showToast('error', data.message);
+                        
+                        // Update status badge in the row
+                        const row = this.closest('tr');
+                        const statusCell = row.querySelector('.inline-flex');
+                        if (statusCell) {
+                            statusCell.className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800';
+                            statusCell.innerHTML = '<span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>Offline';
+                        }
+                    }
+                })
+                .catch(error => {
+                    showToast('error', 'Connection test failed');
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    // Reset button
+                    this.innerHTML = originalHTML;
+                    this.classList.remove('opacity-50');
+                    this.disabled = false;
+                });
+        });
+    });
+    
+    // Toast notification function
+    function showToast(type, message) {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white transform transition-transform duration-300 translate-x-full`;
+        
+        if (type === 'success') {
+            toast.classList.add('bg-green-500');
+        } else if (type === 'error') {
+            toast.classList.add('bg-red-500');
+        } else {
+            toast.classList.add('bg-blue-500');
+        }
+        
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-3"></i>
+                <span>${message}</span>
+                <button class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Animate in
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+            toast.classList.add('translate-x-0');
+        }, 10);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove('translate-x-0');
+            toast.classList.add('translate-x-full');
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.parentElement.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    }
+    
+    // Add click event for toasts
+    window.showToast = showToast;
+});
+</script>
+{% endblock %}

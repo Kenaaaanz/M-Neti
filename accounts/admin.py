@@ -34,23 +34,22 @@ class TenantAdminForm(forms.ModelForm):
 
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
-    form = TenantAdminForm
-    list_display = ['name', 'company_name', 'subdomain', 'primary_color_preview', 'is_active', 'customer_count', 'created_at']
-    list_filter = ['subscription_plan', 'is_active', 'created_at']
-    search_fields = ['name', 'subdomain', 'company_name', 'contact_email']
-    readonly_fields = ['created_at', 'updated_at', 'customer_count_display', 'preview_colors']
-    list_editable = ['is_active']
-    actions = ['activate_tenants', 'deactivate_tenants']
+    list_display = ['name', 'company_name', 'subdomain', 'primary_color_preview', 'is_active', 'is_verified', 'get_admin_count', 'created_at']
+    list_filter = ['subscription_plan', 'is_active', 'is_verified', 'created_at']
+    search_fields = ['name', 'subdomain', 'company_name', 'contact_email', 'contact_person']
+    readonly_fields = ['created_at', 'updated_at', 'verification_date', 'primary_domain', 'dashboard_url', 'get_admin_count_display', 'preview_colors']
+    list_editable = ['is_active', 'is_verified']
+    actions = ['activate_tenants', 'deactivate_tenants', 'verify_tenants']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'company_name', 'description')
+            'fields': ('name', 'company_name')
         }),
         ('Domain & URLs', {
-            'fields': ('subdomain', 'custom_domain', 'primary_domain')
+            'fields': ('subdomain', 'custom_domain')
         }),
         ('Contact Information', {
-            'fields': ('contact_email', 'contact_phone', 'address')
+            'fields': ('contact_email', 'contact_phone', 'contact_person', 'contact_position')
         }),
         ('Brand Colors - Primary Palette', {
             'fields': ('primary_color', 'secondary_color', 'accent_color'),
@@ -65,27 +64,29 @@ class TenantAdmin(admin.ModelAdmin):
             'classes': ('collapse', 'color-palette-section'),
         }),
         ('Brand Assets', {
-            'fields': ('logo', 'favicon')
+            'fields': ('logo',)
         }),
         ('ISP Settings', {
             'fields': ('bandwidth_limit', 'client_limit', 'auto_disconnect_enabled')
         }),
-        ('Subscription & Billing', {
-            'fields': ('subscription_plan', 'subscription_end', 'monthly_rate')
+        ('Subscription & Verification', {
+            'fields': ('subscription_plan', 'subscription_end', 'is_verified', 'verification_date', 'verification_notes')
         }),
-        ('Statistics', {
-            'fields': ('customer_count_display', 'preview_colors')
+        ('Business Information', {
+            'fields': ('business_type', 'registration_number', 'tax_id', 'years_in_operation'),
+            'classes': ('collapse',),
+        }),
+        ('Documents', {
+            'fields': ('business_registration', 'tax_certificate', 'id_document', 'bank_details'),
+            'classes': ('collapse',),
+        }),
+        ('System Information', {
+            'fields': ('primary_domain', 'dashboard_url', 'get_admin_count_display', 'preview_colors')
         }),
         ('Status & Dates', {
             'fields': ('is_active', 'created_at', 'updated_at')
         }),
     )
-    
-    class Media:
-        css = {
-            'all': ('admin/css/tenant_admin.css',)
-        }
-        js = ('admin/js/tenant_admin.js',)
     
     def primary_color_preview(self, obj):
         if obj.primary_color:
@@ -99,36 +100,43 @@ class TenantAdmin(admin.ModelAdmin):
         return "-"
     primary_color_preview.short_description = "Primary Color"
     
-    def customer_count(self, obj):
-        return CustomUser.objects.filter(tenant=obj, role='customer').count()
-    customer_count.short_description = "Customers"
+    def get_admin_count(self, obj):
+        return obj.get_admin_count()
+    get_admin_count.short_description = "Admins"
     
-    def customer_count_display(self, obj):
-        count = self.customer_count(obj)
+    def get_admin_count_display(self, obj):
+        count = obj.get_admin_count()
         return format_html(
-            '<span class="customer-count">{}</span> customers registered',
+            '<span style="font-weight: bold; color: {};">{} admin(s)</span>',
+            obj.primary_color if obj.primary_color else '#3b82f6',
             count
         )
-    customer_count_display.short_description = "Customer Statistics"
+    get_admin_count_display.short_description = "Admin Users"
     
     def preview_colors(self, obj):
         if obj.primary_color and obj.secondary_color:
             return format_html(
-                '<div style="display: flex; gap: 4px; margin: 10px 0;">'
+                '<div style="display: flex; gap: 4px; margin: 10px 0; flex-wrap: wrap;">'
                 '<div style="width: 30px; height: 30px; background-color: {}; border-radius: 4px;" title="Primary: {}"></div>'
                 '<div style="width: 30px; height: 30px; background-color: {}; border-radius: 4px;" title="Secondary: {}"></div>'
                 '<div style="width: 30px; height: 30px; background-color: {}; border-radius: 4px;" title="Accent: {}"></div>'
+                '<div style="width: 30px; height: 30px; background-color: {}; border-radius: 4px;" title="Success: {}"></div>'
+                '<div style="width: 30px; height: 30px; background-color: {}; border-radius: 4px;" title="Warning: {}"></div>'
+                '<div style="width: 30px; height: 30px; background-color: {}; border-radius: 4px;" title="Error: {}"></div>'
                 '</div>'
-                '<div style="margin-top: 10px; padding: 8px; background: linear-gradient(135deg, {}, {}); border-radius: 4px; color: white; text-align: center;">'
+                '<div style="margin-top: 10px; padding: 8px; background: linear-gradient(135deg, {}, {}); border-radius: 4px; color: white; text-align: center; font-weight: bold;">'
                 'Brand Gradient Preview'
                 '</div>',
                 obj.primary_color, obj.primary_color,
                 obj.secondary_color, obj.secondary_color,
                 obj.accent_color or '#f59e0b', obj.accent_color or '#f59e0b',
+                obj.success_color or '#10b981', obj.success_color or '#10b981',
+                obj.warning_color or '#f59e0b', obj.warning_color or '#f59e0b',
+                obj.error_color or '#ef4444', obj.error_color or '#ef4444',
                 obj.primary_color, obj.secondary_color
             )
         return "Set primary and secondary colors to see preview"
-    preview_colors.short_description = "Color Preview"
+    preview_colors.short_description = "Color Palette Preview"
     
     @admin.action(description="Activate selected tenants")
     def activate_tenants(self, request, queryset):
@@ -140,12 +148,48 @@ class TenantAdmin(admin.ModelAdmin):
         updated = queryset.update(is_active=False)
         self.message_user(request, f"{updated} tenant(s) deactivated successfully.")
     
-    # Add a column with a quick link to create an ISP admin user for this tenant
-    def create_isp_admin_link(self, obj):
-        url = reverse('admin:accounts_tenant_create_isp_admin', args=[obj.pk])
-        return format_html('<a class="button" href="{}">Create ISP Admin</a>', url)
-    create_isp_admin_link.short_description = 'Create ISP Admin'
+    @admin.action(description="Verify selected tenants")
+    def verify_tenants(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.update(
+            is_verified=True,
+            verification_date=timezone.now(),
+            verification_notes=f"Bulk verified by {request.user.username} on {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+        )
+        self.message_user(request, f"{updated} tenant(s) verified successfully.")
     
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        # Only show tenants that the user has access to
+        if request.user.is_superuser:
+            return queryset
+        # For ISP users, only show their tenant
+        if hasattr(request.user, 'tenant'):
+            return queryset.filter(id=request.user.tenant.id)
+        return queryset.none()
+    
+    def has_add_permission(self, request):
+        # Only superusers can add tenants
+        return request.user.is_superuser
+    
+    def has_change_permission(self, request, obj=None):
+        # Superusers can change all, ISP admins can only change their tenant
+        if request.user.is_superuser:
+            return True
+        if obj and hasattr(request.user, 'tenant'):
+            return obj.id == request.user.tenant.id
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        # Only superusers can delete tenants
+        return request.user.is_superuser
+    
+    class Media:
+        css = {
+            'all': ('admin/css/tenant_admin.css',)
+        }
+        js = ('admin/js/tenant_admin.js',)
+        
     # Form used in the admin view to create the user
     class CreateISPAdminForm(forms.Form):
         username = forms.CharField(max_length=150, help_text="Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.")

@@ -1636,8 +1636,11 @@ def verify_2fa_setup(request):
     if request.method == 'POST':
         otp_token = request.POST.get('otp_token', '').strip()
         
+        print(f"DEBUG: Received OTP token: {otp_token}")  # Add this debug line
+
         if not otp_token:
             messages.error(request, 'Please enter the OTP.')
+            print("DEBUG: OTP token is empty")  # Debug
             return render(request, 'accounts/verify_2fa.html')
         
         # Verify OTP
@@ -1648,7 +1651,11 @@ def verify_2fa_setup(request):
             
             # Get backup codes from session
             backup_codes = request.session.get('backup_codes', [])
-            
+
+            # If no backup codes in session, generate new ones
+            if not backup_codes:
+                backup_codes = generate_backup_codes()
+                request.session['backup_codes'] = backup_codes
             messages.success(request, 'Two-factor authentication enabled successfully!')
             
             # Show backup codes
@@ -1657,6 +1664,8 @@ def verify_2fa_setup(request):
             })
         else:
             messages.error(request, 'Invalid OTP. Please try again.')
+            print(f"DEBUG: OTP verification failed for token: {otp_token}")  # Debug
+
     
     return render(request, 'accounts/verify_2fa.html')
 
@@ -1736,6 +1745,38 @@ def verify_2fa_login(request):
         messages.info(request, 'New OTP sent to your email!')
     
     return render(request, 'accounts/verify_2fa_login.html')
+
+@login_required
+def resend_2fa_otp(request):
+    """
+    Resend OTP for 2FA setup
+    """
+    user = request.user
+    
+    if not user.otp_secret:
+        messages.error(request, 'Please setup 2FA first.')
+        return redirect('setup_2fa')
+    
+    try:
+        # Generate new OTP token
+        otp_token = generate_otp_token(user.otp_secret)
+        
+        # Send OTP to user's email
+        email_sent = send_otp_email(
+            user.email, 
+            otp_token, 
+            user.username
+        )
+        
+        if email_sent:
+            messages.success(request, 'New OTP sent to your email!')
+        else:
+            messages.error(request, 'Failed to send OTP email. Please try again.')
+            
+    except Exception as e:
+        messages.error(request, f'Error sending OTP: {str(e)}')
+    
+    return redirect('verify_2fa_setup')
 
 @login_required
 def regenerate_backup_codes(request):

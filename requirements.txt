@@ -24,11 +24,13 @@ ipython==8.12.3
 ipywidgets==8.1.7
 Jinja2==3.1.6
 keyring==25.6.0
+librouteros
 numpy==2.3.4
 openpyxl==3.1.2
 phonenumbers==9.0.17
 Pillow
 pandas
+paramiko
 protobuf==6.33.0
 psycopg2==2.9.11
 psycopg2-binary==2.9.7

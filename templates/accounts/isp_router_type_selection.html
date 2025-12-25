@@ -1,0 +1,168 @@
+<!-- accounts/templates/accounts/isp_router_type_selection.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Add Router - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Select Router Type{% endblock %}
+{% block page_subtitle %}Choose the router manufacturer to configure{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Breadcrumbs -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'isp_routers' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-home mr-2"></i>
+                    Router Management
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right mx-2 text-gray-400"></i>
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Add Router</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Information Card -->
+    <div class="mb-8 bg-blue-50 border border-blue-200 rounded-2xl p-6">
+        <div class="flex items-start">
+            <i class="fas fa-info-circle text-blue-500 text-xl mt-1 mr-4"></i>
+            <div>
+                <h4 class="text-lg font-semibold text-blue-900 mb-2">Choose the Right Router Type</h4>
+                <p class="text-blue-700">Select your router manufacturer to get a customized configuration form with brand-specific options and setup tips.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Router Type Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Huawei -->
+        <a href="{% url 'isp_router_setup_huawei' %}" class="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-red-300 transition-all duration-200 cursor-pointer">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                    <i class="fas fa-broadcast-tower text-white text-2xl"></i>
+                </div>
+                <h4 class="text-xl font-bold text-gray-900 mb-2">Huawei</h4>
+                <p class="text-gray-600 text-sm mb-4">ONT devices and fiber routers with XML API support</p>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <span class="px-3 py-1 bg-red-100 text-red-800 text-xs rounded-full">HG8245H</span>
+                    <span class="px-3 py-1 bg-red-100 text-red-800 text-xs rounded-full">HG8145V5</span>
+                    <span class="px-3 py-1 bg-red-100 text-red-800 text-xs rounded-full">XML API</span>
+                </div>
+                <div class="mt-4 text-red-600 font-medium group-hover:text-red-700">
+                    Configure Huawei <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+        </a>
+
+        <!-- MikroTik -->
+        <a href="{% url 'isp_router_setup_mikrotik' %}" class="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-orange-300 transition-all duration-200 cursor-pointer">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                    <i class="fas fa-network-wired text-white text-2xl"></i>
+                </div>
+                <h4 class="text-xl font-bold text-gray-900 mb-2">MikroTik</h4>
+                <p class="text-gray-600 text-sm mb-4">RouterOS devices with advanced networking features</p>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <span class="px-3 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">RouterOS API</span>
+                    <span class="px-3 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">RB series</span>
+                    <span class="px-3 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">hAP series</span>
+                </div>
+                <div class="mt-4 text-orange-600 font-medium group-hover:text-orange-700">
+                    Configure MikroTik <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+        </a>
+
+        <!-- Tenda -->
+        <a href="{% url 'isp_router_setup_tenda' %}" class="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-blue-300 transition-all duration-200 cursor-pointer">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                    <i class="fas fa-wifi text-white text-2xl"></i>
+                </div>
+                <h4 class="text-xl font-bold text-gray-900 mb-2">Tenda</h4>
+                <p class="text-gray-600 text-sm mb-4">Home and small office routers with MD5 authentication</p>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">AC10</span>
+                    <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">F3</span>
+                    <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">MD5 Hash</span>
+                </div>
+                <div class="mt-4 text-blue-600 font-medium group-hover:text-blue-700">
+                    Configure Tenda <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+        </a>
+
+        <!-- TP-Link -->
+        <a href="{% url 'isp_router_setup_tplink' %}" class="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-green-300 transition-all duration-200 cursor-pointer">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                    <i class="fas fa-ethernet text-white text-2xl"></i>
+                </div>
+                <h4 class="text-xl font-bold text-gray-900 mb-2">TP-Link</h4>
+                <p class="text-gray-600 text-sm mb-4">Archer series routers with web interface support</p>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">Archer C7</span>
+                    <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">Web Interface</span>
+                    <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">Coming Soon</span>
+                </div>
+                <div class="mt-4 text-green-600 font-medium group-hover:text-green-700">
+                    Configure TP-Link <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+        </a>
+
+        <!-- Ubiquiti -->
+        <a href="{% url 'isp_router_setup_ubiquiti' %}" class="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-purple-300 transition-all duration-200 cursor-pointer">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                    <i class="fas fa-satellite-dish text-white text-2xl"></i>
+                </div>
+                <h4 class="text-xl font-bold text-gray-900 mb-2">Ubiquiti</h4>
+                <p class="text-gray-600 text-sm mb-4">UniFi and EdgeMAX platforms with centralized management</p>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">UniFi</span>
+                    <span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">EdgeMAX</span>
+                    <span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Coming Soon</span>
+                </div>
+                <div class="mt-4 text-purple-600 font-medium group-hover:text-purple-700">
+                    Configure Ubiquiti <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+        </a>
+
+        <!-- Other -->
+        <a href="{% url 'isp_router_setup_other' %}" class="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-gray-300 transition-all duration-200 cursor-pointer">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-gray-500 to-gray-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                    <i class="fas fa-router text-white text-2xl"></i>
+                </div>
+                <h4 class="text-xl font-bold text-gray-900 mb-2">Other</h4>
+                <p class="text-gray-600 text-sm mb-4">Generic router configuration for other manufacturers</p>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Generic</span>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Basic Setup</span>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Manual Config</span>
+                </div>
+                <div class="mt-4 text-gray-600 font-medium group-hover:text-gray-700">
+                    Configure Other <i class="fas fa-arrow-right ml-2"></i>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Traditional Form Option -->
+    <div class="mt-8 pt-8 border-t border-gray-200">
+        <div class="text-center">
+            <p class="text-gray-600 mb-4">Prefer the traditional setup form?</p>
+            <a href="{% url 'isp_add_router' %}" class="inline-flex items-center px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-colors">
+                <i class="fas fa-cogs mr-2"></i> Use Generic Router Form
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

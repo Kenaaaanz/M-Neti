@@ -1,0 +1,180 @@
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Update WiFi Settings - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Update WiFi Settings{% endblock %}
+{% block page_subtitle %}Change WiFi configuration on {{ router_config.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div class="mb-8">
+            <div class="flex items-center mb-4">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-wifi text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">{{ router_config.name }}</h3>
+                    <p class="text-gray-600">{{ router_config.router_type|title }} • {{ router_config.ip_address }}</p>
+                </div>
+                <div class="ml-auto">
+                    {% if router_config.is_online %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                        Online
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                        <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                        Offline
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- SSID -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Network Name (SSID)</label>
+                    <div class="relative">
+                        <i class="fas fa-signal absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" name="ssid" required
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               placeholder="Enter WiFi network name"
+                               value="{{ router_config.router.ssid|default:'' }}">
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">Maximum 32 characters</p>
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="password" name="password" required
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               placeholder="Enter WiFi password">
+                        <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">Minimum 8 characters</p>
+                </div>
+            </div>
+
+            <!-- Security Type -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Security Type</label>
+                <div class="relative">
+                    <i class="fas fa-shield-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10"></i>
+                    <select name="security_type" 
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition appearance-none bg-white">
+                        <option value="wpa2" selected>WPA2-Personal (Recommended)</option>
+                        <option value="wpa3">WPA3-Personal</option>
+                        <option value="wpa">WPA/WPA2-Personal</option>
+                        <option value="wep">WEP (Legacy)</option>
+                        <option value="none">Open Network (No Security)</option>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <div class="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-3"></i>
+                        <div>
+                            <p class="text-sm text-blue-700 font-medium">Security Recommendation</p>
+                            <p class="text-sm text-blue-600">Use WPA2 or WPA3 for best security. Avoid WEP as it's easily crackable.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Message -->
+            <div class="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                <div class="flex">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 mr-3 mt-0.5"></i>
+                    <div>
+                        <p class="text-yellow-800 font-medium">Important Notice</p>
+                        <p class="text-sm text-yellow-700 mt-1">
+                            Updating WiFi settings will disconnect all currently connected devices. 
+                            They will need to reconnect with the new credentials.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <a href="{% url 'isp_routers' %}" 
+                   class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium flex items-center">
+                    <i class="fas fa-save mr-2"></i>
+                    Update WiFi Settings
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Current Settings -->
+    <div class="mt-6 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h4 class="text-lg font-semibold text-gray-900 mb-4">Current Settings</h4>
+        <div class="grid md:grid-cols-3 gap-6">
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Current SSID</p>
+                <p class="font-medium text-gray-900">{{ router_config.router.ssid|default:"Not configured" }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Security Type</p>
+                <p class="font-medium text-gray-900">{{ router_config.router.get_security_type_display|default:"Unknown" }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-500 mb-1">Connected Devices</p>
+                <p class="font-medium text-gray-900">{{ router_config.router.connected_devices.count }} devices</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword() {
+    const passwordField = document.querySelector('input[name="password"]');
+    const icon = passwordField.nextElementSibling.querySelector('i');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const password = document.querySelector('input[name="password"]').value;
+    const security = document.querySelector('select[name="security_type"]').value;
+    
+    if (password.length < 8 && security !== 'none') {
+        e.preventDefault();
+        alert('Password must be at least 8 characters long for selected security type.');
+        return false;
+    }
+    
+    if ((security === 'wep' || security === 'none') && !confirm('WARNING: You have selected weak security. This makes your network vulnerable. Continue anyway?')) {
+        e.preventDefault();
+        return false;
+    }
+    
+    return true;
+});
+</script>
+{% endblock %}

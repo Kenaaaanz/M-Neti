@@ -1,0 +1,457 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Backup Codes Page Styles */
+    .backup-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .backup-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        max-width: 600px;
+        width: 100%;
+        animation: slideUp 0.6s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .backup-header {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        text-align: center;
+    }
+    
+    .backup-header h4 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.5rem;
+    }
+    
+    .backup-body {
+        padding: 2rem;
+    }
+    
+    .success-icon {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .success-icon i {
+        font-size: 4rem;
+        color: #10b981;
+        background: linear-gradient(135deg, #d1fae5 0%, #d9f99d 100%);
+        width: 100px;
+        height: 100px;
+        line-height: 100px;
+        border-radius: 50%;
+        margin: 0 auto;
+        display: block;
+    }
+    
+    .success-message {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .success-message h5 {
+        color: #065f46;
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .success-message p {
+        color: #64748b;
+        margin-bottom: 0.5rem;
+    }
+    
+    .warning-alert {
+        background: #fffbeb;
+        border: 2px solid #f59e0b;
+        color: #92400e;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .warning-alert i {
+        color: #f59e0b;
+        margin-right: 0.5rem;
+    }
+    
+    .backup-codes-container {
+        background: #f8fafc;
+        border: 2px dashed #cbd5e0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .backup-codes-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 640px) {
+        .backup-codes-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .backup-code {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .backup-code:hover {
+        border-color: #3b82f6;
+        background: #f0f9ff;
+        transform: translateY(-2px);
+    }
+    
+    .backup-code.copied {
+        background: #d1fae5;
+        border-color: #10b981;
+        color: #065f46;
+    }
+    
+    .backup-code.copied::after {
+        content: 'Copied!';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #10b981;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        animation: fadeOut 2s forwards;
+    }
+    
+    @keyframes fadeOut {
+        0% { opacity: 1; }
+        70% { opacity: 1; }
+        100% { opacity: 0; }
+    }
+    
+    .code-number {
+        display: block;
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+    
+    .actions-grid {
+        display: grid;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-download {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        border: none;
+        color: white;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        border-radius: 12px;
+        transition: all 0.3s;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+    
+    .btn-download:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-print {
+        background: white;
+        border: 2px solid #e2e8f0;
+        color: #64748b;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        border-radius: 12px;
+        transition: all 0.3s;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-print:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+    }
+    
+    .btn-continue {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+        color: white;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        border-radius: 12px;
+        transition: all 0.3s;
+        cursor: pointer;
+        display: block;
+        width: 100%;
+        text-align: center;
+        text-decoration: none;
+    }
+    
+    .btn-continue:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+    }
+    
+    /* Dark mode support */
+    [data-theme="dark"] .backup-card {
+        background: #1e293b;
+    }
+    
+    [data-theme="dark"] .success-message h5 {
+        color: #a7f3d0;
+    }
+    
+    [data-theme="dark"] .success-message p {
+        color: #cbd5e0;
+    }
+    
+    [data-theme="dark"] .warning-alert {
+        background: #451a03;
+        border-color: #9a3412;
+        color: #fdba74;
+    }
+    
+    [data-theme="dark"] .backup-codes-container {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    [data-theme="dark"] .backup-code {
+        background: #374151;
+        border-color: #4b5563;
+        color: #e5e7eb;
+    }
+    
+    [data-theme="dark"] .backup-code:hover {
+        background: #4b5563;
+        border-color: #60a5fa;
+    }
+    
+    [data-theme="dark"] .code-number {
+        color: #9ca3af;
+    }
+    
+    [data-theme="dark"] .btn-print {
+        background: #374151;
+        border-color: #4b5563;
+        color: #d1d5db;
+    }
+    
+    [data-theme="dark"] .btn-print:hover {
+        background: #4b5563;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="backup-container">
+    <div class="backup-card">
+        <div class="backup-header">
+            <h4>Two-Factor Authentication Enabled</h4>
+        </div>
+        <div class="backup-body">
+            <div class="success-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            
+            <div class="success-message">
+                <h5>✅ Setup Complete!</h5>
+                <p>Two-factor authentication has been successfully enabled for your account.</p>
+            </div>
+            
+            <div class="warning-alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Important:</strong> Save these backup codes in a secure location. You'll need them if you lose access to your authenticator app.
+            </div>
+            
+            <div class="backup-codes-container">
+                <h6 class="text-center font-semibold text-gray-700 mb-4">Your Backup Codes (One-time use)</h6>
+                
+                <div class="backup-codes-grid" id="backupCodesGrid">
+                    {% for code in backup_codes %}
+                    <div class="backup-code" onclick="copyBackupCode(this)">
+                        <span class="code-number">Code {{ forloop.counter }}</span>
+                        {{ code }}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <p class="text-sm text-gray-600 text-center">
+                    <i class="fas fa-lightbulb mr-1"></i>
+                    Each code can be used only once. Click on a code to copy it.
+                </p>
+            </div>
+            
+            <div class="actions-grid">
+                <button type="button" onclick="downloadBackupCodes()" class="btn-download">
+                    <i class="fas fa-download mr-2"></i> Download Backup Codes
+                </button>
+                
+                <button type="button" onclick="window.print()" class="btn-print">
+                    <i class="fas fa-print mr-2"></i> Print Backup Codes
+                </button>
+            </div>
+            
+            <a href="{% url 'profile' %}" class="btn-continue">
+                <i class="fas fa-arrow-right mr-2"></i> Continue to Profile
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Store backup codes in localStorage for download
+        const backupCodes = [
+            {% for code in backup_codes %}
+            "{{ code }}",
+            {% endfor %}
+        ];
+        
+        localStorage.setItem('backupCodes', JSON.stringify(backupCodes));
+    });
+    
+    function copyBackupCode(element) {
+        const code = element.textContent.split('\n')[1].trim(); // Get the code part
+        
+        navigator.clipboard.writeText(code).then(() => {
+            // Visual feedback
+            element.classList.add('copied');
+            
+            setTimeout(() => {
+                element.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            
+            // Fallback copy method
+            const textArea = document.createElement('textarea');
+            textArea.value = code;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            // Visual feedback
+            element.classList.add('copied');
+            setTimeout(() => {
+                element.classList.remove('copied');
+            }, 2000);
+        });
+    }
+    
+    function downloadBackupCodes() {
+        const backupCodes = JSON.parse(localStorage.getItem('backupCodes') || '[]');
+        
+        if (backupCodes.length === 0) {
+            alert('No backup codes available.');
+            return;
+        }
+        
+        const content = `M-Neti - Backup Codes
+=============================
+
+Two-Factor Authentication Backup Codes
+Generated: ${new Date().toLocaleDateString()}
+Account: {{ user.email }}
+
+IMPORTANT:
+- Each code can be used only once
+- Store this file in a secure location
+- If you lose all codes, you'll need to disable and re-enable 2FA
+
+BACKUP CODES:
+${backupCodes.map((code, index) => `${index + 1}. ${code}`).join('\n')}
+
+=============================
+Keep this file safe and secure!`;
+        
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        a.href = url;
+        a.download = `M-Neti-Backup-Codes-${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+    
+    // Print styles
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .backup-card, .backup-card * {
+                visibility: visible;
+            }
+            .backup-card {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+            .btn-download, .btn-print, .btn-continue {
+                display: none !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

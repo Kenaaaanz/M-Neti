@@ -3,970 +3,86 @@
 
 {% block page_title %}My Profile - Cloud Networks{% endblock %}
 
-{% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8">
-    <div class="flex flex-col md:flex-row gap-6">
-        <!-- Sidebar Navigation -->
-        <div class="w-full md:w-64">
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <div class="text-center mb-6">
-                    <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                        <span class="text-white text-2xl font-bold">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</span>
-                    </div>
-                    <h2 class="font-semibold text-lg">{{ user.full_name }}</h2>
-                    <p class="text-gray-600 text-sm">{{ user.email }}</p>
-                    <div class="mt-2 inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                        {{ user.get_account_type_display }} Account
-                    </div>
-                </div>
-
-                <nav class="space-y-1">
-                    <a href="#personal-info" class="flex items-center px-3 py-2 text-gray-700 bg-blue-50 rounded-lg font-medium">
-                        <i class="fas fa-user text-blue-500 w-5 mr-3"></i>
-                        Personal Information
-                    </a>
-                    <a href="#security" class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-                        <i class="fas fa-lock text-gray-500 w-5 mr-3"></i>
-                        Security
-                    </a>
-                    <a href="#billing" class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-                        <i class="fas fa-credit-card text-gray-500 w-5 mr-3"></i>
-                        Billing Information
-                    </a>
-                    <a href="#notifications" class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-                        <i class="fas fa-bell text-gray-500 w-5 mr-3"></i>
-                        Notifications
-                    </a>
-                    <a href="#preferences" class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-                        <i class="fas fa-cog text-gray-500 w-5 mr-3"></i>
-                        Preferences
-                    </a>
-                </nav>
-            </div>
-
-            <!-- Account Status Card -->
-            <div class="bg-white rounded-xl shadow-sm p-5">
-                <h3 class="font-medium text-gray-800 mb-3">Account Status</h3>
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Plan</span>
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                            {% if active_subscription %}
-                                {{ active_subscription.plan.name }}
-                            {% else %}
-                                {% if billing_enabled %}No Plan{% else %}Demo{% endif %}
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Billing Cycle</span>
-                        <span class="text-sm font-medium">
-                            {% if active_subscription %}
-                                {{ active_subscription.plan.get_billing_cycle_display }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Status</span>
-                        <span class="text-sm font-medium {% if active_subscription %}text-green-600{% else %}text-yellow-600{% endif %}">
-                            {% if active_subscription %}Active{% else %}{% if billing_enabled %}Inactive{% else %}Demo{% endif %}{% endif %}
-                        </span>
-                    </div>
-                </div>
-                
-                {% if active_subscription %}
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm text-gray-600">Days Remaining</span>
-                        <span class="text-sm font-bold text-blue-600">{{ active_subscription.days_remaining }} days</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-blue-600 h-2 rounded-full progress-bar" 
-                             style="width: {% widthratio active_subscription.days_remaining 30 100 %}%"></div>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <a href="{% url 'plan_selection' %}" class="w-full mt-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors text-center block">
-                    {% if active_subscription %}Upgrade Plan{% else %}Subscribe Now{% endif %}
-                </a>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="flex-1">
-            <!-- Display Messages -->
-            {% if messages %}
-            <div class="mb-6 space-y-2">
-                {% for message in messages %}
-                <div class="{% if message.tags == 'success' %}bg-green-100 border border-green-400 text-green-700{% else %}bg-red-100 border border-red-400 text-red-700{% endif %} px-4 py-3 rounded-lg relative" role="alert">
-                    <span class="block sm:inline">{{ message }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <!-- Personal Information Section -->
-            <div id="personal-info" class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-semibold flex items-center">
-                        <i class="fas fa-user text-blue-500 mr-3"></i>
-                        Personal Information
-                    </h2>
-                </div>
-
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="update_profile" value="true">
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div class="form-group">
-                            <label class="form-label">First Name</label>
-                            <input type="text" class="form-control" name="first_name" value="{{ user.first_name }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Last Name</label>
-                            <input type="text" class="form-control" name="last_name" value="{{ user.last_name }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Email Address</label>
-                            <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
-                            {% if user.email_verified %}
-                            <span class="text-xs text-green-600 mt-1">✓ Email verified</span>
-                            {% else %}
-                            <span class="text-xs text-yellow-600 mt-1">⚠ Email not verified</span>
-                            {% endif %}
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" name="phone" value="{{ user.phone|default:'' }}" placeholder="+254...">
-                        </div>
-                    </div>
-
-                    <div class="form-group mb-6">
-                        <label class="form-label">Address</label>
-                        <textarea class="form-control" rows="3" name="address" placeholder="Enter your full address">{{ user.address|default:'' }}</textarea>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div class="form-group">
-                            <label class="form-label">City</label>
-                            <input type="text" class="form-control" name="city" value="{{ user.city|default:'' }}" placeholder="City">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">State</label>
-                            <input type="text" class="form-control" name="state" value="{{ user.state|default:'' }}" placeholder="State">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">ZIP Code</label>
-                            <input type="text" class="form-control" name="zip_code" value="{{ user.zip_code|default:'' }}" placeholder="ZIP">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Country</label>
-                            <select class="form-control" name="country">
-                                <option value="">Select Country</option>
-                                {% for code, name in countries %}
-                                <option value="{{ code }}" {% if user.country.code == code %}selected{% endif %}>
-                                    {{ name }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Account Number</label>
-                        <input type="text" class="form-control" value="{{ user.company_account_number }}" disabled>
-                        <p class="text-xs text-gray-500 mt-1">Your unique account number cannot be changed</p>
-                    </div>
-
-                    <div class="mt-6">
-                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg font-medium">
-                            Save Changes
-                        </button>
-                        <button type="button" class="ml-3 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-6 rounded-lg font-medium" onclick="resetForm(this.form)">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- 2FA setup -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Two-Factor Authentication</h5>
-                </div>
-                <div class="card-body">
-                    {% if user.two_factor_enabled %}
-                        <div class="alert alert-success">
-                            <i class="fas fa-shield-alt"></i>
-                            <strong>2FA is enabled</strong> for your account.
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <a href="{% url 'regenerate_backup_codes' %}" class="btn btn-outline-primary">
-                                    <i class="fas fa-redo"></i> Regenerate Backup Codes
-                                </a>
-                            </div>
-                            <div class="col-md-6 text-end">
-                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#disable2FAModal">
-                                    <i class="fas fa-ban"></i> Disable 2FA
-                                </button>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <strong>2FA is not enabled</strong> - Your account is less secure.
-                        </div>
-                        <a href="{% url 'setup_2fa' %}" class="btn btn-primary">
-                            <i class="fas fa-shield-alt"></i> Enable Two-Factor Authentication
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Security Section -->
-            <div id="security" class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <h2 class="text-xl font-semibold mb-6 flex items-center">
-                    <i class="fas fa-lock text-blue-500 mr-3"></i>
-                    Security Settings
-                </h2>
-
-                <div class="space-y-6">
-                    <!-- Password Change -->
-                    <div class="border-b border-gray-100 pb-6">
-                        <h3 class="font-medium text-gray-800 mb-3">Change Password</h3>
-                        <form method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="change_password" value="true">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="form-group">
-                                    <label class="form-label">Current Password</label>
-                                    {{ password_form.old_password }}
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">New Password</label>
-                                    {{ password_form.new_password1 }}
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Confirm New Password</label>
-                                    {{ password_form.new_password2 }}
-                                </div>
-                                <div class="form-group flex items-end">
-                                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg font-medium">
-                                        Update Password
-                                    </button>
-                                </div>
-                            </div>
-                            {% if password_form.errors %}
-                            <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                <ul class="text-sm text-red-600">
-                                    {% for field in password_form %}
-                                        {% for error in field.errors %}
-                                            <li>{{ error }}</li>
-                                        {% endfor %}
-                                    {% endfor %}
-                                    {% for error in password_form.non_field_errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            {% endif %}
-                        </form>
-                    </div>
-
-                    <!-- Two-Factor Authentication -->
-                    <div class="border-b border-gray-100 pb-6">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h3 class="font-medium text-gray-800">Two-Factor Authentication</h3>
-                                <p class="text-sm text-gray-600">Add an extra layer of security to your account</p>
-                                <p class="text-xs text-gray-500 mt-1">
-                                    {% if user.two_factor_enabled %}
-                                    <span class="text-green-600">✓ 2FA is enabled</span>
-                                    {% else %}
-                                    <span class="text-yellow-600">⚠ 2FA is disabled</span>
-                                    {% endif %}
-                                </p>
-                            </div>
-                            <div class="flex space-x-2">
-                                {% if user.two_factor_enabled %}
-                                <form method="post" action="{% url 'disable_2fa' %}">
-                                    {% csrf_token %}
-                                    <button type="submit" 
-                                            class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium"
-                                            onclick="return confirm('Are you sure you want to disable two-factor authentication?')">
-                                        Disable 2FA
-                                    </button>
-                                </form>
-                                {% else %}
-                                <form method="post" action="{% url 'enable_2fa' %}">
-                                    {% csrf_token %}
-                                    <button type="submit" 
-                                            class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium">
-                                        Enable 2FA
-                                    </button>
-                                </form>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Session Management -->
-                    <div>
-                        <h3 class="font-medium text-gray-800 mb-3">Active Sessions</h3>
-                        <div class="bg-gray-50 rounded-lg p-4 space-y-4">
-                            {% for session in active_sessions %}
-                            <div class="flex items-center justify-between py-2">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 {% if session.session_key == request.session.session_key %}bg-blue-100{% else %}bg-gray-100{% endif %} rounded-lg flex items-center justify-center mr-3">
-                                        <i class="fas {% if 'Mobile' in session.device_type %}fa-mobile-alt text-green-500{% else %}fa-desktop text-blue-500{% endif %}"></i>
-                                    </div>
-                                    <div>
-                                        <p class="font-medium">{{ session.device_type|default:"Unknown Device" }}</p>
-                                        <p class="text-sm text-gray-600">
-                                            {{ session.location|default:"Unknown Location" }} • 
-                                            {{ session.last_activity|timesince }} ago
-                                            {% if session.session_key == request.session.session_key %}
-                                            • <span class="text-green-600">Current</span>
-                                            {% endif %}
-                                        </p>
-                                    </div>
-                                </div>
-                                {% if session.session_key != request.session.session_key %}
-                                <form method="post" action="{% url 'revoke_session' session.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" 
-                                            class="text-red-500 hover:text-red-700 text-sm font-medium"
-                                            onclick="return confirm('Are you sure you want to revoke this session?')">
-                                        Revoke
-                                    </button>
-                                </form>
-                                {% else %}
-                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Current</span>
-                                {% endif %}
-                            </div>
-                            {% empty %}
-                            <p class="text-gray-500 text-center py-4">No active sessions found</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Billing Information Section -->
-            <div id="billing" class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <h2 class="text-xl font-semibold mb-6 flex items-center">
-                    <i class="fas fa-credit-card text-blue-500 mr-3"></i>
-                    Billing Information
-                    {% if not billing_enabled %}
-                    <span class="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Demo Data</span>
-                    {% endif %}
-                </h2>
-
-                {% if not billing_enabled %}
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                    <div class="flex items-center">
-                        <i class="fas fa-info-circle text-yellow-500 mr-2"></i>
-                        <p class="text-sm text-yellow-700">
-                            Billing module is not installed. Showing demo data. 
-                            <a href="#" class="underline">Learn how to enable billing</a>
-                        </p>
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <!-- Current Subscription -->
-                    <div>
-                        <h3 class="font-medium text-gray-800 mb-4">Current Subscription</h3>
-                        {% if active_subscription %}
-                        <div class="border border-gray-200 rounded-lg p-4 mb-4">
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <h4 class="font-semibold text-lg text-gray-800">{{ active_subscription.plan.name }}</h4>
-                                    <p class="text-sm text-gray-600">{{ active_subscription.plan.description }}</p>
-                                </div>
-                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                                    Active
-                                </span>
-                            </div>
-                            
-                            <div class="space-y-2 mb-4">
-                                <div class="flex justify-between">
-                                    <span class="text-sm text-gray-600">Speed:</span>
-                                    <span class="text-sm font-medium">{{ active_subscription.plan.speed }}</span>
-                                </div>
-                                {% if active_subscription.plan.data_limit %}
-                                <div class="flex justify-between">
-                                    <span class="text-sm text-gray-600">Data Limit:</span>
-                                    <span class="text-sm font-medium">{{ active_subscription.plan.data_limit }}</span>
-                                </div>
-                                {% endif %}
-                                <div class="flex justify-between">
-                                    <span class="text-sm text-gray-600">Billing Cycle:</span>
-                                    <span class="text-sm font-medium">{{ active_subscription.plan.get_billing_cycle_display }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-sm text-gray-600">Price:</span>
-                                    <span class="text-sm font-medium">Ksh {{ active_subscription.plan.price }}</span>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-blue-50 rounded-lg p-3 mb-3">
-                                <div class="flex justify-between items-center mb-1">
-                                    <span class="text-sm font-medium text-blue-800">Days Remaining</span>
-                                    <span class="text-sm font-bold text-blue-800">{{ active_subscription.days_remaining }} days</span>
-                                </div>
-                                <div class="w-full bg-blue-200 rounded-full h-2">
-                                    <div class="bg-blue-600 h-2 rounded-full progress-bar" 
-                                         style="width: {% widthratio active_subscription.days_remaining 30 100 %}%"></div>
-                                </div>
-                                <p class="text-xs text-blue-600 mt-1">
-                                    Renews on {{ active_subscription.end_date|date:"M d, Y" }}
-                                </p>
-                            </div>
-                            
-                            <div class="flex space-x-2">
-                                {% if active_subscription.auto_renew %}
-                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
-                                    Auto-renew ON
-                                </span>
-                                {% else %}
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
-                                    Auto-renew OFF
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="border border-gray-200 rounded-lg p-6 text-center">
-                            <i class="fas fa-wifi text-gray-400 text-4xl mb-3"></i>
-                            <h4 class="font-medium text-gray-800 mb-2">
-                                {% if billing_enabled %}No Active Subscription{% else %}Billing Module Not Available{% endif %}
-                            </h4>
-                            <p class="text-sm text-gray-600 mb-4">
-                                {% if billing_enabled %}
-                                You don't have an active internet plan
-                                {% else %}
-                                Install the billing module to manage subscriptions
-                                {% endif %}
-                            </p>
-                            {% if billing_enabled %}
-                            <a href="{% url 'paystack_subscribe' %}" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium inline-block">
-                                Subscribe Now
-                            </a>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-
-                        <!-- Available Plans -->
-                        {% if available_plans %}
-                        <div class="mt-6">
-                            <h4 class="font-medium text-gray-800 mb-3">Available Plans</h4>
-                            <div class="space-y-3">
-                                {% for plan in available_plans %}
-                                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h5 class="font-semibold text-gray-800">{{ plan.name }}</h5>
-                                            <p class="text-sm text-gray-600">{{ plan.speed }}</p>
-                                        </div>
-                                        <span class="text-lg font-bold text-blue-600">Ksh {{ plan.price }}</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mb-3">{{ plan.description }}</p>
-                                    {% if billing_enabled %}
-                                    <button type="button" 
-                                            onclick="redirectToPaystackPlan('{{ plan.id }}')" 
-                                            class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded text-sm font-medium">
-                                        Upgrade to {{ plan.name }}
-                                    </button>
-                                    {% else %}
-                                    <button class="w-full bg-gray-400 text-white py-2 px-3 rounded text-sm font-medium cursor-not-allowed" disabled>
-                                        Billing Disabled
-                                    </button>
-                                    {% endif %}
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% elif not billing_enabled %}
-                        <!-- Demo plans when billing is not available -->
-                        <div class="mt-6">
-                            <h4 class="font-medium text-gray-800 mb-3">Demo Plans</h4>
-                            <div class="space-y-3">
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h5 class="font-semibold text-gray-800">Basic Plan</h5>
-                                            <p class="text-sm text-gray-600">50 Mbps</p>
-                                        </div>
-                                        <span class="text-lg font-bold text-blue-600">Ksh 1,999</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mb-3">Perfect for browsing and streaming</p>
-                                    <button class="w-full bg-gray-400 text-white py-2 px-3 rounded text-sm font-medium cursor-not-allowed" disabled>
-                                        Install Billing Module
-                                    </button>
-                                </div>
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h5 class="font-semibold text-gray-800">Premium Plan</h5>
-                                            <p class="text-sm text-gray-600">100 Mbps</p>
-                                        </div>
-                                        <span class="text-lg font-bold text-blue-600">Ksh 3,999</span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mb-3">Ideal for gaming and 4K streaming</p>
-                                    <button class="w-full bg-gray-400 text-white py-2 px-3 rounded text-sm font-medium cursor-not-allowed" disabled>
-                                        Install Billing Module
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Payment Methods & Billing Address -->
-                    <div class="space-y-6">
-                        <!-- Payment Methods -->
-                        <div>
-                            <h3 class="font-medium text-gray-800 mb-4">Payment Methods</h3>
-                            <div class="space-y-4">
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <div class="flex items-center">
-                                            <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center mr-3">
-                                                <i class="fab fa-cc-visa text-blue-500"></i>
-                                            </div>
-                                            <span class="font-medium">Visa ending in 4567</span>
-                                        </div>
-                                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Default</span>
-                                    </div>
-                                    <p class="text-sm text-gray-600">Expires 12/2024</p>
-                                </div>
-
-                                <button class="w-full border-2 border-dashed border-gray-300 rounded-lg py-3 text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors {% if not billing_enabled %}cursor-not-allowed{% endif %}" {% if not billing_enabled %}disabled{% endif %}>
-                                    <i class="fas fa-plus mr-2"></i> 
-                                    {% if billing_enabled %}Add Payment Method{% else %}Billing Disabled{% endif %}
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Billing Address -->
-                        <!--<div>
-                            <h3 class="font-medium text-gray-800 mb-4">Billing Address</h3>-->
-                            
-                            <!-- Current Billing Address Display -->
-                            <!--<div class="bg-gray-50 rounded-lg p-4 mb-4">
-                                <h4 class="font-medium text-gray-800 mb-2">Current Billing Address</h4>
-                                <p class="text-sm text-gray-600" id="billing-address-display">
-                                    {% if user.billing_address %}
-                                        {{ user.billing_address|linebreaksbr }}
-                                    {% else %}
-                                        No billing address set. Update your personal address information above and click "Update Billing Address".
-                                    {% endif %}
-                                </p>
-                            </div>-->
-                            
-                            <!-- Update Billing Address Button -->
-                            <!--<div class="mb-4">
-                                <button type="button" id="update-billing-address-btn" onclick="updateBillingAddress()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm">
-                                    <i class="fas fa-sync-alt mr-2"></i> Update Billing Address
-                                </button>
-                                <div id="billing-address-note" class="text-xs text-gray-500 mt-2">
-                                    Your billing address is automatically generated from your personal address information.
-                                </div>
-                            </div>-->
-                            
-                            <!-- Quick Address Update Form -->
-                            <!--<div class="border-t border-gray-200 pt-4">
-                                <h4 class="font-medium text-gray-800 mb-3">Quick Address Update</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div class="form-group">
-                                        <label class="form-label text-xs">Street Address</label>
-                                        <input type="text" class="form-control text-sm" name="address" value="{{ user.address|default:'' }}" placeholder="Enter street address">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label text-xs">City</label>
-                                        <input type="text" class="form-control text-sm" name="city" value="{{ user.city|default:'' }}" placeholder="City">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label text-xs">State/Province</label>
-                                        <input type="text" class="form-control text-sm" name="state" value="{{ user.state|default:'' }}" placeholder="State">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label text-xs">ZIP/Postal Code</label>
-                                        <input type="text" class="form-control text-sm" name="zip_code" value="{{ user.zip_code|default:'' }}" placeholder="ZIP Code">
-                                    </div>
-                                    <div class="form-group md:col-span-2">
-                                        <label class="form-label text-xs">Country</label>
-                                        <select class="form-control text-sm" name="country">
-                                            <option value="">Select Country</option>
-                                            {% for code, name in countries %}
-                                            <option value="{{ code }}" {% if user.country.code == code %}selected{% endif %}>
-                                                {{ name }}
-                                            </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-3">
-                                    <button type="button" onclick="updateBillingAddress()" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm">
-                                        <i class="fas fa-save mr-2"></i> Save & Update Billing Address
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>-->
-
-                <!-- Billing History -->
-                <!--<div>
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-medium text-gray-800">Billing History</h3>
-                        {% if payment_history %}
-                        <span class="text-sm text-gray-500">{{ payment_history|length }} transactions</span>
-                        {% endif %}
-                    </div>
-                    
-                    {% if payment_history %}
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="bg-gray-50">
-                                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Date</th>
-                                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Description</th>
-                                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Reference</th>
-                                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Amount</th>
-                                    <th class="py-3 px-4 text-left text-sm font-medium text-gray-500">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                {% for payment in payment_history %}
-                                <tr class="hover:bg-gray-50">
-                                    <td class="py-3 px-4">
-                                        <div class="text-sm text-gray-900">{{ payment.created_at|date:"M d, Y" }}</div>
-                                        <div class="text-xs text-gray-500">{{ payment.created_at|time }}</div>
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div class="text-sm font-medium text-gray-900">{{ payment.plan.name }}</div>
-                                        <div class="text-xs text-gray-500">{{ payment.plan.get_billing_cycle_display }}</div>
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div class="text-sm text-gray-900 font-mono">{{ payment.reference|truncatechars:12 }}</div>
-                                        {% if payment.paystack_reference %}
-                                        <div class="text-xs text-gray-500">Paystack: {{ payment.paystack_reference|truncatechars:10 }}</div>
-                                        {% endif %}
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div class="text-sm font-medium text-gray-900">Ksh {{ payment.amount }}</div>
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        {% if payment.status == 'success' %}
-                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                            <i class="fas fa-check-circle mr-1"></i> Success
-                                        </span>
-                                        {% elif payment.status == 'pending' %}
-                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                                            <i class="fas fa-clock mr-1"></i> Pending
-                                        </span>
-                                        {% else %}
-                                        <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
-                                            <i class="fas fa-times-circle mr-1"></i> Failed
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-8">
-                        <i class="fas fa-receipt text-gray-400 text-4xl mb-3"></i>
-                        <h4 class="font-medium text-gray-800 mb-2">
-                            {% if billing_enabled %}No Payment History{% else %}Billing History Unavailable{% endif %}
-                        </h4>
-                        <p class="text-sm text-gray-600">
-                            {% if billing_enabled %}
-                            Your payment history will appear here
-                            {% else %}
-                            Install the billing module to view payment history
-                            {% endif %}
-                        </p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>-->
-
-            <!-- Notifications Section -->
-            <div id="notifications" class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <h2 class="text-xl font-semibold mb-6 flex items-center">
-                    <i class="fas fa-bell text-blue-500 mr-3"></i>
-                    Notification Preferences
-                </h2>
-
-                <form method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="update_notifications" value="true">
-                    <div class="space-y-6">
-                        <div class="flex justify-between items-center py-3">
-                            <div>
-                                <h3 class="font-medium text-gray-800">Email Notifications</h3>
-                                <p class="text-sm text-gray-600">Receive important updates via email</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="email_notifications" {% if user.email_notifications %}checked{% endif %}>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="flex justify-between items-center py-3">
-                            <div>
-                                <h3 class="font-medium text-gray-800">SMS Notifications</h3>
-                                <p class="text-sm text-gray-600">Get text messages for urgent alerts</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="sms_notifications" {% if user.sms_notifications %}checked{% endif %}>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="flex justify-between items-center py-3">
-                            <div>
-                                <h3 class="font-medium text-gray-800">Billing Reminders</h3>
-                                <p class="text-sm text-gray-600">Receive payment due reminders</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="billing_reminders" {% if user.billing_reminders %}checked{% endif %}>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="flex justify-between items-center py-3">
-                            <div>
-                                <h3 class="font-medium text-gray-800">Service Updates</h3>
-                                <p class="text-sm text-gray-600">Notifications about service maintenance</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="service_updates" {% if user.service_updates %}checked{% endif %}>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="flex justify-between items-center py-3">
-                            <div>
-                                <h3 class="font-medium text-gray-800">Promotional Offers</h3>
-                                <p class="text-sm text-gray-600">Special deals and offers</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="promotional_offers" {% if user.promotional_offers %}checked{% endif %}>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="pt-4">
-                            <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg font-medium">
-                                Save Notification Preferences
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Preferences Section -->
-            <div id="preferences" class="bg-white rounded-xl shadow-sm p-6">
-                <h2 class="text-xl font-semibold mb-6 flex items-center">
-                    <i class="fas fa-cog text-blue-500 mr-3"></i>
-                    Account Preferences
-                </h2>
-
-                <div class="space-y-6">
-                    <div class="form-group">
-                        <label class="form-label">Language</label>
-                        <select class="form-control" name="language">
-                            <option value="en" {% if user.language == 'en' %}selected{% endif %}>English</option>
-                            <option value="es" {% if user.language == 'es' %}selected{% endif %}>Spanish</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Time Zone</label>
-                        <select class="form-control" name="timezone">
-                            <option value="UTC" {% if user.timezone == 'UTC' %}selected{% endif %}>(UTC) Coordinated Universal Time</option>
-                            <option value="Africa/Nairobi" {% if user.timezone == 'Africa/Nairobi' %}selected{% endif %}>(UTC+3) East Africa Time</option>
-                            <option value="America/New_York" {% if user.timezone == 'America/New_York' %}selected{% endif %}>(UTC-5) Eastern Time</option>
-                            <option value="Europe/London" {% if user.timezone == 'Europe/London' %}selected{% endif %}>(UTC+0) Greenwich Mean Time</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Date Format</label>
-                        <select class="form-control" name="date_format">
-                            <option value="MM/DD/YYYY" {% if user.date_format == 'MM/DD/YYYY' %}selected{% endif %}>MM/DD/YYYY</option>
-                            <option value="DD/MM/YYYY" {% if user.date_format == 'DD/MM/YYYY' %}selected{% endif %}>DD/MM/YYYY</option>
-                            <option value="YYYY-MM-DD" {% if user.date_format == 'YYYY-MM-DD' %}selected{% endif %}>YYYY-MM-DD</option>
-                        </select>
-                    </div>
-
-                    <div class="flex justify-between items-center py-3">
-                        <div>
-                            <h3 class="font-medium text-gray-800">Dark Mode</h3>
-                            <p class="text-sm text-gray-600">Switch to dark theme</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" name="dark_mode" {% if user.dark_mode %}checked{% endif %}>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="pt-4">
-                        <button type="button" id="save-preferences-btn" onclick="updatePreferences()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg font-medium">
-                            Save Preferences
-                        </button>
-                    </div>
-
-                    <!-- Notification Preferences -->
-                    <div class="pt-6 border-t border-gray-200">
-                        <h3 class="font-medium text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-bell text-blue-500 mr-2"></i>
-                            Notification Preferences
-                        </h3>
-                        
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-center py-2">
-                                <div>
-                                    <h4 class="font-medium text-gray-800">Email Notifications</h4>
-                                    <p class="text-sm text-gray-600">Receive important updates via email</p>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" name="email_notifications" {% if user.email_notifications %}checked{% endif %}>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="flex justify-between items-center py-2">
-                                <div>
-                                    <h4 class="font-medium text-gray-800">SMS Notifications</h4>
-                                    <p class="text-sm text-gray-600">Get text messages for urgent alerts</p>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" name="sms_notifications" {% if user.sms_notifications %}checked{% endif %}>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="flex justify-between items-center py-2">
-                                <div>
-                                    <h4 class="font-medium text-gray-800">Billing Reminders</h4>
-                                    <p class="text-sm text-gray-600">Receive payment due reminders</p>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" name="billing_reminders" {% if user.billing_reminders %}checked{% endif %}>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="flex justify-between items-center py-2">
-                                <div>
-                                    <h4 class="font-medium text-gray-800">Service Updates</h4>
-                                    <p class="text-sm text-gray-600">Notifications about service maintenance</p>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" name="service_updates" {% if user.service_updates %}checked{% endif %}>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="flex justify-between items-center py-2">
-                                <div>
-                                    <h4 class="font-medium text-gray-800">Promotional Offers</h4>
-                                    <p class="text-sm text-gray-600">Special deals and offers</p>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" name="promotional_offers" {% if user.promotional_offers %}checked{% endif %}>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Danger Zone -->
-                    <div class="pt-4 border-t border-gray-100">
-                        <h3 class="font-medium text-gray-800 mb-3">Danger Zone</h3>
-                        <div class="space-y-4">
-                            <div class="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <div>
-                                    <h4 class="font-medium text-yellow-800">Export Your Data</h4>
-                                    <p class="text-sm text-yellow-700">Download all your personal data in JSON or CSV format</p>
-                                </div>
-                                <div class="flex space-x-2">
-                                    <a href="{% url 'export_data' %}?format=json" 
-                                    class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded text-sm font-medium">
-                                        <i class="fas fa-download mr-2"></i> JSON
-                                    </a>
-                                    <a href="{% url 'export_data' %}?format=csv" 
-                                    class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded text-sm font-medium">
-                                        <i class="fas fa-file-csv mr-2"></i> CSV
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
-                                <div>
-                                    <h4 class="font-medium text-red-800">Delete Account</h4>
-                                    <p class="text-sm text-red-700">Permanently delete your account and all associated data</p>
-                                </div>
-                                <a href="{% url 'delete_account' %}" 
-                                class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded text-sm font-medium">
-                                    <i class="fas fa-trash-alt mr-2"></i> Delete Account
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
+{% block extra_css %}
 <style>
-    .form-group {
-        margin-bottom: 1rem;
+    /* Profile Page Custom Styles */
+    .profile-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
     }
     
-    .form-label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-        color: #374151;
+    .sidebar-nav a.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
     
-    .form-control {
-        width: 100%;
-        padding: 0.625rem 0.75rem;
-        border: 1px solid #D1D5DB;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        transition: all 0.2s;
+    .sidebar-nav a:hover:not(.active) {
+        background-color: #f8fafc;
+        transform: translateX(5px);
+        transition: all 0.3s ease;
     }
     
-    .form-control:focus {
-        outline: none;
-        border-color: #3B82F6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    .section-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+    
+    .section-card:hover {
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+    
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .badge-success {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    
+    .badge-warning {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    
+    .badge-danger {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .badge-info {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .progress-container {
+        height: 8px;
+        background-color: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        transition: width 1s ease-in-out;
+        border-radius: 4px;
     }
     
     .toggle-switch {
         position: relative;
-        display: inline-block;
-        width: 50px;
-        height: 26px;
+        width: 60px;
+        height: 32px;
     }
     
     .toggle-switch input {
@@ -975,154 +91,1002 @@
         height: 0;
     }
     
-    .slider {
+    .toggle-slider {
         position: absolute;
         cursor: pointer;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: #ccc;
+        background-color: #cbd5e0;
         transition: .4s;
         border-radius: 34px;
     }
     
-    .slider:before {
+    .toggle-slider:before {
         position: absolute;
         content: "";
-        height: 18px;
-        width: 18px;
+        height: 24px;
+        width: 24px;
         left: 4px;
         bottom: 4px;
         background-color: white;
         transition: .4s;
         border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
     
-    input:checked + .slider {
-        background-color: #3B82F6;
+    input:checked + .toggle-slider {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
     }
     
-    input:checked + .slider:before {
-        transform: translateX(24px);
+    input:checked + .toggle-slider:before {
+        transform: translateX(28px);
     }
     
-    .progress-bar {
-        transition: width 0.3s ease-in-out;
+    .session-item {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1rem 0;
+    }
+    
+    .session-item:last-child {
+        border-bottom: none;
+    }
+    
+    .session-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+    }
+    
+    .plan-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .plan-card:hover {
+        border-color: #3b82f6;
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.15);
+    }
+    
+    .plan-card.featured {
+        border-color: #3b82f6;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
+    }
+    
+    .danger-zone {
+        border: 2px dashed #ef4444;
+        background-color: #fef2f2;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    
+    .warning-zone {
+        border: 2px dashed #f59e0b;
+        background-color: #fffbeb;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    
+    .btn-gradient {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-gradient:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-outline-gradient {
+        background: white;
+        color: #3b82f6;
+        border: 2px solid #3b82f6;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-outline-gradient:hover {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .user-avatar {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f1f5f9;
+    }
+    
+    .section-header i {
+        font-size: 1.5rem;
+        color: #3b82f6;
+        margin-right: 1rem;
+    }
+    
+    .section-header h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+    }
+    
+    /* Animation for messages */
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .alert-message {
+        animation: slideIn 0.3s ease;
     }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">My Profile</h1>
+                        <p class="text-gray-600 mt-2">Manage your account settings and preferences</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'dashboard' %}" class="btn-outline-gradient">
+                            <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Messages -->
+            {% if messages %}
+            <div class="mb-6 space-y-3">
+                {% for message in messages %}
+                <div class="alert-message {% if message.tags == 'success' %}bg-green-100 border-green-400 text-green-700{% else %}bg-red-100 border-red-400 text-red-700{% endif %} p-4 rounded-lg shadow-sm">
+                    <div class="flex items-center">
+                        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-3"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Left Sidebar -->
+                <div class="lg:w-1/4">
+                    <!-- Profile Summary Card -->
+                    <div class="section-card p-6 mb-6">
+                        <!-- Avatar -->
+                        <div class="user-avatar">
+                            {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                        </div>
+                        
+                        <!-- User Info -->
+                        <div class="text-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">{{ user.get_full_name|default:user.username }}</h3>
+                            <p class="text-gray-600 text-sm">{{ user.email }}</p>
+                            <div class="mt-3">
+                                <span class="badge badge-success">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    {{ user.get_account_type_display }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Navigation -->
+                        <nav class="sidebar-nav space-y-1">
+                            <a href="#personal" class="flex items-center px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-user w-5 mr-3"></i>
+                                Personal Information
+                            </a>
+                            <a href="#security" class="flex items-center px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-shield-alt w-5 mr-3"></i>
+                                Security
+                            </a>
+                            <a href="#billing" class="flex items-center px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-credit-card w-5 mr-3"></i>
+                                Billing & Subscription
+                            </a>
+                            <a href="#notifications" class="flex items-center px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-bell w-5 mr-3"></i>
+                                Notifications
+                            </a>
+                            <a href="#preferences" class="flex items-center px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-cog w-5 mr-3"></i>
+                                Preferences
+                            </a>
+                        </nav>
+                    </div>
+
+                    <!-- Account Status Card -->
+                    <div class="section-card p-6">
+                        <h4 class="font-bold text-gray-900 mb-4">Account Status</h4>
+                        
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Current Plan</span>
+                                <span class="badge {% if active_subscription %}badge-success{% else %}badge-warning{% endif %}">
+                                    {% if active_subscription %}
+                                        {{ active_subscription.plan.name }}
+                                    {% else %}
+                                        {% if billing_enabled %}No Plan{% else %}Demo{% endif %}
+                                    {% endif %}
+                                </span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Status</span>
+                                <span class="font-semibold {% if active_subscription %}text-green-600{% else %}text-yellow-600{% endif %}">
+                                    {% if active_subscription %}Active{% else %}{% if billing_enabled %}Inactive{% else %}Demo{% endif %}{% endif %}
+                                </span>
+                            </div>
+                            
+                            {% if active_subscription %}
+                            <div class="pt-3 border-t border-gray-200">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-600">Days Remaining</span>
+                                    <span class="font-bold text-blue-600">{{ active_subscription.days_remaining }}</span>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width: {% widthratio active_subscription.days_remaining 30 100 %}%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    Renews on {{ active_subscription.end_date|date:"M d, Y" }}
+                                </p>
+                            </div>
+                            {% endif %}
+                            
+                            <a href="{% url 'plan_selection' %}" class="btn-gradient w-full text-center">
+                                {% if active_subscription %}Upgrade Plan{% else %}Subscribe Now{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Content -->
+                <div class="lg:w-3/4">
+                    <!-- Personal Information -->
+                    <section id="personal" class="section-card p-8 mb-8">
+                        <div class="section-header">
+                            <i class="fas fa-user"></i>
+                            <h2>Personal Information</h2>
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <!-- Basic Info -->
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="form-label">First Name</label>
+                                        <input type="text" name="first_name" value="{{ user.first_name }}" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Last Name</label>
+                                        <input type="text" name="last_name" value="{{ user.last_name }}" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Email Address</label>
+                                        <input type="email" name="email" value="{{ user.email }}" class="form-input" required>
+                                        {% if user.email_verified %}
+                                        <p class="text-sm text-green-600 mt-1">
+                                            <i class="fas fa-check-circle"></i> Email verified
+                                        </p>
+                                        {% else %}
+                                        <p class="text-sm text-yellow-600 mt-1">
+                                            <i class="fas fa-exclamation-triangle"></i> Email not verified
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Phone Number</label>
+                                        <input type="tel" name="phone" value="{{ user.phone|default:'' }}" class="form-input" placeholder="+254...">
+                                    </div>
+                                </div>
+                                
+                                <!-- Account Info -->
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="form-label">Account Number</label>
+                                        <input type="text" value="{{ user.company_account_number }}" class="form-input bg-gray-50" disabled>
+                                        <p class="text-xs text-gray-500 mt-1">Unique account identifier</p>
+                                    </div>
+                                    
+                                    <!-- Location Section -->
+                                    <div>
+                                        <label class="form-label">Location Setup</label>
+                                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                                            <i class="fas fa-map-marker-alt text-3xl text-gray-400 mb-3"></i>
+                                            <h4 class="font-semibold text-gray-700 mb-2">Set Your Location</h4>
+                                            <p class="text-sm text-gray-600 mb-4">
+                                                Click below to set your location on the map. This helps us provide better service.
+                                            </p>
+                                            <a href="{% url 'customer_map' %}" class="btn-gradient inline-flex items-center">
+                                                <i class="fas fa-map-pin mr-2"></i> Set Location on Map
+                                            </a>
+                                            {% if user.latitude and user.longitude %}
+                                            <p class="text-sm text-green-600 mt-3">
+                                                <i class="fas fa-check-circle"></i> Location already set
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                                <button type="button" onclick="resetForm(this.form)" class="btn-outline-gradient">
+                                    Reset
+                                </button>
+                                <button type="submit" class="btn-gradient">
+                                    <i class="fas fa-save mr-2"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <!-- Security Section -->
+                    <section id="security" class="section-card p-8 mb-8">
+                        <div class="section-header">
+                            <i class="fas fa-shield-alt"></i>
+                            <h2>Security Settings</h2>
+                        </div>
+
+                        <!-- Two-Factor Authentication -->
+                        <div class="mb-8">
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 class="font-bold text-gray-900 text-lg">Two-Factor Authentication</h3>
+                                    <p class="text-gray-600">Add an extra layer of security to your account</p>
+                                </div>
+                                {% if user.two_factor_enabled %}
+                                <span class="badge badge-success">
+                                    <i class="fas fa-check mr-1"></i> Enabled
+                                </span>
+                                {% else %}
+                                <span class="badge badge-warning">
+                                    <i class="fas fa-times mr-1"></i> Disabled
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                {% if user.two_factor_enabled %}
+                                <p class="text-gray-700 mb-4">
+                                    2FA is currently protecting your account. For added security, we recommend keeping this enabled.
+                                </p>
+                                <div class="flex space-x-4">
+                                    <a href="{% url 'regenerate_backup_codes' %}" class="btn-outline-gradient">
+                                        <i class="fas fa-redo mr-2"></i> Regenerate Backup Codes
+                                    </a>
+                                    <button onclick="showDisable2FAModal()" class="btn-gradient bg-red-500 hover:bg-red-600">
+                                        <i class="fas fa-ban mr-2"></i> Disable 2FA
+                                    </button>
+                                </div>
+                                {% else %}
+                                <p class="text-gray-700 mb-4">
+                                    Protect your account with two-factor authentication. You'll receive OTP codes via email.
+                                </p>
+                                <a href="{% url 'setup_2fa' %}" class="btn-gradient inline-flex items-center">
+                                    <i class="fas fa-shield-alt mr-2"></i> Enable 2FA
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Password Change -->
+                        <div class="mb-8">
+                            <h3 class="font-bold text-gray-900 text-lg mb-4">Change Password</h3>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="change_password" value="true">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="form-label">Current Password</label>
+                                        <input type="password" name="old_password" class="form-input" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">New Password</label>
+                                        <input type="password" name="new_password1" class="form-input" required>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="form-label">Confirm New Password</label>
+                                        <input type="password" name="new_password2" class="form-input" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-gradient">
+                                    <i class="fas fa-key mr-2"></i> Update Password
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Active Sessions -->
+                        <div>
+                            <h3 class="font-bold text-gray-900 text-lg mb-4">Active Sessions</h3>
+                            <div class="bg-gray-50 rounded-xl p-4">
+                                {% for session in active_sessions %}
+                                <div class="session-item flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="session-icon {% if session.session_key == request.session.session_key %}bg-blue-100 text-blue-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+                                            <i class="fas {% if 'Mobile' in session.device_type %}fa-mobile-alt{% else %}fa-desktop{% endif %}"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900">{{ session.device_type|default:"Unknown Device" }}</p>
+                                            <p class="text-sm text-gray-600">
+                                                {{ session.location|default:"Unknown Location" }} • 
+                                                {{ session.last_activity|timesince }} ago
+                                                {% if session.session_key == request.session.session_key %}
+                                                • <span class="text-green-600 font-semibold">Current</span>
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {% if session.session_key != request.session.session_key %}
+                                    <form method="post" action="{% url 'revoke_session' session.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="text-red-600 hover:text-red-800 font-semibold text-sm"
+                                                onclick="return confirm('Are you sure you want to revoke this session?')">
+                                            <i class="fas fa-sign-out-alt mr-1"></i> Revoke
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                {% empty %}
+                                <p class="text-gray-500 text-center py-4">No active sessions found</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Billing & Subscription -->
+                    <section id="billing" class="section-card p-8 mb-8">
+                        <div class="section-header">
+                            <i class="fas fa-credit-card"></i>
+                            <h2>Billing & Subscription</h2>
+                            {% if not billing_enabled %}
+                            <span class="badge badge-warning ml-4">Demo Mode</span>
+                            {% endif %}
+                        </div>
+
+                        {% if not billing_enabled %}
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+                            <div class="flex items-center">
+                                <i class="fas fa-info-circle text-yellow-500 text-xl mr-3"></i>
+                                <p class="text-yellow-700">
+                                    Billing module is not installed. Showing demo data.
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Current Subscription -->
+                        <div class="mb-8">
+                            <h3 class="font-bold text-gray-900 text-lg mb-4">Current Subscription</h3>
+                            
+                            {% if active_subscription %}
+                            <div class="plan-card featured">
+                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                                    <div>
+                                        <h4 class="text-2xl font-bold text-gray-900">{{ active_subscription.plan.name }}</h4>
+                                        <p class="text-gray-600">{{ active_subscription.plan.description }}</p>
+                                    </div>
+                                    <div class="mt-4 md:mt-0 text-right">
+                                        <div class="text-3xl font-bold text-blue-600">Ksh {{ active_subscription.plan.price }}</div>
+                                        <span class="badge badge-success mt-2">Active</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                    <div>
+                                        <p class="text-sm text-gray-500">Speed</p>
+                                        <p class="font-bold text-gray-900">{{ active_subscription.plan.speed }}</p>
+                                    </div>
+                                    {% if active_subscription.plan.data_limit %}
+                                    <div>
+                                        <p class="text-sm text-gray-500">Data Limit</p>
+                                        <p class="font-bold text-gray-900">{{ active_subscription.plan.data_limit }}</p>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <p class="text-sm text-gray-500">Billing Cycle</p>
+                                        <p class="font-bold text-gray-900">{{ active_subscription.plan.get_billing_cycle_display }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-500">Auto-renew</p>
+                                        <p class="font-bold {% if active_subscription.auto_renew %}text-green-600{% else %}text-yellow-600{% endif %}">
+                                            {% if active_subscription.auto_renew %}ON{% else %}OFF{% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-blue-50 rounded-xl p-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="font-semibold text-blue-900">Days Remaining</span>
+                                        <span class="font-bold text-blue-700">{{ active_subscription.days_remaining }} days</span>
+                                    </div>
+                                    <div class="progress-container">
+                                        <div class="progress-bar" style="width: {% widthratio active_subscription.days_remaining 30 100 %}%"></div>
+                                    </div>
+                                    <p class="text-sm text-blue-600 mt-2">
+                                        Renews on {{ active_subscription.end_date|date:"F d, Y" }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="plan-card text-center py-10">
+                                <i class="fas fa-wifi text-4xl text-gray-400 mb-4"></i>
+                                <h4 class="text-xl font-bold text-gray-900 mb-2">
+                                    {% if billing_enabled %}No Active Subscription{% else %}Billing Module Not Available{% endif %}
+                                </h4>
+                                <p class="text-gray-600 mb-6">
+                                    {% if billing_enabled %}
+                                    You don't have an active internet plan
+                                    {% else %}
+                                    Install the billing module to manage subscriptions
+                                    {% endif %}
+                                </p>
+                                {% if billing_enabled %}
+                                <a href="{% url 'plan_selection' %}" class="btn-gradient inline-flex items-center">
+                                    <i class="fas fa-bolt mr-2"></i> Browse Plans
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Available Plans -->
+                        {% if available_plans %}
+                        <div>
+                            <h3 class="font-bold text-gray-900 text-lg mb-6">Available Plans</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {% for plan in available_plans %}
+                                <div class="plan-card" onclick="redirectToPaystackPlan('{{ plan.id }}')">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 class="font-bold text-gray-900">{{ plan.name }}</h4>
+                                            <p class="text-gray-600 text-sm">{{ plan.speed }}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-xl font-bold text-blue-600">Ksh {{ plan.price }}</div>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-500 mb-4">{{ plan.description }}</p>
+                                    {% if billing_enabled %}
+                                    <button class="btn-gradient w-full">
+                                        Upgrade Now
+                                    </button>
+                                    {% else %}
+                                    <button class="btn-gradient bg-gray-400 w-full cursor-not-allowed" disabled>
+                                        Billing Disabled
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </section>
+
+                    <!-- Notifications -->
+                    <section id="notifications" class="section-card p-8 mb-8">
+                        <div class="section-header">
+                            <i class="fas fa-bell"></i>
+                            <h2>Notification Preferences</h2>
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_notifications" value="true">
+                            
+                            <div class="space-y-6">
+                                {% for setting, label, description in notification_settings %}
+                                <div class="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-900">{{ label }}</h4>
+                                        <p class="text-sm text-gray-600 mt-1">{{ description }}</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" name="{{ setting.0 }}" {% if setting.1 %}checked{% endif %}>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="flex justify-end pt-6 border-t border-gray-200 mt-6">
+                                <button type="submit" class="btn-gradient">
+                                    <i class="fas fa-save mr-2"></i> Save Preferences
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <!-- Preferences -->
+                    <section id="preferences" class="section-card p-8">
+                        <div class="section-header">
+                            <i class="fas fa-cog"></i>
+                            <h2>Preferences</h2>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <div>
+                                <label class="form-label">Language</label>
+                                <select class="form-input" name="language" id="language-select">
+                                    <option value="en" {% if user.language == 'en' %}selected{% endif %}>English</option>
+                                    <option value="es" {% if user.language == 'es' %}selected{% endif %}>Spanish</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Time Zone</label>
+                                <select class="form-input" name="timezone" id="timezone-select">
+                                    <option value="UTC" {% if user.timezone == 'UTC' %}selected{% endif %}>(UTC) Coordinated Universal Time</option>
+                                    <option value="Africa/Nairobi" {% if user.timezone == 'Africa/Nairobi' %}selected{% endif %}>(UTC+3) East Africa Time</option>
+                                    <option value="America/New_York" {% if user.timezone == 'America/New_York' %}selected{% endif %}>(UTC-5) Eastern Time</option>
+                                    <option value="Europe/London" {% if user.timezone == 'Europe/London' %}selected{% endif %}>(UTC+0) Greenwich Mean Time</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Date Format</label>
+                                <select class="form-input" name="date_format" id="date-format-select">
+                                    <option value="MM/DD/YYYY" {% if user.date_format == 'MM/DD/YYYY' %}selected{% endif %}>MM/DD/YYYY</option>
+                                    <option value="DD/MM/YYYY" {% if user.date_format == 'DD/MM/YYYY' %}selected{% endif %}>DD/MM/YYYY</option>
+                                    <option value="YYYY-MM-DD" {% if user.date_format == 'YYYY-MM-DD' %}selected{% endif %}>YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                                <div>
+                                    <p class="font-semibold text-gray-900">Dark Mode</p>
+                                    <p class="text-sm text-gray-600">Toggle dark theme</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="dark_mode" id="dark-mode-toggle" {% if user.dark_mode %}checked{% endif %}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Danger Zone -->
+                        <div>
+                            <h3 class="font-bold text-gray-900 text-lg mb-4">Data Management</h3>
+                            <div class="space-y-4">
+                                <!-- Export Data -->
+                                <div class="warning-zone">
+                                    <div class="flex flex-col md:flex-row justify-between items-center">
+                                        <div class="mb-4 md:mb-0">
+                                            <h4 class="font-bold text-yellow-900">
+                                                <i class="fas fa-download mr-2"></i>
+                                                Export Your Data
+                                            </h4>
+                                            <p class="text-yellow-700 mt-1">
+                                                Download all your personal data in JSON or CSV format
+                                            </p>
+                                        </div>
+                                        <div class="flex space-x-3">
+                                            <a href="{% url 'export_data' %}?format=json" class="btn-outline-gradient border-yellow-500 text-yellow-700 hover:bg-yellow-50">
+                                                <i class="fas fa-file-code mr-2"></i> JSON
+                                            </a>
+                                            <a href="{% url 'export_data' %}?format=csv" class="btn-outline-gradient border-yellow-500 text-yellow-700 hover:bg-yellow-50">
+                                                <i class="fas fa-file-csv mr-2"></i> CSV
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Delete Account -->
+                                <div class="danger-zone">
+                                    <div class="flex flex-col md:flex-row justify-between items-center">
+                                        <div class="mb-4 md:mb-0">
+                                            <h4 class="font-bold text-red-900">
+                                                <i class="fas fa-trash-alt mr-2"></i>
+                                                Delete Account
+                                            </h4>
+                                            <p class="text-red-700 mt-1">
+                                                Permanently delete your account and all associated data
+                                            </p>
+                                        </div>
+                                        <a href="{% url 'delete_account' %}" class="btn-gradient bg-red-500 hover:bg-red-600">
+                                            <i class="fas fa-trash-alt mr-2"></i> Delete Account
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disable 2FA Modal -->
+<div id="disable2FAModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Disable Two-Factor Authentication?</h3>
+            <p class="text-gray-600">Your account security will be reduced.</p>
+        </div>
+        
+        <form method="post" action="{% url 'disable_2fa' %}">
+            {% csrf_token %}
+            <div class="mb-6">
+                <label class="form-label">Enter your password to confirm</label>
+                <input type="password" name="password" class="form-input" required>
+            </div>
+            
+            <div class="flex space-x-4">
+                <button type="button" onclick="hideModal()" class="flex-1 btn-outline-gradient">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 btn-gradient bg-red-500 hover:bg-red-600">
+                    Disable 2FA
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
+    // Initialize notification settings
+    const notificationSettings = [
+        ['email_notifications', 'Email Notifications', 'Receive important updates via email', {{ user.email_notifications|yesno:"true,false" }}],
+        ['sms_notifications', 'SMS Notifications', 'Get text messages for urgent alerts', {{ user.sms_notifications|yesno:"true,false" }}],
+        ['billing_reminders', 'Billing Reminders', 'Receive payment due reminders', {{ user.billing_reminders|yesno:"true,false" }}],
+        ['service_updates', 'Service Updates', 'Notifications about service maintenance', {{ user.service_updates|yesno:"true,false" }}],
+        ['promotional_offers', 'Promotional Offers', 'Special deals and offers', {{ user.promotional_offers|yesno:"true,false" }}]
+    ];
+    
+    // Smooth scrolling for section navigation
+    document.addEventListener('DOMContentLoaded', function() {
+        // Highlight active section based on scroll
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.sidebar-nav a');
+        
+        function highlightActiveSection() {
+            let scrollY = window.pageYOffset + 100;
+            
+            sections.forEach(section => {
+                const sectionHeight = section.offsetHeight;
+                const sectionTop = section.offsetTop - 100;
+                const sectionId = section.getAttribute('id');
+                
+                if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${sectionId}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', highlightActiveSection);
+        highlightActiveSection(); // Initial call
+        
+        // Click navigation
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Update active link
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+        
+        // Auto-hide messages
+        setTimeout(() => {
+            document.querySelectorAll('.alert-message').forEach(msg => {
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 300);
+            });
+        }, 5000);
+        
+        // Initialize dark mode
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        if (darkModeToggle) {
+            const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initialDarkMode = savedDarkMode !== null ? savedDarkMode : systemPrefersDark;
+            
+            darkModeToggle.checked = initialDarkMode;
+            if (initialDarkMode) {
+                document.documentElement.classList.add('dark');
+            }
+            
+            // Listen for changes
+            darkModeToggle.addEventListener('change', function() {
+                updatePreferences();
+            });
+        }
+        
+        // Initialize preference select listeners
+        ['language-select', 'timezone-select', 'date-format-select'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', function() {
+                    clearTimeout(window.preferenceTimeout);
+                    window.preferenceTimeout = setTimeout(updatePreferences, 500);
                 });
             }
         });
     });
-
-    // Form reset functionality
-    function resetForm(form) {
-        form.reset();
-        showMessage('Form reset to original values', 'info');
+    
+    // Modal functions
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
     }
-
-    // Show message function
+    
+    function hideModal() {
+        document.querySelectorAll('[id$="Modal"]').forEach(modal => {
+            modal.classList.add('hidden');
+        });
+        document.body.style.overflow = 'auto';
+    }
+    
+    // Specific modal functions
+    function showDisable2FAModal() {
+        showModal('disable2FAModal');
+    }
+    
+    // Close modal when clicking outside
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('[id$="Modal"]')) {
+            hideModal();
+        }
+    });
+    
+    // Escape key to close modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideModal();
+        }
+    });
+    
+    // Form functions
+    function resetForm(form) {
+        if (confirm('Are you sure you want to reset all changes?')) {
+            form.reset();
+            showMessage('Form reset successfully', 'info');
+        }
+    }
+    
+    // Show message
     function showMessage(message, type = 'info') {
         const messageDiv = document.createElement('div');
         const colors = {
             'info': 'bg-blue-100 border-blue-400 text-blue-700',
             'success': 'bg-green-100 border-green-400 text-green-700',
-            'error': 'bg-red-100 border-red-400 text-red-700'
+            'error': 'bg-red-100 border-red-400 text-red-700',
+            'warning': 'bg-yellow-100 border-yellow-400 text-yellow-700'
         };
         
-        messageDiv.className = `${colors[type]} px-4 py-3 rounded-lg fixed top-4 right-4 z-50 transition-opacity duration-300`;
-        messageDiv.innerHTML = message;
+        messageDiv.className = `${colors[type]} p-4 rounded-lg shadow-lg fixed top-4 right-4 z-50 alert-message`;
+        messageDiv.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-3"></i>
+                <span>${message}</span>
+            </div>
+        `;
         
         document.body.appendChild(messageDiv);
         
         setTimeout(() => {
-            messageDiv.remove();
+            messageDiv.style.opacity = '0';
+            setTimeout(() => messageDiv.remove(), 300);
         }, 3000);
     }
-
-    // Delete account confirmation
-    function confirmDelete() {
-        if (confirm('Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.')) {
-            // Create a form and submit it
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = "{% url 'delete_account' %}";
-            
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = '{{ csrf_token }}';
-            
-            form.appendChild(csrfInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
-    }
-
-    // Auto-hide messages after 5 seconds
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(() => {
-            const messages = document.querySelectorAll('[role="alert"]');
-            messages.forEach(message => {
-                message.style.opacity = '0';
-                setTimeout(() => message.remove(), 300);
-            });
-        }, 5000);
-    });
-
-    // Preference update functionality
-    function updatePreferences(formElement = null) {
+    
+    // Update preferences
+    function updatePreferences() {
         const formData = new FormData();
         
-        // If a form element is provided, use its data
-        if (formElement) {
-            formData.append('language', formElement.querySelector('[name="language"]').value);
-            formData.append('timezone', formElement.querySelector('[name="timezone"]').value);
-            formData.append('date_format', formElement.querySelector('[name="date_format"]').value);
-            formData.append('dark_mode', formElement.querySelector('[name="dark_mode"]').checked);
-        } else {
-            // Otherwise get current values from the DOM
-            const language = document.querySelector('[name="language"]')?.value;
-            const timezone = document.querySelector('[name="timezone"]')?.value;
-            const dateFormat = document.querySelector('[name="date_format"]')?.value;
-            const darkMode = document.querySelector('[name="dark_mode"]')?.checked;
-            
-            if (language) formData.append('language', language);
-            if (timezone) formData.append('timezone', timezone);
-            if (dateFormat) formData.append('date_format', dateFormat);
-            if (darkMode !== undefined) formData.append('dark_mode', darkMode);
-        }
+        // Get preference values
+        const language = document.getElementById('language-select')?.value;
+        const timezone = document.getElementById('timezone-select')?.value;
+        const dateFormat = document.getElementById('date-format-select')?.value;
+        const darkMode = document.getElementById('dark-mode-toggle')?.checked;
         
-        // Add notification preferences
-        formData.append('email_notifications', document.querySelector('[name="email_notifications"]')?.checked || false);
-        formData.append('sms_notifications', document.querySelector('[name="sms_notifications"]')?.checked || false);
-        formData.append('billing_reminders', document.querySelector('[name="billing_reminders"]')?.checked || false);
-        formData.append('service_updates', document.querySelector('[name="service_updates"]')?.checked || false);
-        formData.append('promotional_offers', document.querySelector('[name="promotional_offers"]')?.checked || false);
+        if (language) formData.append('language', language);
+        if (timezone) formData.append('timezone', timezone);
+        if (dateFormat) formData.append('date_format', dateFormat);
+        if (darkMode !== undefined) formData.append('dark_mode', darkMode);
         
         // Add CSRF token
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         formData.append('csrfmiddlewaretoken', csrfToken);
         
-        // Show loading state
-        const saveButton = document.querySelector('#save-preferences-btn');
-        if (saveButton) {
-            const originalText = saveButton.innerHTML;
-            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
-            saveButton.disabled = true;
-        }
+        // Show loading
+        const buttons = document.querySelectorAll('.btn-gradient');
+        buttons.forEach(btn => btn.disabled = true);
         
         // Send AJAX request
         fetch("{% url 'update_preferences' %}", {
@@ -1134,229 +1098,27 @@
         })
         .then(response => response.json())
         .then(data => {
-            // Restore button state
-            if (saveButton) {
-                saveButton.innerHTML = originalText;
-                saveButton.disabled = false;
-            }
-            
-            // Show message
+            buttons.forEach(btn => btn.disabled = false);
             showMessage(data.message, data.status);
             
-            // Apply dark mode immediately if changed
-            if (formData.get('dark_mode') === 'true') {
+            // Apply dark mode immediately
+            if (darkMode) {
                 document.documentElement.classList.add('dark');
+                localStorage.setItem('darkMode', 'true');
             } else {
                 document.documentElement.classList.remove('dark');
+                localStorage.setItem('darkMode', 'false');
             }
         })
         .catch(error => {
-            // Restore button state
-            if (saveButton) {
-                saveButton.innerHTML = originalText;
-                saveButton.disabled = false;
-            }
-            
-            showMessage('Error updating preferences: ' + error, 'error');
+            buttons.forEach(btn => btn.disabled = false);
+            showMessage('Error updating preferences', 'error');
         });
-        
-        return false; // Prevent default form submission
     }
-
-    // Real-time preference updates for toggle switches
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add change listeners to all toggle switches for real-time updates
-        const toggleSwitches = document.querySelectorAll('.toggle-switch input[type="checkbox"]');
-        toggleSwitches.forEach(switchElement => {
-            switchElement.addEventListener('change', function() {
-                // Small delay to avoid too many requests
-                clearTimeout(window.preferenceUpdateTimeout);
-                window.preferenceUpdateTimeout = setTimeout(() => {
-                    updatePreferences();
-                }, 500);
-            });
-        });
-        
-        // Add change listeners to dropdowns for real-time updates
-        const dropdowns = document.querySelectorAll('select[name="language"], select[name="timezone"], select[name="date_format"]');
-        dropdowns.forEach(dropdown => {
-            dropdown.addEventListener('change', function() {
-                clearTimeout(window.preferenceUpdateTimeout);
-                window.preferenceUpdateTimeout = setTimeout(() => {
-                    updatePreferences();
-                }, 500);
-            });
-        });
-    });
-
-    // Billing address update functionality
-    function updateBillingAddress(formElement = null) {
-        const formData = new FormData();
-        
-        // Get address data from the personal information form
-        const address = document.querySelector('[name="address"]')?.value || '';
-        const city = document.querySelector('[name="city"]')?.value || '';
-        const state = document.querySelector('[name="state"]')?.value || '';
-        const zipCode = document.querySelector('[name="zip_code"]')?.value || '';
-        const country = document.querySelector('[name="country"]')?.value || '';
-        
-        // Add address fields to form data
-        if (address) formData.append('address', address);
-        if (city) formData.append('city', city);
-        if (state) formData.append('state', state);
-        if (zipCode) formData.append('zip_code', zipCode);
-        if (country) formData.append('country', country);
-        
-        // Add CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        formData.append('csrfmiddlewaretoken', csrfToken);
-        
-        // Show loading state
-        const updateButton = document.querySelector('#update-billing-address-btn');
-        if (updateButton) {
-            const originalText = updateButton.innerHTML;
-            updateButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Updating...';
-            updateButton.disabled = true;
-        }
-        
-        // Send AJAX request
-        fetch("{% url 'update_billing_address' %}", {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Restore button state
-            if (updateButton) {
-                updateButton.innerHTML = originalText;
-                updateButton.disabled = false;
-            }
-            
-            // Show message
-            showMessage(data.message, data.status);
-            
-            // Update the displayed billing address if successful
-            if (data.status === 'success' && data.billing_address) {
-                const billingAddressDisplay = document.querySelector('#billing-address-display');
-                if (billingAddressDisplay) {
-                    billingAddressDisplay.innerHTML = data.billing_address.replace(/\n/g, '<br>');
-                }
-            }
-        })
-        .catch(error => {
-            // Restore button state
-            if (updateButton) {
-                updateButton.innerHTML = originalText;
-                updateButton.disabled = false;
-            }
-            
-            showMessage('Error updating billing address: ' + error, 'error');
-        });
-        
-        return false; // Prevent default form submission
-    }
-
-    // Auto-update billing address when address fields change
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add change listeners to address fields
-        const addressFields = document.querySelectorAll('[name="address"], [name="city"], [name="state"], [name="zip_code"], [name="country"]');
-        addressFields.forEach(field => {
-            field.addEventListener('change', function() {
-                // Show notification that billing address needs update
-                const billingNote = document.querySelector('#billing-address-note');
-                if (billingNote) {
-                    billingNote.innerHTML = '<span class="text-yellow-600 text-sm">⚠ Address changed - click "Update Billing Address" to save</span>';
-                }
-            });
-        });
-    });
-
-    // 2FA toggle functionality
-    function toggle2FA(enable) {
-        const url = enable ? "{% url 'enable_2fa' %}" : "{% url 'disable_2fa' %}";
-        const message = enable ? 
-            'Are you sure you want to enable two-factor authentication?' :
-            'Are you sure you want to disable two-factor authentication? This will reduce your account security.';
-        
-        if (confirm(message)) {
-            const formData = new FormData();
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-            
-            fetch(url, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                showMessage(data.message, data.status);
-                // Reload to update the UI
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            })
-            .catch(error => {
-                showMessage('Error updating 2FA settings: ' + error, 'error');
-            });
-        }
-    }
-
-    // Session revocation with confirmation
-    function revokeSession(sessionId) {
-        if (confirm('Are you sure you want to revoke this session?')) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/accounts/profile/sessions/revoke/${sessionId}/`;
-            
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = '{{ csrf_token }}';
-            
-            form.appendChild(csrfInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
-    }
-
-    // Paystack redirect functionality
-    function redirectToPaystack() {
-        // You can either redirect to a specific plan or let user choose on Paystack
-        window.location.href = "{% url 'plan_selection' %}";
-    }
-
+    
+    // Paystack redirect
     function redirectToPaystackPlan(planId) {
-        // Redirect to Paystack with specific plan
         window.location.href = `/accounts/paystack/subscribe/${planId}/`;
-    }
-
-    // Alternative: If you want to use AJAX to create payment first
-    async function initiatePaystackPayment(planId) {
-        try {
-            const response = await fetch(`/paystack/initiate-payment/${planId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.status === 'success') {
-                // Redirect to Paystack payment page
-                window.location.href = data.payment_url;
-            } else {
-                showMessage('Failed to initiate payment: ' + data.message, 'error');
-            }
-        } catch (error) {
-            showMessage('Error initiating payment: ' + error, 'error');
-        }
     }
 </script>
 {% endblock %}

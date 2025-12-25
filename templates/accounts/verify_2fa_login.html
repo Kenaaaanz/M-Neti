@@ -1,82 +1,601 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block extra_css %}
+<style>
+    /* 2FA Login Verification Page Styles */
+    .login-verify-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .login-verify-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        max-width: 500px;
+        width: 100%;
+        animation: slideUp 0.6s ease-out;
+    }
+    
+    .login-verify-header {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        text-align: center;
+    }
+    
+    .login-verify-body {
+        padding: 2rem;
+    }
+    
+    .login-verify-icon {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .login-verify-icon i {
+        font-size: 4rem;
+        color: #3b82f6;
+        background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+        width: 100px;
+        height: 100px;
+        line-height: 100px;
+        border-radius: 50%;
+        margin: 0 auto;
+        display: block;
+    }
+    
+    .login-verify-message {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .login-verify-message h5 {
+        color: #1e293b;
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .login-verify-message p {
+        color: #64748b;
+        margin-bottom: 0;
+    }
+    
+    .verification-methods {
+        margin-bottom: 2rem;
+    }
+    
+    .method-card {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .method-card:hover {
+        border-color: #3b82f6;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(59, 130, 246, 0.1);
+    }
+    
+    .method-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .method-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.25rem;
+    }
+    
+    .method-1 .method-icon {
+        background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+        color: #3b82f6;
+    }
+    
+    .method-2 .method-icon {
+        background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+        color: #d97706;
+    }
+    
+    .method-title {
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+        flex: 1;
+    }
+    
+    .method-description {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    
+    .otp-input-container {
+        margin-bottom: 1rem;
+    }
+    
+    .otp-input-label {
+        display: block;
+        color: #64748b;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .otp-input-grid {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .otp-digit {
+        width: 3rem;
+        height: 3rem;
+        text-align: center;
+        font-size: 1.25rem;
+        font-weight: 600;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        background: white;
+        transition: all 0.2s;
+        color: #1e293b;
+    }
+    
+    .otp-digit:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        transform: scale(1.05);
+    }
+    
+    .otp-digit.filled {
+        border-color: #3b82f6;
+        background: #f0f9ff;
+    }
+    
+    .backup-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+    
+    .backup-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    
+    .btn-verify-method {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.3s;
+        cursor: pointer;
+        width: 100%;
+    }
+    
+    .btn-verify-method:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-resend-container {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .btn-resend {
+        background: none;
+        border: none;
+        color: #64748b;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .btn-resend:hover {
+        color: #3b82f6;
+    }
+    
+    .btn-resend:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    .error-message {
+        background: #fef2f2;
+        border: 2px solid #fecaca;
+        color: #dc2626;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        display: none;
+    }
+    
+    .error-message.show {
+        display: block;
+        animation: shake 0.5s;
+    }
+    
+    .success-message {
+        background: #d1fae5;
+        border: 2px solid #a7f3d0;
+        color: #065f46;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        display: none;
+    }
+    
+    .success-message.show {
+        display: block;
+    }
+    
+    /* Dark mode support */
+    [data-theme="dark"] .login-verify-card {
+        background: #1e293b;
+    }
+    
+    [data-theme="dark"] .login-verify-message h5 {
+        color: #f8fafc;
+    }
+    
+    [data-theme="dark"] .login-verify-message p {
+        color: #cbd5e0;
+    }
+    
+    [data-theme="dark"] .method-card {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    [data-theme="dark"] .method-title {
+        color: #f8fafc;
+    }
+    
+    [data-theme="dark"] .method-description {
+        color: #cbd5e0;
+    }
+    
+    [data-theme="dark"] .otp-digit {
+        background: #374151;
+        border-color: #4a5568;
+        color: #f8fafc;
+    }
+    
+    [data-theme="dark"] .backup-input {
+        background: #374151;
+        border-color: #4a5568;
+        color: #f8fafc;
+    }
+    
+    [data-theme="dark"] .error-message {
+        background: #7f1d1d;
+        border-color: #991b1b;
+        color: #fecaca;
+    }
+    
+    [data-theme="dark"] .success-message {
+        background: #064e3b;
+        border-color: #047857;
+        color: #a7f3d0;
+    }
+    
+    /* Responsive */
+    @media (max-width: 480px) {
+        .login-verify-body {
+            padding: 1.5rem;
+        }
+        
+        .method-card {
+            padding: 1rem;
+        }
+        
+        .otp-digit {
+            width: 2.5rem;
+            height: 2.5rem;
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Two-Factor Authentication Required</h4>
+<div class="login-verify-container">
+    <div class="login-verify-card">
+        <div class="login-verify-header">
+            <h4>Two-Factor Authentication Required</h4>
+        </div>
+        <div class="login-verify-body">
+            <div class="login-verify-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            
+            <div class="login-verify-message">
+                <h5>Verify Your Identity</h5>
+                <p>For added security, please complete two-factor authentication.</p>
+            </div>
+            
+            <div id="errorMessage" class="error-message">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span id="errorText">Invalid verification code.</span>
+            </div>
+            
+            <div id="successMessage" class="success-message">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span id="successText">Verification successful! Redirecting...</span>
+            </div>
+            
+            <div class="verification-methods">
+                <!-- Method 1: OTP from Email -->
+                <div class="method-card method-1">
+                    <div class="method-header">
+                        <div class="method-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <h6 class="method-title">OTP from Email</h6>
+                    </div>
+                    <p class="method-description">Check your email for the 6-digit code</p>
+                    
+                    <form method="POST" id="otpForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="method" value="otp">
+                        
+                        <div class="otp-input-container">
+                            <label class="otp-input-label">Enter 6-digit OTP:</label>
+                            <div class="otp-input-grid" id="otpContainer">
+                                <input type="text" class="otp-digit" maxlength="1" data-index="1" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" class="otp-digit" maxlength="1" data-index="2" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" class="otp-digit" maxlength="1" data-index="3" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" class="otp-digit" maxlength="1" data-index="4" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" class="otp-digit" maxlength="1" data-index="5" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" class="otp-digit" maxlength="1" data-index="6" inputmode="numeric" pattern="[0-9]*">
+                            </div>
+                            <input type="hidden" name="otp_token" id="fullOtp">
+                        </div>
+                        
+                        <button type="submit" class="btn-verify-method" id="verifyOtpBtn" disabled>
+                            <i class="fas fa-check-circle mr-2"></i> Verify OTP
+                        </button>
+                    </form>
                 </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <i class="fas fa-shield-alt"></i>
-                        For added security, please complete two-factor authentication.
+                
+                <!-- Method 2: Backup Code -->
+                <div class="method-card method-2">
+                    <div class="method-header">
+                        <div class="method-icon">
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <h6 class="method-title">Backup Code</h6>
                     </div>
+                    <p class="method-description">Use one of your 8-character backup codes</p>
                     
-                    <div class="mb-4">
-                        <h5>Method 1: OTP from Email</h5>
-                        <form method="POST">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="otp_token" class="form-label">Enter OTP Code</label>
-                                <input type="text" 
-                                       name="otp_token" 
-                                       id="otp_token"
-                                       class="form-control form-control-lg text-center"
-                                       placeholder="000000"
-                                       maxlength="6"
-                                       pattern="\d{6}"
-                                       required>
-                                <div class="form-text">
-                                    Check your email for the 6-digit code
-                                </div>
-                            </div>
-                            
-                            <div class="d-grid">
-                                <button type="submit" name="method" value="otp" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-check"></i> Verify OTP
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    
-                    <hr>
-                    
-                    <div class="mb-3">
-                        <h5>Method 2: Backup Code</h5>
-                        <form method="POST">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="backup_code" class="form-label">Enter Backup Code</label>
-                                <input type="text" 
-                                       name="backup_code" 
-                                       id="backup_code"
-                                       class="form-control form-control-lg"
-                                       placeholder="XXXX-XXXX"
-                                       required>
-                                <div class="form-text">
-                                    Use one of your 8-character backup codes
-                                </div>
-                            </div>
-                            
-                            <div class="d-grid">
-                                <button type="submit" name="method" value="backup" class="btn btn-outline-primary btn-lg">
-                                    <i class="fas fa-key"></i> Use Backup Code
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    
-                    <div class="text-center mt-4">
-                        <a href="{% url 'verify_2fa_login' %}?resend_otp=true" class="btn btn-link">
-                            <i class="fas fa-redo"></i> Resend OTP Email
-                        </a>
-                    </div>
+                    <form method="POST" id="backupForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="method" value="backup">
+                        
+                        <div class="otp-input-container">
+                            <label class="otp-input-label">Enter backup code:</label>
+                            <input type="text" name="backup_code" class="backup-input" 
+                                   placeholder="XXXX-XXXX" 
+                                   pattern="[A-Z0-9]{4}-[A-Z0-9]{4}"
+                                   maxlength="9"
+                                   oninput="formatBackupCode(this)">
+                        </div>
+                        
+                        <button type="submit" class="btn-verify-method">
+                            <i class="fas fa-key mr-2"></i> Use Backup Code
+                        </button>
+                    </form>
                 </div>
+            </div>
+            
+            <div class="btn-resend-container">
+                <form method="GET" action="{% url 'verify_2fa_login' %}">
+                    <input type="hidden" name="resend_otp" value="true">
+                    <button type="submit" class="btn-resend" id="resendBtn">
+                        <i class="fas fa-redo mr-2"></i> Resend OTP Email
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const otpDigits = document.querySelectorAll('.otp-digit');
+        const fullOtpInput = document.getElementById('fullOtp');
+        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const errorText = document.getElementById('errorText');
+        const successText = document.getElementById('successText');
+        const resendBtn = document.getElementById('resendBtn');
+        
+        // Check if OTP was just resent
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('resend_otp')) {
+            successText.textContent = 'New OTP sent to your email!';
+            successMessage.classList.add('show');
+            
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 5000);
+        }
+        
+        // OTP digit input handling
+        otpDigits.forEach((digit, index) => {
+            digit.addEventListener('input', function(e) {
+                const value = e.target.value;
+                
+                // Only allow numbers
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = '';
+                    return;
+                }
+                
+                if (value.length === 1) {
+                    // Move to next input
+                    if (index < otpDigits.length - 1) {
+                        otpDigits[index + 1].focus();
+                    }
+                    
+                    // Update filled class
+                    e.target.classList.add('filled');
+                } else {
+                    e.target.classList.remove('filled');
+                }
+                
+                // Update full OTP
+                updateFullOtp();
+                
+                // Check if all digits are filled
+                checkOtpComplete();
+            });
+            
+            digit.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !this.value && index > 0) {
+                    // Move to previous input on backspace
+                    otpDigits[index - 1].focus();
+                }
+            });
+            
+            digit.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedText = e.clipboardData.getData('text');
+                const numbers = pastedText.replace(/\D/g, '').slice(0, 6);
+                
+                numbers.split('').forEach((num, i) => {
+                    const digitIndex = index + i;
+                    if (digitIndex < otpDigits.length) {
+                        otpDigits[digitIndex].value = num;
+                        otpDigits[digitIndex].classList.add('filled');
+                    }
+                });
+                
+                // Focus last filled digit
+                const lastIndex = Math.min(index + numbers.length, otpDigits.length) - 1;
+                otpDigits[lastIndex].focus();
+                
+                updateFullOtp();
+                checkOtpComplete();
+            });
+        });
+        
+        function updateFullOtp() {
+            const otp = Array.from(otpDigits).map(d => d.value).join('');
+            fullOtpInput.value = otp;
+        }
+        
+        function checkOtpComplete() {
+            const allFilled = Array.from(otpDigits).every(d => d.value.length === 1);
+            verifyOtpBtn.disabled = !allFilled;
+        }
+        
+        // Backup code formatting
+        window.formatBackupCode = function(input) {
+            let value = input.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+            
+            if (value.length > 8) {
+                value = value.slice(0, 8);
+            }
+            
+            if (value.length > 4) {
+                value = value.slice(0, 4) + '-' + value.slice(4);
+            }
+            
+            input.value = value;
+        };
+        
+        // Form submissions
+        const otpForm = document.getElementById('otpForm');
+        otpForm.addEventListener('submit', function(e) {
+            const otp = fullOtpInput.value;
+            
+            if (otp.length !== 6) {
+                e.preventDefault();
+                errorText.textContent = 'Please enter a valid 6-digit code.';
+                errorMessage.classList.add('show');
+                return;
+            }
+            
+            // Show loading state
+            verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verifying...';
+            verifyOtpBtn.disabled = true;
+        });
+        
+        const backupForm = document.getElementById('backupForm');
+        backupForm.addEventListener('submit', function(e) {
+            const backupCode = backupForm.querySelector('input[name="backup_code"]').value;
+            
+            if (!backupCode || backupCode.length !== 9) {
+                e.preventDefault();
+                errorText.textContent = 'Please enter a valid backup code.';
+                errorMessage.classList.add('show');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = backupForm.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verifying...';
+            submitBtn.disabled = true;
+        });
+        
+        // Auto-focus first OTP digit on page load
+        otpDigits[0].focus();
+        
+        // Auto-hide messages after 5 seconds
+        setTimeout(() => {
+            const messages = document.querySelectorAll('.alert');
+            messages.forEach(msg => {
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 300);
+            });
+        }, 5000);
+        
+        // Disable resend button for 30 seconds
+        let resendTimer = 30;
+        resendBtn.disabled = true;
+        
+        const resendTimerInterval = setInterval(() => {
+            resendTimer--;
+            resendBtn.innerHTML = `<i class="fas fa-redo mr-2"></i> Resend OTP (${resendTimer}s)`;
+            
+            if (resendTimer <= 0) {
+                clearInterval(resendTimerInterval);
+                resendBtn.disabled = false;
+                resendBtn.innerHTML = '<i class="fas fa-redo mr-2"></i> Resend OTP Email';
+            }
+        }, 1000);
+    });
+</script>
 {% endblock %}

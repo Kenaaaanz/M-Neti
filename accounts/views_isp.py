@@ -6319,3 +6319,21 @@ def api_delete_selected_payments(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def isp_router_type_selection(request):
+    """Router type selection page"""
+    if request.user.role not in ['isp_admin', 'isp_staff']:
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+    
+    context = {
+        'tenant': request.user.tenant,
+        'page_title': 'Select Router Type',
+        'page_subtitle': 'Choose the router manufacturer to configure',
+        'breadcrumbs': [
+            {'name': 'Router Management', 'url': reverse('isp_routers')},
+            {'name': 'Add Router', 'url': ''},
+        ]
+    }
+    return render(request, 'accounts/isp_router_type_selection.html', context)

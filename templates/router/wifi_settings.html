@@ -1,0 +1,226 @@
+<!-- templates/router/wifi_settings.html -->
+{% extends 'router/base_router.html' %}
+
+{% block router_content %}
+<div class="bg-white rounded-xl shadow-sm p-6">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2 flex items-center">
+        <i class="fas fa-wifi text-blue-500 mr-3"></i>
+        WiFi Network Settings
+    </h2>
+    <p class="text-gray-600 mb-6">Configure your wireless network settings</p>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="mb-6 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200{% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
+        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-2"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Basic Settings -->
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <i class="fas fa-network-wired text-blue-500 mr-2"></i>
+                    Basic Settings
+                </h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Network Name (SSID)</label>
+                        <div class="relative">
+                            <i class="fas fa-signal absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" name="ssid" value="{{ router.ssid }}" 
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   maxlength="32" required>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Maximum 32 characters</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="password" name="password" value="{{ router.password }}"
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   minlength="8" required>
+                            <button type="button" onclick="togglePassword('password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Minimum 8 characters</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="password" name="confirm_password" value="{{ router.password }}"
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   minlength="8" required>
+                            <button type="button" onclick="togglePassword('confirm_password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Security Type</label>
+                        <div class="relative">
+                            <i class="fas fa-shield-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <select name="security_type" 
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                {% for value, label in router.SECURITY_TYPES %}
+                                <option value="{{ value }}" {% if router.security_type == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mt-2 text-sm">
+                            {% if router.security_type == 'wpa3' %}
+                            <span class="text-green-600"><i class="fas fa-check-circle mr-1"></i> Excellent security (Recommended)</span>
+                            {% elif router.security_type == 'wpa2' %}
+                            <span class="text-blue-600"><i class="fas fa-check mr-1"></i> Good security</span>
+                            {% elif router.security_type == 'wpa' %}
+                            <span class="text-yellow-600"><i class="fas fa-exclamation-triangle mr-1"></i> Fair security</span>
+                            {% elif router.security_type == 'wep' %}
+                            <span class="text-red-600"><i class="fas fa-exclamation-circle mr-1"></i> Poor security - Consider upgrading</span>
+                            {% else %}
+                            <span class="text-red-600"><i class="fas fa-times-circle mr-1"></i> No security - Your network is open</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Settings -->
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                    <i class="fas fa-sliders-h text-blue-500 mr-2"></i>
+                    Advanced WiFi Settings
+                </h3>
+                
+                <div class="space-y-4">
+                    <div class="p-4 bg-white rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-medium text-gray-700">Hide Network Name</span>
+                                <p class="text-sm text-gray-500">Make network invisible to others</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="hide_ssid" value="true" 
+                                       class="sr-only peer" {% if router.hide_ssid %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Band Selection</label>
+                        <div class="relative">
+                            <i class="fas fa-wifi absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <select name="band" 
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                {% for value, label in router.BAND_TYPES %}
+                                <option value="{{ value }}" {% if router.band == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Channel Width</label>
+                        <div class="relative">
+                            <i class="fas fa-arrows-alt-h absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <select name="channel_width" 
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                {% for value, label in router.CHANNEL_WIDTHS %}
+                                <option value="{{ value }}" {% if router.channel_width == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div class="flex">
+                            <i class="fas fa-info-circle text-blue-500 mr-3 mt-1"></i>
+                            <div>
+                                <h4 class="font-medium text-blue-700">Current Network Info</h4>
+                                <p class="text-sm text-blue-600 mt-1">
+                                    SSID: <span class="font-mono">{{ router.ssid }}</span><br>
+                                    Security: {{ router.get_security_type_display }}<br>
+                                    Devices connected: {{ router.connected_devices.count }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <a href="{% url 'router_settings' %}" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                Cancel
+            </a>
+            <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
+                <i class="fas fa-save mr-2"></i>
+                Save WiFi Settings
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function togglePassword(fieldId) {
+    const field = document.querySelector(`[name="${fieldId}"]`);
+    const icon = field.nextElementSibling.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        field.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const password = document.querySelector('[name="password"]').value;
+    const confirmPassword = document.querySelector('[name="confirm_password"]').value;
+    const securityType = document.querySelector('[name="security_type"]').value;
+    
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        alert('Passwords do not match!');
+        return false;
+    }
+    
+    if (password.length < 8) {
+        e.preventDefault();
+        alert('Password must be at least 8 characters long!');
+        return false;
+    }
+    
+    if (securityType === 'wep' || securityType === 'none') {
+        if (!confirm('Warning: You have selected weak security. This may make your network vulnerable. Continue anyway?')) {
+            e.preventDefault();
+            return false;
+        }
+    }
+    
+    return true;
+});
+</script>
+{% endblock %}

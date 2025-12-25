@@ -1,0 +1,230 @@
+<!-- router/assignment_dashboard.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Router Assignment Dashboard - {{ tenant.name }}{% endblock %}
+
+{% block page_title %}Router Assignment Dashboard{% endblock %}
+{% block page_subtitle %}Manage router assignments to customers{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium mb-1">Total Routers</p>
+                    <p class="text-3xl font-bold">{{ stats.total }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-router text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium mb-1">Available</p>
+                    <p class="text-3xl font-bold">{{ stats.available }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium mb-1">Assigned</p>
+                    <p class="text-3xl font-bold">{{ stats.assigned }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-user-check text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm font-medium mb-1">Online</p>
+                    <p class="text-3xl font-bold">{{ stats.online }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-wifi text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-red-100 text-sm font-medium mb-1">Need Router</p>
+                    <p class="text-3xl font-bold">{{ stats.customers_without }}</p>
+                </div>
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-user-clock text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Quick Assign Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-bolt text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Quick Assign</h3>
+                        <p class="text-sm text-gray-500">Assign router to customer</p>
+                    </div>
+                </div>
+            </div>
+            <a href="{% url 'quick_assign_router' %}" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200 mb-3">
+                <i class="fas fa-bolt mr-2"></i> Quick Assignment
+            </a>
+            <a href="{% url 'router_assignment_list' %}" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-user-plus mr-2"></i> Manual Assignment
+            </a>
+        </div>
+
+        <!-- Bulk Assign Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-upload text-purple-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Bulk Assign</h3>
+                        <p class="text-sm text-gray-500">Assign multiple routers</p>
+                    </div>
+                </div>
+            </div>
+            <a href="{% url 'bulk_assignment' %}" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200 mb-3">
+                <i class="fas fa-upload mr-2"></i> Upload CSV/Excel
+            </a>
+            <a href="{% url 'download_assignment_template' %}" class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-download mr-2"></i> Download Template
+            </a>
+        </div>
+
+        <!-- View All Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-list text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Manage Assignments</h3>
+                        <p class="text-sm text-gray-500">View and manage all</p>
+                    </div>
+                </div>
+            </div>
+            <a href="{% url 'router_assignment_list' %}" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200 mb-3">
+                <i class="fas fa-list mr-2"></i> View All Assignments
+            </a>
+            <a href="{% url 'available_routers_api' %}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center transition-all duration-200">
+                <i class="fas fa-server mr-2"></i> Available Routers API
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Assignments -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Recent Assignments</h3>
+            <p class="text-sm text-gray-500 mt-1">Recently assigned routers to customers</p>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Router</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Customer</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Type</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">IP Address</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Assigned On</th>
+                        <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for assignment in recent_assignments %}
+                    <tr class="hover:bg-gray-50 transition duration-150">
+                        <td class="py-4 px-6">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                    <i class="fas fa-router text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-900">{{ assignment.name }}</div>
+                                    <div class="text-sm text-gray-500">{{ assignment.router_model }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if assignment.assigned_to %}
+                            <div class="text-sm font-medium text-gray-900">{{ assignment.assigned_to.username }}</div>
+                            <div class="text-xs text-gray-500">{{ assignment.assigned_to.email }}</div>
+                            {% else %}
+                            <span class="text-sm text-gray-400">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                {{ assignment.router_type|title }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-sm font-mono text-gray-900">{{ assignment.ip_address }}</td>
+                        <td class="py-4 px-6 text-sm text-gray-500">
+                            {{ assignment.created_at|date:"M d, Y" }}
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if assignment.is_online %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                Online
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                                Offline
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-12 text-center">
+                            <div class="text-gray-400 mb-3">
+                                <i class="fas fa-user-check text-4xl"></i>
+                            </div>
+                            <p class="text-gray-500 font-medium">No recent assignments</p>
+                            <p class="text-sm text-gray-400 mt-1">Start by assigning routers to customers</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Initialize any JavaScript functionality here if needed
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Router assignment dashboard loaded');
+});
+</script>
+{% endblock %}

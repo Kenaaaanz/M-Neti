@@ -1,0 +1,188 @@
+<!-- templates/router/assign_router.html -->
+{% extends 'accounts/isp_base.html' %}
+{% load static %}
+
+{% block title %}Assign Router - {{ router_config.name }}{% endblock %}
+
+{% block page_title %}Assign Router{% endblock %}
+{% block page_subtitle %}Assign {{ router_config.name }} to a customer{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <!-- Router Details -->
+        <div class="mb-8 p-6 bg-gray-50 rounded-xl">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-router text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">{{ router_config.name }}</h3>
+                        <p class="text-sm text-gray-500">{{ router_config.router_type|title }} • {{ router_config.router_model }}</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    Available
+                </span>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <p class="text-xs text-gray-500">IP Address</p>
+                    <p class="text-sm font-mono text-gray-900">{{ router_config.ip_address }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Port</p>
+                    <p class="text-sm font-mono text-gray-900">{{ router_config.web_port }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Username</p>
+                    <p class="text-sm text-gray-900">{{ router_config.username }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Status</p>
+                    <p class="text-sm">
+                        {% if router_config.is_online %}
+                        <span class="text-green-600 font-medium">Online</span>
+                        {% else %}
+                        <span class="text-red-600 font-medium">Offline</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignment Form -->
+        <div class="mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Select Customer</h3>
+            
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Please correct the errors below:</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                {% endfor %}
+                                {% for error in form.non_field_errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Customer Selection -->
+                <div class="space-y-4">
+                    <div>
+                        <label for="{{ form.customer.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Select Customer *
+                        </label>
+                        {{ form.customer }}
+                        {% if form.customer.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.customer.help_text }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Notes Field -->
+                    <div>
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Assignment Notes (Optional)
+                        </label>
+                        {{ form.notes }}
+                        <p class="mt-1 text-sm text-gray-500">Add any notes about this assignment</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'router_assignment_list' %}" 
+                       class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center">
+                        <i class="fas fa-user-check mr-2"></i>
+                        Assign Router to Customer
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Available Customers List -->
+        <div class="mt-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Available Customers</h3>
+            <p class="text-sm text-gray-600 mb-4">Customers without assigned routers:</p>
+            
+            {% if available_customers %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for customer in available_customers %}
+                <div class="border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-medium text-gray-900">{{ customer.username }}</h4>
+                            <p class="text-sm text-gray-500">{{ customer.email }}</p>
+                            {% if customer.first_name or customer.last_name %}
+                            <p class="text-xs text-gray-400 mt-1">{{ customer.first_name }} {{ customer.last_name }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs text-gray-400">
+                            Joined {{ customer.date_joined|date:"M d, Y" }}
+                        </span>
+                    </div>
+                    {% if customer.phone %}
+                    <div class="mt-3 flex items-center text-sm text-gray-600">
+                        <i class="fas fa-phone mr-2 text-gray-400"></i>
+                        {{ customer.phone }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 border border-gray-200 rounded-xl">
+                <i class="fas fa-users text-3xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500">All customers already have routers assigned</p>
+                <p class="text-sm text-gray-400 mt-1">Add more customers or unassign routers to assign them</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Style the select dropdown
+    const customerSelect = document.getElementById('{{ form.customer.id_for_label }}');
+    if (customerSelect) {
+        customerSelect.className = 'block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400';
+    }
+    
+    // Style the textarea
+    const notesTextarea = document.getElementById('{{ form.notes.id_for_label }}');
+    if (notesTextarea) {
+        notesTextarea.className = 'block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder-gray-400';
+        notesTextarea.rows = 3;
+    }
+    
+    // Auto-select customer from URL parameter if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const customerId = urlParams.get('customer_id');
+    if (customerId && customerSelect) {
+        customerSelect.value = customerId;
+    }
+});
+</script>
+{% endblock %}
